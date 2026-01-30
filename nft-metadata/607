@@ -1,0 +1,32 @@
+{
+  "name": "Love You 3000",
+  "description": "A hidden achievement for reaching Personal click #3000 in Clickstr. Unlocks the Iron Man red/gold cursor.",
+  "image": "ipfs://QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW/607_ironMan.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 607
+    },
+    {
+      "trait_type": "Type",
+      "value": "Personal Hidden"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "rare"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "edition"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Personal click #3000"
+    },
+    {
+      "trait_type": "Cursor",
+      "value": "Iron Man red/gold"
+    }
+  ]
+}

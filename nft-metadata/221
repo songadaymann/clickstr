@@ -1,0 +1,32 @@
+{
+  "name": "Blaze It",
+  "description": "A legendary 1/1 NFT awarded to the player who made Global click #420 in Clickstr. Only one will ever exist.",
+  "image": "ipfs://QmULij7pVE5C6kcddr3Caj9TAjZ5UCwKgnPKsUM533cM3S/221_NBAJam.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 221
+    },
+    {
+      "trait_type": "Type",
+      "value": "Global Hidden"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "legendary"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "1/1"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Global click #420"
+    },
+    {
+      "trait_type": "Arcade Game",
+      "value": "NBA Jam"
+    }
+  ]
+}

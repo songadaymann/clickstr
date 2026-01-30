@@ -19,12 +19,14 @@ A proof-of-work "clicker" game on Ethereum where clicking a button mines valid h
 
 ## Quick Links
 
-**Test Game (Sepolia):**
-- StupidClicker: `0x8ac0facc097ba05d70fa5A480F334A28B0802c7e`
-- NFT Contract: `0x36E0ecd8E2A5cb854c1F02f07933B81f439c28F8`
-- Token: `0xe068de6E3A830BB09b5dcdBB0cD0F631FDC23f28`
+**Test Game (Sepolia v4 - 24hr test):**
+- StupidClicker: `0x6dD800B88FEecbE7DaBb109884298590E5BbBf20`
+- NFT Contract: `0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3`
+- Token: `0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA`
 
-**Subgraph:** [Goldsky v1.0.1](https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/stupid-clicker-sepolia/1.0.1/gn)
+**Subgraph:** [Goldsky v1.0.2](https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/stupid-clicker-sepolia/1.0.2/gn)
+
+**NFT Metadata:** `ipfs://QmfZqEdzeEm61d3uSeFxBc1HasR3KC6rMsiRnxkvzM3Ywx/clickstr-metadata/`
 
 ## For LLMs
 

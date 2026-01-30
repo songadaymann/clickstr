@@ -1,9 +1,44 @@
 {
   "network": "sepolia",
   "chainId": 11155111,
-  "clickToken": "0xF493D552281ce8328308a04C8153568d3A8422aC",
-  "stupidClicker": "0xfA0C8a82DC76cA1dB2AD37e85b3DFD91e342F83C",
+  "season": {
+    "totalEpochs": 12,
+    "epochDuration": 7200,
+    "poolAmount": "2000000",
+    "seasonLengthDays": 1,
+    "targetClicksPerEpoch": 83333.33333333333,
+    "initialDifficulty": "115792089237316195423570985008687907853269984665640564039457584007913129639",
+    "nftContract": "0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3",
+    "tierBonuses": [
+      {
+        "tier": 4,
+        "bonus": 200
+      },
+      {
+        "tier": 6,
+        "bonus": 300
+      },
+      {
+        "tier": 8,
+        "bonus": 500
+      },
+      {
+        "tier": 9,
+        "bonus": 700
+      },
+      {
+        "tier": 11,
+        "bonus": 1000
+      }
+    ]
+  },
+  "contracts": {
+    "clickToken": "0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA",
+    "stupidClicker": "0x6dD800B88FEecbE7DaBb109884298590E5BbBf20"
+  },
   "deployer": "0xAd9fDaD276AB1A430fD03177A07350CD7C61E897",
-  "deployedAt": "2026-01-14T01:58:24.682Z",
-  "blockNumber": 10038774
+  "deployedAt": "2026-01-30T19:46:49.661Z",
+  "gameStartTime": "2026-01-30T19:46:48.000Z",
+  "gameEndTime": "2026-01-31T19:46:48.000Z",
+  "blockNumber": 10157487
 }

@@ -1,0 +1,32 @@
+{
+  "name": "Pi Squared",
+  "description": "A hidden achievement for reaching Personal click #31415 in Clickstr. Unlocks the Glowing blue equations cursor.",
+  "image": "ipfs://QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW/565_glowingBlueEquations.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 565
+    },
+    {
+      "trait_type": "Type",
+      "value": "Personal Hidden"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "epic"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "edition"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Personal click #31415"
+    },
+    {
+      "trait_type": "Cursor",
+      "value": "Glowing blue equations"
+    }
+  ]
+}

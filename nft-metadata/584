@@ -1,0 +1,32 @@
+{
+  "name": "2^12",
+  "description": "A hidden achievement for reaching Personal click #4096 in Clickstr. Unlocks the Pixel art (16-bit) cursor.",
+  "image": "ipfs://QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW/584_pixelArt16bit.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 584
+    },
+    {
+      "trait_type": "Type",
+      "value": "Personal Hidden"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "rare"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "edition"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Personal click #4096"
+    },
+    {
+      "trait_type": "Cursor",
+      "value": "Pixel art (16-bit)"
+    }
+  ]
+}

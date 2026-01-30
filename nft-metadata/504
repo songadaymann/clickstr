@@ -1,0 +1,32 @@
+{
+  "name": "Elite",
+  "description": "A hidden achievement for reaching Personal click #1337 in Clickstr. Unlocks the Matrix green (falling code) cursor.",
+  "image": "ipfs://QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW/504_matrixGreen.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 504
+    },
+    {
+      "trait_type": "Type",
+      "value": "Personal Hidden"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "rare"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "edition"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Personal click #1337"
+    },
+    {
+      "trait_type": "Cursor",
+      "value": "Matrix green (falling code)"
+    }
+  ]
+}

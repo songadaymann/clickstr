@@ -1,0 +1,32 @@
+{
+  "name": "The Final Day",
+  "description": "Awarded for achieving Final epoch participant in Clickstr. Unlocks the Sunset gradient cursor.",
+  "image": "ipfs://QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW/105_sunsetGradient.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 105
+    },
+    {
+      "trait_type": "Type",
+      "value": "Epoch"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "epic"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "edition"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Final epoch participant"
+    },
+    {
+      "trait_type": "Cursor",
+      "value": "Sunset gradient"
+    }
+  ]
+}

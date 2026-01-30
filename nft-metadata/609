@@ -1,0 +1,32 @@
+{
+  "name": "Seasons of Love",
+  "description": "A hidden achievement for reaching Personal click #525600 in Clickstr. Unlocks the Rainbow gradient cursor.",
+  "image": "ipfs://QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW/609_rainbowGradient.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 609
+    },
+    {
+      "trait_type": "Type",
+      "value": "Personal Hidden"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "legendary"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "edition"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Personal click #525600"
+    },
+    {
+      "trait_type": "Cursor",
+      "value": "Rainbow gradient"
+    }
+  ]
+}

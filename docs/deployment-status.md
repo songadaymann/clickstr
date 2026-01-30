@@ -2,26 +2,38 @@
 
 ## Current Test Deployment (Sepolia)
 
-**2-Day Compressed Test Environment**
+**24-Hour Test Environment (v4)**
 
 | Parameter | Production | Test |
 |-----------|------------|------|
-| Total Epochs | 90 | 24 |
+| Total Epochs | 90 | 12 |
 | Epoch Duration | 24 hours | 2 hours |
 | Pool Size | 100M | 2M |
-| Season Length | 90 days | 2 days |
+| Season Length | 90 days | 1 day |
 
 **Timeline:**
-- Start: 2026-01-28 16:19:24 UTC
-- End: 2026-01-30 16:19:24 UTC
+- Start: 2026-01-30 19:46:48 UTC
+- End: 2026-01-31 19:46:48 UTC
 
-### Test Contracts (v3 - Current)
+### Test Contracts (v4 - Current)
 
 | Contract | Address | Etherscan |
 |----------|---------|-----------|
-| MockClickToken | `0xe068de6E3A830BB09b5dcdBB0cD0F631FDC23f28` | [View](https://sepolia.etherscan.io/address/0xe068de6E3A830BB09b5dcdBB0cD0F631FDC23f28) |
-| StupidClickerNFT | `0x36E0ecd8E2A5cb854c1F02f07933B81f439c28F8` | [View](https://sepolia.etherscan.io/address/0x36E0ecd8E2A5cb854c1F02f07933B81f439c28F8) |
-| StupidClicker | `0x8ac0facc097ba05d70fa5A480F334A28B0802c7e` | [View](https://sepolia.etherscan.io/address/0x8ac0facc097ba05d70fa5A480F334A28B0802c7e) |
+| MockClickToken | `0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA` | [View](https://sepolia.etherscan.io/address/0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA) |
+| StupidClickerNFT | `0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3` | [View](https://sepolia.etherscan.io/address/0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3) |
+| StupidClicker | `0x6dD800B88FEecbE7DaBb109884298590E5BbBf20` | [View](https://sepolia.etherscan.io/address/0x6dD800B88FEecbE7DaBb109884298590E5BbBf20) |
+
+**NFT Contract Details:**
+- Signer: `0xf55E4fac663ad8db80284620F97D95391ab002EF`
+- BaseURI: `ipfs://QmfZqEdzeEm61d3uSeFxBc1HasR3KC6rMsiRnxkvzM3Ywx/clickstr-metadata/`
+- Owner: `0xAd9fDaD276AB1A430fD03177A07350CD7C61E897`
+
+**NFT Tier Bonuses (enabled):**
+- Tier 4 (1K clicks): +2%
+- Tier 6 (10K clicks): +3%
+- Tier 8 (50K clicks): +5%
+- Tier 9 (100K clicks): +7%
+- Tier 11 (500K clicks): +10%
 
 ### Previous Sepolia Deployments
 
@@ -52,12 +64,18 @@ Points to test contract: `0x8ac0facc097ba05d70fa5A480F334A28B0802c7e`
 
 ## Mainnet (Not Yet Deployed)
 
+### NFT Signer (Same for Testnet & Mainnet)
+- Address: `0xf55E4fac663ad8db80284620F97D95391ab002EF`
+- **IMPORTANT:** For mainnet, deploy NFT contract FROM this signer address so it's also the owner
+
 ### Required Steps
 1. Get production Turnstile keys from Cloudflare
-2. Create fresh NFT signer wallet
-3. Deploy contracts
+2. Deploy NFT contract from signer wallet (`0xf55E...`) so signer = owner
+3. Deploy StupidClicker and Token contracts
 4. Update frontend `NETWORK = 'mainnet'`
-5. Update Vercel env vars
+5. Update Vercel env vars:
+   - `NFT_CONTRACT_ADDRESS` = new mainnet NFT address
+   - `NFT_SIGNER_PRIVATE_KEY` = private key for `0xf55E...`
 6. Deploy mainnet subgraph
 
 ---
@@ -72,11 +90,11 @@ const NETWORK = 'sepolia';  // Change to 'mainnet' for production
 const NETWORKS = {
   sepolia: {
     chainId: 11155111,
-    contractAddress: '0x8ac0facc097ba05d70fa5A480F334A28B0802c7e',
-    tokenAddress: '0xe068de6E3A830BB09b5dcdBB0cD0F631FDC23f28',
-    nftContractAddress: '0x36E0ecd8E2A5cb854c1F02f07933B81f439c28F8',
+    contractAddress: '0x6dD800B88FEecbE7DaBb109884298590E5BbBf20',  // StupidClicker v4
+    tokenAddress: '0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA',     // MockClickToken v4
+    nftContractAddress: '0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3', // IPFS metadata
     turnstileSiteKey: '1x00000000000000000000AA',  // Test key
-    subgraphUrl: 'https://api.goldsky.com/.../1.0.1/gn'
+    subgraphUrl: 'https://api.goldsky.com/.../stupid-clicker-sepolia/1.0.2/gn'
   },
   mainnet: {
     chainId: 1,
@@ -148,6 +166,7 @@ GOLDSKY_API_KEY=...
 KV_REST_API_URL=...
 KV_REST_API_TOKEN=...
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA  # Test
-NFT_SIGNER_PRIVATE_KEY=0x...
-NFT_CONTRACT_ADDRESS=0x36E0ecd8E2A5cb854c1F02f07933B81f439c28F8
+NFT_SIGNER_PRIVATE_KEY=0x...  # Private key for 0xf55E4fac663ad8db80284620F97D95391ab002EF
+NFT_CONTRACT_ADDRESS=0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3
+STUPID_CLICKER_ADMIN_SECRET=...  # For admin reset endpoint (testing only)
 ```

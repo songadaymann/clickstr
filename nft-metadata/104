@@ -1,0 +1,32 @@
+{
+  "name": "Day One OG",
+  "description": "Awarded for achieving Epoch 1 participant in Clickstr. Unlocks the Vintage sepia cursor.",
+  "image": "ipfs://QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW/104_vintageSepia.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 104
+    },
+    {
+      "trait_type": "Type",
+      "value": "Epoch"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "epic"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "edition"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Epoch 1 participant"
+    },
+    {
+      "trait_type": "Cursor",
+      "value": "Vintage sepia"
+    }
+  ]
+}

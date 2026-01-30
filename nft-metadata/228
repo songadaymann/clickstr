@@ -1,0 +1,32 @@
+{
+  "name": "Jenny",
+  "description": "A legendary 1/1 NFT awarded to the player who made Global click #8675309 in Clickstr. Only one will ever exist.",
+  "image": "ipfs://QmULij7pVE5C6kcddr3Caj9TAjZ5UCwKgnPKsUM533cM3S/228_VirtuaFighter.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 228
+    },
+    {
+      "trait_type": "Type",
+      "value": "Global Hidden"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "legendary"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "1/1"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Global click #8675309"
+    },
+    {
+      "trait_type": "Arcade Game",
+      "value": "Virtua Fighter"
+    }
+  ]
+}

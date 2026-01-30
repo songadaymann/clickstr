@@ -3,11 +3,11 @@
   "chainId": 11155111,
   "contract": {
     "name": "StupidClickerNFT",
-    "address": "0x5b7D583E14B3AAC21d118CEF1e763441cd9af0Bd",
-    "signer": "0x01afc8FF608Bfbe4B18f53D004Ea7d1023BcDA3f",
-    "baseURI": "https://mann.cool/api/stupid-clicker/nft/"
+    "address": "0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3",
+    "signer": "0xf55E4fac663ad8db80284620F97D95391ab002EF",
+    "baseURI": "ipfs://QmfZqEdzeEm61d3uSeFxBc1HasR3KC6rMsiRnxkvzM3Ywx/clickstr-metadata/"
   },
   "deployer": "0xAd9fDaD276AB1A430fD03177A07350CD7C61E897",
-  "deployedAt": "2026-01-29T01:28:49.395Z",
-  "blockNumber": 10145184
+  "deployedAt": "2026-01-30T18:37:39.973Z",
+  "blockNumber": 10157149
 }

@@ -1,0 +1,32 @@
+{
+  "name": "Perfect Attendance",
+  "description": "Awarded for achieving 90-day streak in Clickstr. Unlocks the White/plasma flame cursor.",
+  "image": "ipfs://QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW/103_whitePlasmaFlame.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 103
+    },
+    {
+      "trait_type": "Type",
+      "value": "Streak"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "legendary"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "edition"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "90-day streak"
+    },
+    {
+      "trait_type": "Cursor",
+      "value": "White/plasma flame"
+    }
+  ]
+}

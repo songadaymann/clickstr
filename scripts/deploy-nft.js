@@ -7,14 +7,23 @@ const path = require("path");
  *
  * Environment variables:
  *   NFT_SIGNER_ADDRESS - Address that will sign claim messages (server wallet)
- *   NFT_BASE_URI       - Base URI for token metadata (default: https://mann.cool/api/stupid-clicker/nft/)
+ *   NFT_BASE_URI       - Base URI for token metadata (auto-loads from nft-ipfs-config.json if available)
  *
  * Example:
  *   NFT_SIGNER_ADDRESS=0x... npx hardhat run scripts/deploy-nft.js --network sepolia
  */
 async function main() {
   const signerAddress = process.env.NFT_SIGNER_ADDRESS;
-  const baseURI = process.env.NFT_BASE_URI || "https://mann.cool/api/stupid-clicker/nft/";
+
+  // Load baseURI from IPFS config if available, otherwise use env or default
+  let baseURI = process.env.NFT_BASE_URI;
+  const ipfsConfigPath = path.join(__dirname, "..", "nft-ipfs-config.json");
+  if (!baseURI && fs.existsSync(ipfsConfigPath)) {
+    const ipfsConfig = JSON.parse(fs.readFileSync(ipfsConfigPath, "utf-8"));
+    baseURI = ipfsConfig.baseURI;
+    console.log("Loaded baseURI from nft-ipfs-config.json");
+  }
+  baseURI = baseURI || "https://mann.cool/api/stupid-clicker/nft/";
 
   if (!signerAddress) {
     console.error("ERROR: NFT_SIGNER_ADDRESS environment variable is required");

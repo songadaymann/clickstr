@@ -145,9 +145,157 @@ Deployed v2 contracts to Sepolia with all fixes.
 - Frontend config restructured for easy network switching
 - Circular button click zone (not entire screen)
 - Subgraph redeployed for test contract (v1.0.1)
-- Three-tier leaderboard complete:
-  - Global (merged frontend + contract)
-  - Hardcore (frontend only)
-  - Scripted (subgraph only)
-- "See All Rankings" modal with tabs
+- Three-tier leaderboard → simplified to single leaderboard with human/bot indicators:
+  - 🧑 = has frontend activity (human)
+  - 🤖 = contract-only submissions (bot/script)
+- On-chain clicks (subgraph) now authoritative, frontend activity indicates human usage
 - Fixed "Anonymous" display name bug
+
+## Session: January 30, 2026 (Later) - Test Game End & Repo Setup
+
+### Test Game Completed Successfully
+
+Called `endGame()` after 2-day test period. Final results:
+
+| Metric | Value |
+|--------|-------|
+| You (0xAd9f...) | ~3,241 CLICK (won epochs 2, 3, 4) |
+| Bot (0x3d94...) | ~210 CLICK (won epoch 1) |
+| **Burned** | **~1,996,549 CLICK (99.8%)** |
+
+Confirmed all mechanics working:
+- ✅ Winner bonuses distributed at epoch finalization
+- ✅ 50% burn during gameplay
+- ✅ Remaining pool burned at game end
+- ✅ Tokens distributed immediately on `submitClicks()`, not at game end
+
+### New GitHub Repo: Clickstr
+
+Renamed project and created fresh repo: **https://github.com/songadaymann/clickstr**
+
+- Cleaned `.gitignore` (excluded build artifacts, logs, old images)
+- Fresh git history, 137 files committed
+
+### Global 1/1 Milestones - Arcade Game Themes
+
+Updated `milestones-v2.csv` with classic arcade game names:
+
+**Main Global (200-213):**
+- 200: The First Click → Spacewar
+- 201: The Tenth → Pong
+- 202: Century → Space Invaders
+- 203: Thousandaire → Asteroids
+- 204: Ten Grand → Beserk
+- 205: Hundred Thousandth → Galaxian
+- 206: Millionth Click → PacMan
+- 207: Ten Million → Tempest
+- 208: Hundred Million → Centipede
+- 209: Billionaire → Donkey Kong
+- 210: Ten Billion → Frogger (NEW)
+- 211: Hundred Billion → DigDug (NEW)
+- 212: One Trillion → Joust (NEW)
+- 213: Ten Trillion → PolePosition (NEW)
+
+**Hidden Global (220-229):**
+- Nice → Smash TV
+- Blaze It → NBA Jam
+- Devil's Click → Mortal Kombat
+- Lucky Sevens → Jurassic Park
+- Elite → Area 51
+- The Perfect Number → TMNT
+- Ultra Nice → X-Men
+- Calculator Masterpiece → Street Fighter 2
+- Jenny → Virtua Fighter
+- Meaning of Everything → Cruis'n USA
+
+### Launch Prep
+
+Planning mainnet launch tomorrow:
+1. Fresh Sepolia deployment as dress rehearsal
+2. Production Turnstile configured in Vercel
+3. Deploy cursors and 1/1 artwork to IPFS
+4. Set up Vercel deployment for clickstr site
+
+## Session: January 30, 2026 (Evening) - IPFS NFT Metadata & Fresh Test Deployment
+
+### NFT Assets Uploaded to IPFS (Pinata)
+
+Verified all 98 milestone images present:
+- 74 cursor images (personal + streak milestones)
+- 24 one-of-one images (global 1/1s)
+
+Created `scripts/upload-nft-assets.js` which:
+1. Parses `milestones-v2.csv` for milestone definitions
+2. Uploads cursor images to IPFS
+3. Uploads 1/1 NFT images to IPFS
+4. Generates ERC1155 metadata JSON for each tier
+5. Uploads metadata directory to IPFS
+6. Saves config to `nft-ipfs-config.json`
+
+**IPFS Hashes:**
+| Asset | CID |
+|-------|-----|
+| Cursors | `QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW` |
+| 1/1 NFTs | `QmULij7pVE5C6kcddr3Caj9TAjZ5UCwKgnPKsUM533cM3S` |
+| Metadata | `QmfZqEdzeEm61d3uSeFxBc1HasR3KC6rMsiRnxkvzM3Ywx` |
+
+**NFT BaseURI:** `ipfs://QmfZqEdzeEm61d3uSeFxBc1HasR3KC6rMsiRnxkvzM3Ywx/clickstr-metadata/`
+
+### NFT Contract Redeployed with IPFS Metadata
+
+Deployed new StupidClickerNFT with IPFS baseURI:
+- Address: `0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3`
+- Signer: `0xf55E4fac663ad8db80284620F97D95391ab002EF`
+- Owner: `0xAd9fDaD276AB1A430fD03177A07350CD7C61E897`
+
+**Note for mainnet:** Deploy NFT contract FROM the signer wallet so signer = owner.
+
+### Admin Reset Endpoint
+
+Created `/api/stupid-clicker-admin-reset` on mann.cool for testing:
+- Resets off-chain Redis data (clicks, milestones, achievements, streaks)
+- Protected by `STUPID_CLICKER_ADMIN_SECRET` env var
+- Can reset single address or ALL data
+- NEVER use in production once game is live!
+
+### Fresh 24-Hour Test Deployment (v4)
+
+Deployed new season for testing:
+
+| Parameter | Value |
+|-----------|-------|
+| Total Epochs | 12 |
+| Epoch Duration | 2 hours |
+| Pool Size | 2M CLICK |
+| Season Length | 24 hours |
+
+**Contracts (v4):**
+- StupidClicker: `0x6dD800B88FEecbE7DaBb109884298590E5BbBf20`
+- MockClickToken: `0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA`
+- NFT Contract: `0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3`
+
+**Timeline:**
+- Start: 2026-01-30 19:46:48 UTC
+- End: 2026-01-31 19:46:48 UTC
+
+**NFT Tier Bonuses (enabled for first time!):**
+- Tier 4 (1K clicks): +2%
+- Tier 6 (10K clicks): +3%
+- Tier 8 (50K clicks): +5%
+- Tier 9 (100K clicks): +7%
+- Tier 11 (500K clicks): +10%
+- Max bonus: 27%
+
+### Subgraph Updated
+
+Deployed v1.0.2 to Goldsky pointing to new contract:
+```
+https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/stupid-clicker-sepolia/1.0.2/gn
+```
+
+### Files Updated
+- `public/index.html` - contract addresses, subgraph URL
+- `docs/deployment-status.md` - v4 contract info
+- `subgraph/subgraph.yaml` - new contract address + start block
+- `.env` - Pinata credentials (fixed format)
+- `nft-ipfs-config.json` - IPFS hashes for deploy script

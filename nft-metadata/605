@@ -1,0 +1,32 @@
+{
+  "name": "Space Odyssey",
+  "description": "A hidden achievement for reaching Personal click #2001 in Clickstr. Unlocks the Starfield/space cursor.",
+  "image": "ipfs://QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW/605_starfield.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 605
+    },
+    {
+      "trait_type": "Type",
+      "value": "Personal Hidden"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "rare"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "edition"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Personal click #2001"
+    },
+    {
+      "trait_type": "Cursor",
+      "value": "Starfield/space"
+    }
+  ]
+}

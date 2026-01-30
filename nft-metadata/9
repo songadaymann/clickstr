@@ -1,0 +1,32 @@
+{
+  "name": "Legend",
+  "description": "Achieved by reaching 100000 clicks in Clickstr. Unlocks the Diamond/Crystal cursor.",
+  "image": "ipfs://QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW/009_diamontCrystal.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 9
+    },
+    {
+      "trait_type": "Type",
+      "value": "Personal"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "epic"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "edition"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "100000 clicks"
+    },
+    {
+      "trait_type": "Cursor",
+      "value": "Diamond/Crystal"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "The Perfect Number",
+  "description": "A hidden achievement for reaching Personal click #42069 in Clickstr. Unlocks the Vaporwave (pink/cyan gradient) cursor.",
+  "image": "ipfs://QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW/506_vaporwave.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 506
+    },
+    {
+      "trait_type": "Type",
+      "value": "Personal Hidden"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "epic"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "edition"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Personal click #42069"
+    },
+    {
+      "trait_type": "Cursor",
+      "value": "Vaporwave (pink/cyan gradient)"
+    }
+  ]
+}

@@ -1380,6 +1380,125 @@
       text-shadow: 0 0 8px rgba(255, 0, 0, 0.4);
     }
 
+    /* ============ LEGENDARY 1/1 TROPHY SECTION ============ */
+    .trophy-section {
+      margin-bottom: 24px;
+      padding: 16px;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.05) 100%);
+      border: 2px solid #ffd700;
+      border-radius: 8px;
+      box-shadow:
+        0 0 20px rgba(255, 215, 0, 0.3),
+        inset 0 0 30px rgba(255, 215, 0, 0.1);
+    }
+
+    .trophy-section.empty {
+      display: none;
+    }
+
+    .trophy-title {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ffd700;
+      font-size: 18px;
+      text-align: center;
+      margin-bottom: 16px;
+      text-shadow:
+        0 0 10px rgba(255, 215, 0, 0.8),
+        0 0 20px rgba(255, 215, 0, 0.5);
+      letter-spacing: 2px;
+    }
+
+    .trophy-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .trophy-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 20px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid #ffd700;
+      border-radius: 8px;
+      min-width: 120px;
+      box-shadow:
+        0 0 15px rgba(255, 215, 0, 0.4),
+        inset 0 0 20px rgba(255, 215, 0, 0.1);
+      animation: trophyGlow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes trophyGlow {
+      from { box-shadow: 0 0 15px rgba(255, 215, 0, 0.4), inset 0 0 20px rgba(255, 215, 0, 0.1); }
+      to { box-shadow: 0 0 25px rgba(255, 215, 0, 0.6), inset 0 0 30px rgba(255, 215, 0, 0.2); }
+    }
+
+    .trophy-emoji {
+      font-size: 48px;
+      margin-bottom: 8px;
+      filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
+    }
+
+    .trophy-name {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ffd700;
+      font-size: 14px;
+      text-align: center;
+      text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+    }
+
+    .trophy-click-num {
+      font-family: 'DSEG7Modern', 'Courier New', monospace;
+      color: #ffaa00;
+      font-size: 12px;
+      margin-top: 4px;
+      opacity: 0.8;
+    }
+
+    /* ============ CONFETTI CANVAS ============ */
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 10000;
+    }
+
+    /* ============ DISCO LIGHT EFFECT ============ */
+    #disco-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    #disco-overlay.active {
+      opacity: 1;
+      animation: discoStrobe 0.15s infinite;
+    }
+
+    @keyframes discoStrobe {
+      0% { background: radial-gradient(circle at 30% 30%, rgba(255, 0, 0, 0.4) 0%, transparent 50%),
+                       radial-gradient(circle at 70% 70%, rgba(0, 0, 255, 0.4) 0%, transparent 50%); }
+      25% { background: radial-gradient(circle at 70% 30%, rgba(0, 255, 0, 0.4) 0%, transparent 50%),
+                        radial-gradient(circle at 30% 70%, rgba(255, 255, 0, 0.4) 0%, transparent 50%); }
+      50% { background: radial-gradient(circle at 50% 20%, rgba(255, 0, 255, 0.4) 0%, transparent 50%),
+                        radial-gradient(circle at 50% 80%, rgba(0, 255, 255, 0.4) 0%, transparent 50%); }
+      75% { background: radial-gradient(circle at 20% 50%, rgba(255, 165, 0, 0.4) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 50%, rgba(138, 43, 226, 0.4) 0%, transparent 50%); }
+      100% { background: radial-gradient(circle at 30% 30%, rgba(255, 0, 0, 0.4) 0%, transparent 50%),
+                         radial-gradient(circle at 70% 70%, rgba(0, 0, 255, 0.4) 0%, transparent 50%); }
+    }
+
     /* ============ RESPONSIVE STYLES ============ */
 
     /* Tablets and smaller desktops */
@@ -1788,12 +1907,25 @@
     </div>
   </div>
 
+  <!-- Confetti Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Disco Light Overlay -->
+  <div id="disco-overlay"></div>
+
   <!-- Collection Modal -->
   <div id="collection-modal" class="modal">
     <div class="collection-modal-content">
       <div class="collection-header">
         <span class="collection-title">Your Collection</span>
         <button class="collection-close-btn" id="collection-close-btn">X</button>
+      </div>
+      <!-- Trophy Section for 1/1 Global Milestones -->
+      <div class="trophy-section" id="trophy-section">
+        <div class="trophy-title">LEGENDARY 1/1s</div>
+        <div class="trophy-grid" id="trophy-grid">
+          <!-- Populated by JS -->
+        </div>
       </div>
       <div class="collection-subtitle">Click a cursor to equip it</div>
       <div class="collection-grid" id="collection-grid">
@@ -1836,9 +1968,9 @@
         chainId: 11155111,
         chainName: 'Sepolia',
         rpcUrl: 'https://eth-sepolia.g.alchemy.com/v2/lY4FnFecvRH4ns5zx4tRWH3MAy6IUNi9',
-        contractAddress: '0xfA0C8a82DC76cA1dB2AD37e85b3DFD91e342F83C',  // StupidClicker
-        tokenAddress: '0xF493D552281ce8328308a04C8153568d3A8422aC',     // MockClickToken
-        nftContractAddress: '0x5b7D583E14B3AAC21d118CEF1e763441cd9af0Bd', // StupidClickerNFT
+        contractAddress: '0x6dD800B88FEecbE7DaBb109884298590E5BbBf20',  // StupidClicker (v4 - 24hr test)
+        tokenAddress: '0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA',     // MockClickToken (v4)
+        nftContractAddress: '0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3', // StupidClickerNFT (IPFS metadata)
         // Test Turnstile key - always passes (for development only!)
         turnstileSiteKey: '1x00000000000000000000AA',
       },
@@ -1849,8 +1981,8 @@
         contractAddress: '0x...', // TODO: Deploy and add mainnet StupidClicker address
         tokenAddress: '0x...',    // TODO: Deploy $CLICK via TokenWorks and add address
         nftContractAddress: '0x...', // TODO: Deploy and add mainnet NFT address
-        // Production Turnstile key - get from Cloudflare dashboard
-        turnstileSiteKey: 'YOUR_PRODUCTION_TURNSTILE_SITE_KEY', // TODO: Add production key
+        // Production Turnstile key for clickstr.fun
+        turnstileSiteKey: '0x4AAAAAACV0UOMmCeG_g2Jr',
       }
     };
 
@@ -1860,7 +1992,7 @@
       maxBatchSize: 500,
       walletConnectProjectId: '0cfe5ae6ddbf271b5829f52573da812b',
       apiUrl: 'https://mann.cool/api/stupid-clicker',
-      subgraphUrl: 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/stupid-clicker-sepolia/1.0.1/gn',
+      subgraphUrl: 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/stupid-clicker-sepolia/1.0.2/gn',
     };
 
     const NFT_CONTRACT_ABI = [
@@ -2437,8 +2569,109 @@
     imgDown.src = 'button-down.jpg';
     const soundDown = new Audio('button-down.mp3');
     const soundUp = new Audio('button-up.mp3');
+    const soundMilestone = new Audio('sounds/zeldasound.mp3');
+    const soundGlobalMilestone = new Audio('sounds/globalMilestone.mp3');
     soundDown.preload = 'auto';
     soundUp.preload = 'auto';
+    soundMilestone.preload = 'auto';
+    soundGlobalMilestone.preload = 'auto';
+
+    // ========== CONFETTI SYSTEM ==========
+    const confettiCanvas = document.getElementById('confetti-canvas');
+    const confettiCtx = confettiCanvas.getContext('2d');
+    let confettiParticles = [];
+    let confettiAnimationId = null;
+
+    function resizeConfettiCanvas() {
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+    }
+    resizeConfettiCanvas();
+    window.addEventListener('resize', resizeConfettiCanvas);
+
+    function createConfettiParticle() {
+      const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffd700', '#ff6600'];
+      return {
+        x: Math.random() * confettiCanvas.width,
+        y: -20,
+        size: Math.random() * 10 + 5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        speedY: Math.random() * 3 + 2,
+        speedX: (Math.random() - 0.5) * 4,
+        rotation: Math.random() * 360,
+        rotationSpeed: (Math.random() - 0.5) * 10,
+        shape: Math.random() > 0.5 ? 'rect' : 'circle'
+      };
+    }
+
+    function launchConfetti(duration = 3000) {
+      const startTime = Date.now();
+      const particleInterval = setInterval(() => {
+        for (let i = 0; i < 5; i++) {
+          confettiParticles.push(createConfettiParticle());
+        }
+      }, 50);
+
+      setTimeout(() => clearInterval(particleInterval), duration);
+
+      if (!confettiAnimationId) {
+        animateConfetti();
+      }
+    }
+
+    function animateConfetti() {
+      confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+
+      confettiParticles = confettiParticles.filter(p => p.y < confettiCanvas.height + 20);
+
+      for (const p of confettiParticles) {
+        p.y += p.speedY;
+        p.x += p.speedX;
+        p.rotation += p.rotationSpeed;
+
+        confettiCtx.save();
+        confettiCtx.translate(p.x, p.y);
+        confettiCtx.rotate(p.rotation * Math.PI / 180);
+        confettiCtx.fillStyle = p.color;
+
+        if (p.shape === 'rect') {
+          confettiCtx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        } else {
+          confettiCtx.beginPath();
+          confettiCtx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          confettiCtx.fill();
+        }
+        confettiCtx.restore();
+      }
+
+      if (confettiParticles.length > 0) {
+        confettiAnimationId = requestAnimationFrame(animateConfetti);
+      } else {
+        confettiAnimationId = null;
+      }
+    }
+
+    // ========== DISCO LIGHT EFFECT ==========
+    const discoOverlay = document.getElementById('disco-overlay');
+
+    function triggerDiscoEffect(duration = 11000) {
+      discoOverlay.classList.add('active');
+      setTimeout(() => {
+        discoOverlay.classList.remove('active');
+      }, duration);
+    }
+
+    // ========== CELEBRATION FUNCTIONS ==========
+    function celebratePersonalMilestone() {
+      soundMilestone.cloneNode().play();
+      launchConfetti(3000);
+    }
+
+    function celebrateGlobalMilestone() {
+      soundGlobalMilestone.cloneNode().play();
+      triggerDiscoEffect(11000);
+      launchConfetti(5000);
+    }
 
     let isPressed = false;
     let isMiningClick = false;
@@ -2747,12 +2980,70 @@
     }
 
     function showCollectionModal() {
+      renderTrophySection();
       renderCollectionGrid();
       collectionModal.classList.add('visible');
     }
 
     function hideCollectionModal() {
       collectionModal.classList.remove('visible');
+    }
+
+    // Global 1/1 tiers (200-213 main, 220-229 hidden)
+    const GLOBAL_ONE_OF_ONE_TIERS = [
+      { tier: 200, name: 'Spacewar', globalClick: 1 },
+      { tier: 201, name: 'Pong', globalClick: 10 },
+      { tier: 202, name: 'Space Invaders', globalClick: 100 },
+      { tier: 203, name: 'Asteroids', globalClick: 1000 },
+      { tier: 204, name: 'Berzerk', globalClick: 10000 },
+      { tier: 205, name: 'Galaxian', globalClick: 100000 },
+      { tier: 206, name: 'PacMan', globalClick: 1000000 },
+      { tier: 207, name: 'Tempest', globalClick: 10000000 },
+      { tier: 208, name: 'Centipede', globalClick: 100000000 },
+      { tier: 209, name: 'Donkey Kong', globalClick: 1000000000 },
+      { tier: 210, name: 'Frogger', globalClick: 10000000000 },
+      { tier: 211, name: 'DigDug', globalClick: 100000000000 },
+      { tier: 212, name: 'Joust', globalClick: 1000000000000 },
+      { tier: 213, name: 'PolePosition', globalClick: 10000000000000 },
+      // Hidden global 1/1s
+      { tier: 220, name: 'Smash TV', globalClick: 69 },
+      { tier: 221, name: 'NBA Jam', globalClick: 420 },
+      { tier: 222, name: 'Mortal Kombat', globalClick: 666 },
+      { tier: 223, name: 'Jurassic Park', globalClick: 777 },
+      { tier: 224, name: 'Area 51', globalClick: 1337 },
+      { tier: 225, name: 'Street Fighter 2', globalClick: 8008 },
+      { tier: 226, name: 'TMNT', globalClick: 42069 },
+      { tier: 227, name: 'X-Men', globalClick: 69420 },
+      { tier: 228, name: 'Virtua Fighter', globalClick: 420420 },
+      { tier: 229, name: "Cruis'n USA", globalClick: 696969 },
+    ];
+
+    const trophySection = document.getElementById('trophy-section');
+    const trophyGrid = document.getElementById('trophy-grid');
+
+    function renderTrophySection() {
+      // Find which global 1/1s the user has claimed
+      const ownedTrophies = GLOBAL_ONE_OF_ONE_TIERS.filter(t => claimedOnChain.has(t.tier));
+
+      if (ownedTrophies.length === 0) {
+        trophySection.classList.add('empty');
+        return;
+      }
+
+      trophySection.classList.remove('empty');
+      trophyGrid.innerHTML = '';
+
+      for (const trophy of ownedTrophies) {
+        const info = MILESTONE_INFO[trophy.tier] || { emoji: '🏆' };
+        const div = document.createElement('div');
+        div.className = 'trophy-item';
+        div.innerHTML = `
+          <span class="trophy-emoji">${info.emoji}</span>
+          <span class="trophy-name">${trophy.name}</span>
+          <span class="trophy-click-num">Click #${trophy.globalClick.toLocaleString()}</span>
+        `;
+        trophyGrid.appendChild(div);
+      }
     }
 
     function renderCollectionGrid() {
@@ -2850,9 +3141,12 @@
     function handleAchievements(data) {
       // Collect all claimable achievements
       const claimable = [];
+      let hasPersonalMilestone = false;
+      let hasGlobalMilestone = false;
 
       // Handle personal milestones (newMilestones array)
       if (data.newMilestones?.length > 0) {
+        hasPersonalMilestone = true;
         for (const m of data.newMilestones) {
           showAchievementToast(m.name, m.cosmetic ? `Unlocked: ${m.cosmetic}` : 'Achievement unlocked!');
           if (m.tier) claimable.push({ id: m.id, tier: m.tier });
@@ -2864,6 +3158,7 @@
       if (data.newAchievements?.length > 0) {
         for (const a of data.newAchievements) {
           if (a.type === 'global') {
+            hasGlobalMilestone = true;
             showAchievementToast(`🏆 ${a.name}`, '1/1 NFT incoming!');
           } else if (a.type === 'hidden') {
             showAchievementToast(`🎯 ${a.name}`, 'Secret achievement!');
@@ -2876,6 +3171,14 @@
           }
           if (a.tier) claimable.push({ id: a.id, tier: a.tier });
         }
+      }
+
+      // Trigger celebration effects
+      // Global milestone takes priority (bigger celebration)
+      if (hasGlobalMilestone) {
+        celebrateGlobalMilestone();
+      } else if (hasPersonalMilestone) {
+        celebratePersonalMilestone();
       }
 
       // Queue up claim modals (show first one after toast, queue the rest)

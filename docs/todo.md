@@ -3,9 +3,9 @@
 ## Pre-Mainnet Checklist
 
 ### Configuration
-- [ ] Get production Turnstile keys from Cloudflare dashboard
-- [ ] Update `CONFIG.turnstileSiteKey` in frontend
-- [ ] Add `TURNSTILE_SECRET_KEY` to Vercel env (production key)
+- [x] Get production Turnstile keys from Cloudflare dashboard
+- [x] Update `CONFIG.turnstileSiteKey` in frontend (`0x4AAAAAACV0UOMmCeG_g2Jr`)
+- [x] Add `TURNSTILE_SECRET_KEY` to Vercel env (mann.cool)
 - [ ] Create fresh NFT signer wallet for mainnet
 - [ ] Add `NFT_SIGNER_PRIVATE_KEY` to Vercel env
 
@@ -27,81 +27,26 @@
 
 ---
 
-## Art Assets (~120 needed)
+## Art Assets - COMPLETED
 
-### Cursor PNGs (95)
-Location: `/public/cursors/`
-Format: 32x32 or 48x48 PNG
+All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 
-**Main Progression:**
-- [ ] white.png
-- [ ] gray.png
-- [ ] bronze.png
-- [ ] bronze-glow.png
-- [ ] silver.png
-- [ ] silver-glow.png
-- [ ] gold.png
-- [ ] gold-glow.png
-- [ ] platinum.png
-- [ ] diamond.png
-- [ ] diamond-glow.png
-- [ ] cosmic.png
+**Uploaded (98 total):**
+- [x] 74 cursor images (personal + streak milestones)
+- [x] 24 one-of-one images (global 1/1s)
+- [x] 98 ERC1155 metadata JSON files generated
 
-**Streak/Epoch:**
-- [ ] fire.png
-- [ ] fire-intense.png
-- [ ] fire-inferno.png
-- [ ] genesis.png
-- [ ] finale.png
+**IPFS Hashes:**
+| Asset | CID |
+|-------|-----|
+| Cursors | `QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW` |
+| 1/1 NFTs | `QmULij7pVE5C6kcddr3Caj9TAjZ5UCwKgnPKsUM533cM3S` |
+| Metadata | `QmfZqEdzeEm61d3uSeFxBc1HasR3KC6rMsiRnxkvzM3Ywx` |
 
-**Meme Themed:**
-- [ ] pink.png (Nice)
-- [ ] green.png (420)
-- [ ] hellfire.png (666)
-- [ ] lucky.png (777)
-- [ ] elite.png (1337)
-- [ ] calculator.png (8008)
-- [ ] perfect.png (42069)
-- [ ] ultra-nice.png (69420)
-- ... (see milestones-and-nfts.md for full list)
+**NFT BaseURI:** `ipfs://QmfZqEdzeEm61d3uSeFxBc1HasR3KC6rMsiRnxkvzM3Ywx/clickstr-metadata/`
 
-### NFT Artwork (~60)
-
-**Personal Milestones (12):**
-- [ ] nft-first-timer.png
-- [ ] nft-getting-started.png
-- [ ] nft-warming-up.png
-- [ ] nft-dedicated.png
-- [ ] nft-serious-clicker.png
-- [ ] nft-obsessed.png
-- [ ] nft-no-sleep.png
-- [ ] nft-touch-grass.png
-- [ ] nft-legend.png
-- [ ] nft-ascended.png
-- [ ] nft-transcendent.png
-- [ ] nft-click-god.png
-
-**Streak Achievements (5):**
-- [ ] nft-week-warrior.png
-- [ ] nft-month-master.png
-- [ ] nft-perfect-attendance.png
-- [ ] nft-day-one-og.png
-- [ ] nft-final-day.png
-
-**Global 1/1s (~30):**
-- [ ] nft-first-click.png (1)
-- [ ] nft-century.png (100)
-- [ ] nft-thousandaire.png (1,000)
-- [ ] nft-ten-grand.png (10,000)
-- [ ] nft-hundred-thousandth.png (100,000)
-- [ ] nft-millionth.png (1,000,000)
-- [ ] nft-ten-million.png (10,000,000)
-- [ ] nft-hundred-million.png (100,000,000)
-- [ ] nft-billionaire.png (1,000,000,000)
-- [ ] ... (hidden global 1/1s)
-
-**Hidden Personal (~50):**
-- [ ] See milestones-and-nfts.md for full list
+**Upload Script:** `scripts/upload-nft-assets.js`
+**Config File:** `nft-ipfs-config.json`
 
 ---
 

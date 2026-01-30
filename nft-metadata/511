@@ -1,0 +1,32 @@
+{
+  "name": "Nice Nice Nice",
+  "description": "A hidden achievement for reaching Personal click #696969 in Clickstr. Unlocks the Hot pink neon glow cursor.",
+  "image": "ipfs://QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW/511_hotNeonPink.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 511
+    },
+    {
+      "trait_type": "Type",
+      "value": "Personal Hidden"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "epic"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "edition"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Personal click #696969"
+    },
+    {
+      "trait_type": "Cursor",
+      "value": "Hot pink neon glow"
+    }
+  ]
+}

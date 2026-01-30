@@ -1,0 +1,32 @@
+{
+  "name": "More Pi",
+  "description": "A hidden achievement for reaching Personal click #3141 in Clickstr. Unlocks the Blue with pi symbol cursor.",
+  "image": "ipfs://QmVk3Eh4wZqyYpVs5iWM8P7XGrtHA5L685F1XEptRLsBrW/564_blueWithPI.png",
+  "external_url": "https://clickstr.xyz",
+  "attributes": [
+    {
+      "trait_type": "Tier",
+      "value": 564
+    },
+    {
+      "trait_type": "Type",
+      "value": "Personal Hidden"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "rare"
+    },
+    {
+      "trait_type": "Edition Type",
+      "value": "edition"
+    },
+    {
+      "trait_type": "Requirement",
+      "value": "Personal click #3141"
+    },
+    {
+      "trait_type": "Cursor",
+      "value": "Blue with pi symbol"
+    }
+  ]
+}
