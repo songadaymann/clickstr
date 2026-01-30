@@ -1338,6 +1338,15 @@
       filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.5));
     }
 
+    .collection-item-img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      margin-bottom: 8px;
+      border-radius: 4px;
+      filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.5));
+    }
+
     .collection-item-slot {
       width: 48px;
       height: 48px;
@@ -3135,10 +3144,19 @@
         div.className = 'collection-item' + (isMinted ? '' : ' locked') + (isEquipped ? ' equipped' : '');
 
         if (isMinted) {
-          // Show the earned item with emoji and name
-          const info = MILESTONE_INFO[slot.tier] || { emoji: '🎖️' };
+          // Show the earned item with cursor image (or 1/1 NFT image for globals)
+          let iconHtml;
+          if (slot.cursor) {
+            iconHtml = `<img src="cursors/${slot.cursor}.png" class="collection-item-img" alt="${slot.name}">`;
+          } else if (slot.tier >= 200 && slot.tier < 500) {
+            // Global 1/1 - use one-of-ones image
+            iconHtml = `<img src="one-of-ones/${slot.tier}.png" class="collection-item-img" alt="${slot.name}">`;
+          } else {
+            const info = MILESTONE_INFO[slot.tier] || { emoji: '🎖️' };
+            iconHtml = `<span class="collection-item-emoji">${info.emoji}</span>`;
+          }
           div.innerHTML = `
-            <span class="collection-item-emoji">${info.emoji}</span>
+            ${iconHtml}
             <span class="collection-item-name">${slot.name}</span>
           `;
 
