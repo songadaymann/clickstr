@@ -93,7 +93,7 @@ const NETWORKS = {
     contractAddress: '0x6dD800B88FEecbE7DaBb109884298590E5BbBf20',  // StupidClicker v4
     tokenAddress: '0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA',     // MockClickToken v4
     nftContractAddress: '0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3', // IPFS metadata
-    turnstileSiteKey: '1x00000000000000000000AA',  // Test key
+    turnstileSiteKey: '0x4AAAAAACV0UOMmCeG_g2Jr',  // Production key (works on clickstr.fun)
     subgraphUrl: 'https://api.goldsky.com/.../stupid-clicker-sepolia/1.0.2/gn'
   },
   mainnet: {

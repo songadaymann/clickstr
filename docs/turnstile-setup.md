@@ -125,3 +125,37 @@ Cloudflare provides test keys that always pass/fail:
 - [ ] Frontend is using correct `NETWORK` config (sepolia vs mainnet)
 - [ ] Token is not being reused (each token can only be verified once)
 - [ ] Check mann.cool Vercel logs for actual Cloudflare error codes
+
+---
+
+## Client-Side Error Codes (Jan 30, 2026)
+
+Added error code logging to frontend. The error-callback now logs the Turnstile error code:
+
+```javascript
+'error-callback': (errorCode) => {
+  console.error('Turnstile error:', errorCode);
+  statusEl.textContent = 'Verification failed';
+}
+```
+
+### Error Code Families
+
+| Family | Category | Meaning |
+|--------|----------|---------|
+| `100***` | Initialization | Page reload needed |
+| `102***` | Network params | Connection/browser issues |
+| `103***` | Browser params | Compatibility issues |
+| `200***` | Widget issues | State problems |
+| `300***` | Challenge failure | **Bot behavior detected** |
+| `400***` | Configuration | Invalid options |
+
+### Note on 300*** Errors
+
+If you see `300***` errors, Cloudflare is detecting bot-like behavior. Try:
+1. Different browser or incognito mode
+2. Disable browser extensions (especially wallet extensions)
+3. Disable VPN/proxy
+4. Try different network (mobile hotspot)
+
+The 401 errors on Private Access Token (`/pat/`) URLs are **expected** and can be ignored if the widget eventually succeeds.

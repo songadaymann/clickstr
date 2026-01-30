@@ -60,9 +60,14 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 - [x] Mobile responsiveness
 - [x] Collection modal (95 slots)
 - [x] Cursor cosmetics system (scaffolded)
+- [x] Cursor PNG assets renamed and working (73 cursors)
+- [x] One-of-one NFT images renamed and working (24 images)
+- [x] Mint Rewards panel shows cursor/NFT images instead of emojis
+- [x] Claim modal shows cursor/NFT images instead of emojis
+- [x] NFT claim API fix (send tier number instead of milestone string)
+- [x] Turnstile error code logging for debugging
 
 ### Remaining
-- [ ] Show cosmetic unlocks working (needs PNG assets)
 - [ ] Add click effects/particles for special achievements
 - [ ] Show streak counter in header
 - [ ] Sound effects for achievements
