@@ -1,0 +1,9 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "clickToken": "0xF493D552281ce8328308a04C8153568d3A8422aC",
+  "stupidClicker": "0xfA0C8a82DC76cA1dB2AD37e85b3DFD91e342F83C",
+  "deployer": "0xAd9fDaD276AB1A430fD03177A07350CD7C61E897",
+  "deployedAt": "2026-01-14T01:58:24.682Z",
+  "blockNumber": 10038774
+}

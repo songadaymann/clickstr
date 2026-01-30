@@ -1,0 +1,3417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stupid Clicker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script>window.process = { env: {} };</script>
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.17.0/dist/index.umd.min.js"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Courier New', monospace;
+      background: #000;
+    }
+
+    /* Full-screen button container */
+    #game {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #button-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center center;
+      display: block;
+    }
+
+    /* Circular click zone - centered on button */
+    #button-click-zone {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(35vw, 35vh);
+      height: min(35vw, 35vh);
+      border-radius: 50%;
+      cursor: pointer;
+      /* Uncomment to debug: */
+      /* background: rgba(255, 0, 0, 0.3); */
+    }
+
+    /* UI Overlay - controlled by JS based on actual button bounds */
+    #ui-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+
+    #ui-overlay.hidden {
+      opacity: 0;
+    }
+
+    /* All interactive elements need pointer-events restored */
+    #ui-overlay button,
+    #ui-overlay .clickable,
+    #nft-panel,
+    #nft-panel .nft-item,
+    #leaderboard-panel {
+      pointer-events: auto;
+    }
+
+    /* Top bar */
+    #top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
+    }
+
+    #stats {
+      display: none; /* Hidden - replaced by arcade displays */
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-label {
+      color: rgba(255,255,255,0.6);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-value {
+      color: #0f0;
+      font-size: 20px;
+      font-weight: bold;
+      text-shadow: 0 0 10px rgba(0,255,0,0.5);
+    }
+
+    .stat-value.cyan {
+      color: #0ff;
+      text-shadow: 0 0 10px rgba(0,255,255,0.5);
+    }
+
+    /* ============ ARCADE BUTTON STYLE ============ */
+    .arcade-btn {
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 12px 20px;
+      border: 3px solid;
+      border-radius: 4px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.1s;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+    }
+
+    .arcade-btn::before {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      right: 2px;
+      height: 40%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.3), transparent);
+      border-radius: 2px 2px 0 0;
+      pointer-events: none;
+    }
+
+    .arcade-btn:active {
+      transform: translateY(2px);
+      box-shadow: none !important;
+    }
+
+    #connect-btn {
+      background: linear-gradient(to bottom, #00cc00, #009900);
+      border-color: #00ff00 #006600 #006600 #00ff00;
+      color: #ffffff;
+      box-shadow: 0 4px 0 #004400, 0 0 20px rgba(0, 255, 0, 0.4);
+    }
+
+    #connect-btn:hover {
+      background: linear-gradient(to bottom, #00ee00, #00bb00);
+      box-shadow: 0 4px 0 #004400, 0 0 30px rgba(0, 255, 0, 0.6);
+    }
+
+    #connect-btn.connected {
+      background: linear-gradient(to bottom, #0099ff, #0066cc);
+      border-color: #00ccff #003366 #003366 #00ccff;
+      box-shadow: 0 4px 0 #003366, 0 0 20px rgba(0, 153, 255, 0.4);
+    }
+
+    #connect-btn.wrong-network {
+      background: linear-gradient(to bottom, #ff4444, #cc0000);
+      border-color: #ff6666 #660000 #660000 #ff6666;
+      box-shadow: 0 4px 0 #660000, 0 0 20px rgba(255, 0, 0, 0.4);
+    }
+
+    /* Bottom bar */
+    #bottom-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+    }
+
+    #status {
+      display: none; /* Hidden - too debug-like */
+    }
+
+    #submit-btn {
+      background: linear-gradient(to bottom, #ffaa00, #ff8800);
+      border: 3px solid;
+      border-color: #ffcc00 #cc6600 #cc6600 #ffcc00;
+      color: #ffffff;
+      padding: 12px 24px;
+      cursor: pointer;
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-radius: 4px;
+      transition: all 0.1s;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+      box-shadow: 0 4px 0 #994400, 0 0 20px rgba(255, 136, 0, 0.4);
+      position: relative;
+    }
+
+    #submit-btn::before {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      right: 2px;
+      height: 40%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.3), transparent);
+      border-radius: 2px 2px 0 0;
+      pointer-events: none;
+    }
+
+    #submit-btn:hover:not(:disabled) {
+      background: linear-gradient(to bottom, #ffcc00, #ffaa00);
+      box-shadow: 0 4px 0 #994400, 0 0 30px rgba(255, 136, 0, 0.6);
+    }
+
+    #submit-btn:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    #submit-btn:disabled {
+      background: linear-gradient(to bottom, #444444, #333333);
+      border-color: #555555 #222222 #222222 #555555;
+      color: #666666;
+      box-shadow: 0 4px 0 #111111;
+      cursor: not-allowed;
+      text-shadow: none;
+    }
+
+    /* Center info - epoch/pool - SIMPLE SEGMENT DISPLAY */
+    #center-info {
+      position: absolute;
+      bottom: 100px;
+      left: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .info-box {
+      background: rgba(0, 0, 0, 0.85);
+      padding: 12px 16px;
+      border-radius: 4px;
+      border: 2px solid #330000;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
+    }
+
+    .info-label {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+      text-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
+      opacity: 0.7;
+    }
+
+    .info-value {
+      font-family: 'DSEG7', monospace;
+      color: #ff0000;
+      font-size: 20px;
+      text-shadow:
+        0 0 10px rgba(255, 0, 0, 0.8),
+        0 0 20px rgba(255, 0, 0, 0.4);
+    }
+
+    /* ============ ARCADE SEGMENTED DISPLAY ============ */
+    /* DSEG7 - 7-segment display font */
+    @font-face {
+      font-family: 'DSEG7';
+      src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2'),
+           url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff') format('woff');
+      font-weight: bold;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'SevenSegment';
+      src: url('Fonts/Seven Segment.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    .arcade-display {
+      font-family: 'DSEG7', 'Courier New', monospace;
+      color: #ff0000;
+      text-shadow:
+        0 0 10px rgba(255, 0, 0, 0.8),
+        0 0 20px rgba(255, 0, 0, 0.5),
+        0 0 30px rgba(255, 0, 0, 0.3);
+      letter-spacing: 2px;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 8px 16px;
+      border-radius: 4px;
+      border: 2px solid #330000;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+    }
+
+    .arcade-label {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      font-size: 12px;
+      color: #ff0000;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+      text-align: center;
+      text-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
+      opacity: 0.7;
+    }
+
+    /* Top center - Current clicks (prominent) */
+    #current-clicks-display {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    #current-clicks-display .arcade-display {
+      font-size: 48px;
+      min-width: 200px;
+      text-align: center;
+    }
+
+    /* Bottom center - All-time stats */
+    #alltime-stats-display {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 30px;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .alltime-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .alltime-stat .arcade-display {
+      font-size: 24px;
+      min-width: 140px;
+      text-align: center;
+    }
+
+    /* Hide old click counter */
+    #click-counter {
+      display: none !important;
+    }
+
+    /* Mining indicator */
+    #mining-indicator {
+      position: absolute;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #ff0;
+      font-size: 14px;
+      text-shadow: 0 0 10px rgba(255,255,0,0.5);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    #mining-indicator.visible {
+      opacity: 1;
+    }
+
+    /* Modals - ARCADE STYLE */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.visible {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #111111;
+      border: 4px solid #333333;
+      border-radius: 4px;
+      padding: 24px;
+      max-width: 360px;
+      width: 90%;
+      box-shadow:
+        inset 0 0 30px rgba(0, 0, 0, 0.8),
+        0 0 40px rgba(0, 255, 255, 0.2),
+        0 0 80px rgba(0, 255, 255, 0.1);
+      position: relative;
+    }
+
+    .modal-content::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.1) 2px,
+          rgba(0, 0, 0, 0.1) 4px
+        );
+      pointer-events: none;
+      border-radius: 2px;
+    }
+
+    .modal-title {
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      color: #00ffff;
+      font-size: 12px;
+      margin-bottom: 24px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+    }
+
+    .wallet-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(to bottom, #222222, #1a1a1a);
+      border: 3px solid;
+      border-color: #444444 #222222 #222222 #444444;
+      border-radius: 4px;
+      padding: 14px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      color: #ffffff;
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      font-size: 9px;
+      width: 100%;
+      transition: all 0.1s;
+      text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+      box-shadow: 0 3px 0 #111111;
+    }
+
+    .wallet-option:hover {
+      background: linear-gradient(to bottom, #333333, #222222);
+      box-shadow: 0 3px 0 #111111, 0 0 15px rgba(0, 255, 255, 0.3);
+    }
+
+    .wallet-option:active {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    .wallet-option img {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      border: 2px solid #444;
+    }
+
+    .modal-close {
+      background: linear-gradient(to bottom, #333333, #222222);
+      border: 3px solid;
+      border-color: #444444 #222222 #222222 #444444;
+      color: #888888;
+      padding: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 8px;
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 3px 0 #111111;
+      transition: all 0.1s;
+    }
+
+    .modal-close:hover {
+      background: linear-gradient(to bottom, #444444, #333333);
+      color: #ffffff;
+      box-shadow: 0 3px 0 #111111, 0 0 10px rgba(255, 255, 255, 0.1);
+    }
+
+    .modal-close:active {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    /* Turnstile modal - ARCADE STYLE */
+    .turnstile-content {
+      background: #111111;
+      border: 4px solid #333333;
+      border-radius: 4px;
+      padding: 24px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow:
+        inset 0 0 30px rgba(0, 0, 0, 0.8),
+        0 0 40px rgba(255, 255, 0, 0.2);
+    }
+
+    .turnstile-title {
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      color: #ffff00;
+      font-size: 10px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 15px rgba(255, 255, 0, 0.8);
+    }
+
+    .turnstile-subtitle {
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      color: #888888;
+      font-size: 7px;
+      margin-bottom: 20px;
+    }
+
+    #turnstile-widget {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    /* Achievement toast - ARCADE STYLE */
+    #achievement-toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #111111;
+      border: 3px solid #00ff00;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 4px;
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      font-size: 8px;
+      z-index: 1500;
+      opacity: 0;
+      transition: all 0.3s ease-out;
+      pointer-events: none;
+      box-shadow:
+        0 0 20px rgba(0, 255, 0, 0.5),
+        0 0 40px rgba(0, 255, 0, 0.3),
+        inset 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+
+    #achievement-toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .achievement-name {
+      color: #00ff00;
+      font-size: 10px;
+      margin-bottom: 6px;
+      text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+    }
+
+    /* NFT Claim Modal - ARCADE STYLE */
+    .claim-modal-content {
+      background: #111111;
+      border: 4px solid #333333;
+      border-radius: 4px;
+      padding: 24px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .claim-modal-title {
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      color: #ffd700;
+      font-size: 11px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+    }
+
+    .claim-modal-subtitle {
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      color: #888888;
+      font-size: 7px;
+      margin-bottom: 20px;
+    }
+
+    .claim-nft-preview {
+      width: 120px;
+      height: 120px;
+      border-radius: 4px;
+      background: #222222;
+      border: 3px solid #444444;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      box-shadow:
+        inset 0 0 20px rgba(0, 0, 0, 0.8),
+        0 0 15px rgba(255, 215, 0, 0.3);
+    }
+
+    .claim-tier-name {
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      color: #00ff00;
+      font-size: 10px;
+      margin-bottom: 8px;
+      text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+    }
+
+    .claim-tier-desc {
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      color: #888888;
+      font-size: 7px;
+      margin-bottom: 20px;
+    }
+
+    .claim-btn {
+      background: linear-gradient(to bottom, #00cc00, #009900);
+      border: 3px solid;
+      border-color: #00ff00 #006600 #006600 #00ff00;
+      color: white;
+      padding: 14px 28px;
+      cursor: pointer;
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-radius: 4px;
+      transition: all 0.1s;
+      width: 100%;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 0 #004400, 0 0 20px rgba(0, 255, 0, 0.4);
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+    }
+
+    .claim-btn:hover:not(:disabled) {
+      background: linear-gradient(to bottom, #00ee00, #00bb00);
+      box-shadow: 0 4px 0 #004400, 0 0 30px rgba(0, 255, 0, 0.6);
+    }
+
+    .claim-btn:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    .claim-btn:disabled {
+      background: linear-gradient(to bottom, #444444, #333333);
+      border-color: #555555 #222222 #222222 #555555;
+      color: #666666;
+      box-shadow: 0 4px 0 #111111;
+      cursor: not-allowed;
+      text-shadow: none;
+    }
+
+    .claim-btn.claiming {
+      background: linear-gradient(to bottom, #666666, #555555);
+    }
+
+    .claim-later-btn {
+      background: linear-gradient(to bottom, #333333, #222222);
+      border: 3px solid;
+      border-color: #444444 #222222 #222222 #444444;
+      color: #888888;
+      padding: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      font-size: 7px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 3px 0 #111111;
+      transition: all 0.1s;
+    }
+
+    .claim-later-btn:hover {
+      background: linear-gradient(to bottom, #444444, #333333);
+      color: #ffffff;
+    }
+
+    .claim-later-btn:active {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    .claim-gas-note {
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      color: #555555;
+      font-size: 6px;
+      margin-top: 12px;
+    }
+
+    /* ============ LEADERBOARD PANEL - SIMPLE SEGMENT DISPLAY ============ */
+    #leaderboard-panel {
+      position: absolute;
+      top: calc(50% - 180px);
+      right: 30px;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.85);
+      border: 2px solid #330000;
+      border-radius: 4px;
+      padding: 20px 24px;
+      min-width: 300px;
+      z-index: 100;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
+    }
+
+    .leaderboard-header {
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .leaderboard-title {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 20px;
+      text-shadow:
+        0 0 10px rgba(255, 0, 0, 0.8),
+        0 0 20px rgba(255, 0, 0, 0.5);
+      letter-spacing: 3px;
+    }
+
+    .leaderboard-global {
+      display: block;
+      margin-top: 8px;
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 14px;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+      opacity: 0.7;
+    }
+
+    .leaderboard-global-count {
+      font-family: 'DSEG7', monospace;
+      color: #ff0000;
+      font-size: 14px;
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+    }
+
+    .leaderboard-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #220000;
+      font-family: 'DSEG7', monospace;
+    }
+
+    .leaderboard-item:last-child {
+      border-bottom: none;
+    }
+
+    .leaderboard-item.is-you {
+      background: transparent;
+    }
+
+    .leaderboard-rank {
+      color: #ff0000;
+      width: 40px;
+      text-align: left;
+      font-size: 14px;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+      opacity: 0.6;
+    }
+
+    .leaderboard-rank.gold,
+    .leaderboard-rank.silver,
+    .leaderboard-rank.bronze {
+      color: #ff0000;
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+      opacity: 1;
+    }
+
+    .leaderboard-indicator {
+      font-size: 14px;
+      margin-right: 6px;
+    }
+
+    .leaderboard-name {
+      flex: 1;
+      color: #ff0000;
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin: 0 10px;
+      text-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
+      opacity: 0.8;
+    }
+
+    .leaderboard-name.is-you {
+      color: #ff0000;
+      opacity: 1;
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+    }
+
+    .leaderboard-clicks {
+      color: #ff0000;
+      font-family: 'DSEG7', monospace;
+      font-size: 18px;
+      text-shadow:
+        0 0 10px rgba(255, 0, 0, 0.8),
+        0 0 20px rgba(255, 0, 0, 0.4);
+    }
+
+    .leaderboard-separator {
+      display: none;
+    }
+
+    .leaderboard-you {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #330000;
+    }
+
+    .leaderboard-you-label {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+      opacity: 0.7;
+    }
+
+    .leaderboard-loading {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 14px;
+      text-align: center;
+      padding: 20px 0;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+      opacity: 0.5;
+    }
+
+    .see-rankings-btn {
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px;
+      background: linear-gradient(to bottom, #220000, #110000);
+      border: 1px solid #440000;
+      color: #ff0000;
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 2px;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+      transition: all 0.2s;
+    }
+
+    .see-rankings-btn:hover {
+      background: linear-gradient(to bottom, #330000, #220000);
+      border-color: #660000;
+      text-shadow: 0 0 12px rgba(255, 0, 0, 0.8);
+    }
+
+    /* ============ RANKINGS MODAL ============ */
+    .rankings-modal-content {
+      background: rgba(0, 0, 0, 0.95);
+      border: 3px solid #330000;
+      border-radius: 4px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow:
+        inset 0 0 30px rgba(0, 0, 0, 0.9),
+        0 0 40px rgba(255, 0, 0, 0.2);
+    }
+
+    .rankings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .rankings-title {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 24px;
+      text-shadow:
+        0 0 10px rgba(255, 0, 0, 0.8),
+        0 0 20px rgba(255, 0, 0, 0.5);
+      letter-spacing: 3px;
+    }
+
+    .rankings-close-btn {
+      background: transparent;
+      border: 2px solid #440000;
+      color: #ff0000;
+      width: 32px;
+      height: 32px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+
+    .rankings-close-btn:hover {
+      background: #330000;
+      border-color: #660000;
+    }
+
+    .rankings-indicator {
+      font-size: 16px;
+      margin-right: 8px;
+      filter: grayscale(0);
+    }
+
+    .rankings-list-container {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 400px;
+    }
+
+    .rankings-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .rankings-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 8px;
+      border-bottom: 1px solid #220000;
+      font-family: 'DSEG7', monospace;
+    }
+
+    .rankings-item:last-child {
+      border-bottom: none;
+    }
+
+    .rankings-item.is-you {
+      background: rgba(255, 0, 0, 0.1);
+    }
+
+    .rankings-rank {
+      color: #ff0000;
+      width: 50px;
+      text-align: left;
+      font-size: 16px;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+    }
+
+    .rankings-rank.gold { color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.8); }
+    .rankings-rank.silver { color: #c0c0c0; text-shadow: 0 0 10px rgba(192, 192, 192, 0.8); }
+    .rankings-rank.bronze { color: #cd7f32; text-shadow: 0 0 10px rgba(205, 127, 50, 0.8); }
+
+    .rankings-name {
+      flex: 1;
+      color: #ff0000;
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      font-size: 14px;
+      text-shadow: 0 0 6px rgba(255, 0, 0, 0.4);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rankings-name.is-you {
+      color: #00ff00;
+      text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+    }
+
+    .rankings-clicks {
+      color: #ff0000;
+      font-size: 16px;
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+      min-width: 80px;
+      text-align: right;
+    }
+
+    .rankings-loading {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 14px;
+      text-align: center;
+      padding: 40px 0;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+      opacity: 0.5;
+    }
+
+    /* ============ NFT PANEL - SIMPLE SEGMENT DISPLAY ============ */
+    #nft-panel {
+      position: absolute;
+      top: calc(50% + 220px);
+      right: 30px;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.85);
+      border: 2px solid #330000;
+      border-radius: 4px;
+      padding: 20px 24px;
+      min-width: 300px;
+      z-index: 100;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
+      display: none; /* Hidden until wallet connected and has claimable NFTs */
+    }
+
+    .nft-header {
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .nft-title {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 20px;
+      text-shadow:
+        0 0 10px rgba(255, 0, 0, 0.8),
+        0 0 20px rgba(255, 0, 0, 0.5);
+      letter-spacing: 3px;
+    }
+
+    .nft-count {
+      font-family: 'DSEG7', monospace;
+      color: #ff0000;
+      font-size: 14px;
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+      margin-left: 10px;
+    }
+
+    .nft-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 350px;
+      overflow-y: auto;
+    }
+
+    .nft-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #220000;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nft-item:last-child {
+      border-bottom: none;
+    }
+
+    .nft-item:hover {
+      background: rgba(255, 0, 0, 0.1);
+    }
+
+    .nft-item.claimed {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    .nft-item.claimed:hover {
+      background: transparent;
+    }
+
+    .nft-emoji {
+      font-size: 20px;
+      margin-right: 12px;
+      filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.5));
+    }
+
+    .nft-info {
+      flex: 1;
+    }
+
+    .nft-name {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 16px;
+      margin-bottom: 4px;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+    }
+
+    .nft-desc {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 12px;
+      opacity: 0.5;
+      text-shadow: 0 0 4px rgba(255, 0, 0, 0.3);
+    }
+
+    .nft-status {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      font-size: 14px;
+      padding: 5px 10px;
+      border-radius: 2px;
+    }
+
+    .nft-status.claimable {
+      background: transparent;
+      color: #00ff00;
+      border: 1px solid #00ff00;
+      text-shadow: 0 0 8px rgba(0, 255, 0, 0.8);
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+    }
+
+    .nft-status.claimed {
+      background: transparent;
+      color: #ff0000;
+      border: 1px solid #330000;
+      opacity: 0.4;
+    }
+
+    .nft-empty {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 14px;
+      text-align: center;
+      padding: 20px 0;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+      opacity: 0.5;
+    }
+
+    .nft-footer {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #330000;
+      text-align: center;
+    }
+
+    .see-collection-btn {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      font-size: 14px;
+      color: #ff0000;
+      background: transparent;
+      border: 1px solid #ff0000;
+      padding: 8px 16px;
+      cursor: pointer;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
+      transition: all 0.2s;
+    }
+
+    .see-collection-btn:hover {
+      background: rgba(255, 0, 0, 0.1);
+      box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+    }
+
+    /* ============ COLLECTION MODAL ============ */
+    .collection-modal-content {
+      background: rgba(0, 0, 0, 0.95);
+      border: 2px solid #330000;
+      border-radius: 4px;
+      padding: 32px;
+      width: 90vw;
+      max-width: 900px;
+      max-height: 85vh;
+      box-shadow:
+        inset 0 0 30px rgba(0, 0, 0, 0.9),
+        0 0 40px rgba(255, 0, 0, 0.3);
+    }
+
+    .collection-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .collection-title {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 24px;
+      text-shadow:
+        0 0 10px rgba(255, 0, 0, 0.8),
+        0 0 20px rgba(255, 0, 0, 0.5);
+      letter-spacing: 3px;
+    }
+
+    .collection-close-btn {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      font-size: 18px;
+      color: #ff0000;
+      background: transparent;
+      border: 1px solid #330000;
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+      transition: all 0.2s;
+    }
+
+    .collection-close-btn:hover {
+      border-color: #ff0000;
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
+    }
+
+    .collection-subtitle {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 12px;
+      opacity: 0.6;
+      margin-bottom: 20px;
+      text-shadow: 0 0 6px rgba(255, 0, 0, 0.4);
+    }
+
+    .collection-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      max-height: 55vh;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .collection-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .collection-modal-content {
+        padding: 16px;
+        width: 95vw;
+      }
+    }
+
+    .collection-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 12px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid #220000;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .collection-item:hover {
+      background: rgba(255, 0, 0, 0.1);
+      border-color: #ff0000;
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+    }
+
+    .collection-item.equipped {
+      border-color: #00ff00;
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+    }
+
+    .collection-item.locked {
+      opacity: 0.5;
+      cursor: default;
+      border-style: dashed;
+    }
+
+    .collection-item.locked:hover {
+      background: rgba(0, 0, 0, 0.5);
+      border-color: #220000;
+      box-shadow: none;
+    }
+
+    .collection-cursor-preview {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 8px;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.5));
+    }
+
+    .collection-item-emoji {
+      font-size: 32px;
+      margin-bottom: 8px;
+      filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.5));
+    }
+
+    .collection-item-slot {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 8px;
+      border: 2px dashed #330000;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'SevenSegment', monospace;
+      color: #330000;
+      font-size: 20px;
+    }
+
+    .collection-item-name {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 14px;
+      text-align: center;
+      text-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
+    }
+
+    .collection-item.equipped .collection-item-name {
+      color: #00ff00;
+      text-shadow: 0 0 6px rgba(0, 255, 0, 0.5);
+    }
+
+    .collection-footer {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #330000;
+      text-align: center;
+    }
+
+    .equipped-cursor {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .equipped-label {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 14px;
+      opacity: 0.7;
+      text-shadow: 0 0 6px rgba(255, 0, 0, 0.4);
+    }
+
+    .equipped-cursor-name {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #00ff00;
+      font-size: 16px;
+      text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+    }
+
+    .collection-empty {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 14px;
+      text-align: center;
+      padding: 40px 20px;
+      opacity: 0.5;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.4);
+    }
+
+    /* ============ RESPONSIVE STYLES ============ */
+
+    /* Tablets and smaller desktops */
+    @media (max-width: 1024px) {
+      #leaderboard-panel {
+        min-width: 220px;
+        right: 15px;
+        padding: 12px 16px;
+      }
+
+      #nft-panel {
+        min-width: 200px;
+        left: 15px;
+        padding: 12px 16px;
+      }
+
+      #center-info {
+        left: 15px;
+      }
+
+      #current-clicks-display .arcade-display {
+        font-size: 36px;
+        min-width: 160px;
+      }
+
+      .alltime-stat .arcade-display {
+        font-size: 18px;
+        min-width: 110px;
+      }
+
+      #alltime-stats-display {
+        gap: 20px;
+      }
+    }
+
+    /* Mobile landscape and small tablets */
+    @media (max-width: 768px) {
+      /* Hide side panels on mobile - focus on the button */
+      #leaderboard-panel,
+      #nft-panel,
+      #center-info {
+        display: none !important;
+      }
+
+      /* Scale down the arcade displays */
+      #current-clicks-display {
+        top: 10px;
+      }
+
+      #current-clicks-display .arcade-display {
+        font-size: 28px;
+        min-width: 140px;
+        padding: 6px 12px;
+      }
+
+      #current-clicks-display .arcade-label {
+        font-size: 8px;
+      }
+
+      #alltime-stats-display {
+        bottom: 70px;
+        gap: 15px;
+      }
+
+      .alltime-stat .arcade-display {
+        font-size: 16px;
+        min-width: 90px;
+        padding: 4px 8px;
+      }
+
+      .alltime-stat .arcade-label {
+        font-size: 7px;
+      }
+
+      /* Adjust top bar */
+      #top-bar {
+        padding: 10px 15px;
+      }
+
+      #connect-btn {
+        font-size: 8px;
+        padding: 10px 16px;
+      }
+
+      /* Adjust bottom bar */
+      #bottom-bar {
+        padding: 10px 15px;
+      }
+
+      #status {
+        font-size: 6px;
+      }
+
+      #submit-btn {
+        font-size: 8px;
+        padding: 10px 18px;
+      }
+    }
+
+    /* Mobile portrait */
+    @media (max-width: 480px) {
+      #current-clicks-display .arcade-display {
+        font-size: 24px;
+        min-width: 120px;
+        padding: 5px 10px;
+      }
+
+      #current-clicks-display .arcade-label {
+        font-size: 7px;
+        letter-spacing: 1px;
+      }
+
+      #alltime-stats-display {
+        bottom: 65px;
+        gap: 10px;
+        flex-direction: row;
+      }
+
+      .alltime-stat .arcade-display {
+        font-size: 14px;
+        min-width: 75px;
+        padding: 4px 6px;
+      }
+
+      .alltime-stat .arcade-label {
+        font-size: 6px;
+        letter-spacing: 1px;
+      }
+
+      #connect-btn {
+        font-size: 7px;
+        padding: 8px 12px;
+      }
+
+      #submit-btn {
+        font-size: 7px;
+        padding: 8px 14px;
+      }
+
+      #status {
+        font-size: 5px;
+        max-width: 150px;
+      }
+
+      /* Modal adjustments */
+      .modal-content {
+        padding: 16px;
+        max-width: 300px;
+      }
+
+      .modal-title {
+        font-size: 10px;
+      }
+
+      .wallet-option {
+        padding: 12px;
+        font-size: 8px;
+      }
+
+      .wallet-option img {
+        width: 28px;
+        height: 28px;
+      }
+
+      /* Claim modal */
+      .claim-modal-content {
+        padding: 16px;
+      }
+
+      .claim-modal-title {
+        font-size: 10px;
+      }
+
+      .claim-nft-preview {
+        font-size: 40px;
+      }
+
+      .claim-tier-name {
+        font-size: 10px;
+      }
+
+      .claim-btn {
+        font-size: 8px;
+        padding: 10px 20px;
+      }
+
+      .claim-later-btn {
+        font-size: 6px;
+        padding: 8px;
+      }
+    }
+
+    /* Very small screens */
+    @media (max-width: 360px) {
+      #current-clicks-display .arcade-display {
+        font-size: 20px;
+        min-width: 100px;
+      }
+
+      .alltime-stat .arcade-display {
+        font-size: 12px;
+        min-width: 65px;
+      }
+
+      #alltime-stats-display {
+        gap: 8px;
+      }
+
+      #connect-btn {
+        font-size: 6px;
+        padding: 6px 10px;
+      }
+
+      #submit-btn {
+        font-size: 6px;
+        padding: 6px 12px;
+      }
+    }
+
+    /* Landscape orientation on mobile - adjust vertical spacing */
+    @media (max-height: 500px) and (orientation: landscape) {
+      #current-clicks-display {
+        top: 5px;
+      }
+
+      #current-clicks-display .arcade-display {
+        font-size: 20px;
+        padding: 4px 8px;
+      }
+
+      #current-clicks-display .arcade-label {
+        font-size: 6px;
+        margin-bottom: 2px;
+      }
+
+      #alltime-stats-display {
+        bottom: 55px;
+      }
+
+      .alltime-stat .arcade-display {
+        font-size: 14px;
+        padding: 3px 6px;
+      }
+
+      .alltime-stat .arcade-label {
+        font-size: 5px;
+      }
+
+      #top-bar {
+        padding: 5px 10px;
+      }
+
+      #bottom-bar {
+        padding: 5px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <img id="button-img" src="button-up.jpg" alt="Click me!">
+
+    <!-- Circular click zone - centered on button -->
+    <div id="button-click-zone"></div>
+
+    <!-- UI Overlay - appears on hover -->
+    <div id="ui-overlay">
+      <!-- Top bar: Stats + Connect -->
+      <div id="top-bar">
+        <div id="stats">
+          <div class="stat">
+            <span class="stat-label">Clicks</span>
+            <span class="stat-value" id="valid-clicks">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Earned</span>
+            <span class="stat-value cyan" id="earned">0</span>
+          </div>
+        </div>
+        <button id="connect-btn" class="arcade-btn">Connect Wallet</button>
+      </div>
+
+      <!-- Left side info -->
+      <div id="center-info">
+        <div class="info-box">
+          <div class="info-label">Epoch</div>
+          <div class="info-value" id="epoch-info">- / -</div>
+        </div>
+        <div class="info-box">
+          <div class="info-label">Pool</div>
+          <div class="info-value" id="pool-info">-</div>
+        </div>
+      </div>
+
+      <!-- Left side: NFT Panel -->
+      <div id="nft-panel">
+        <div class="nft-header">
+          <span class="nft-title">Mint Rewards</span>
+          <span class="nft-count" id="nft-claimable-count">0</span>
+        </div>
+        <ul class="nft-list" id="nft-list">
+          <li class="nft-empty">Connect wallet to see rewards</li>
+        </ul>
+        <div class="nft-footer">
+          <button class="see-collection-btn" id="see-collection-btn">See Collection</button>
+        </div>
+      </div>
+
+      <!-- Right side: Leaderboard -->
+      <div id="leaderboard-panel">
+        <div class="leaderboard-header">
+          <span class="leaderboard-title">Leaderboard</span>
+          <span class="leaderboard-global">
+            Global: <span class="leaderboard-global-count" id="global-clicks">0</span>
+          </span>
+        </div>
+        <ul class="leaderboard-list" id="leaderboard-list">
+          <li class="leaderboard-loading">Loading...</li>
+        </ul>
+        <div class="leaderboard-you" id="leaderboard-you" style="display: none;">
+          <div class="leaderboard-you-label">Your Rank</div>
+          <div class="leaderboard-item is-you">
+            <span class="leaderboard-rank" id="your-rank">-</span>
+            <span class="leaderboard-name is-you" id="your-name">You</span>
+            <span class="leaderboard-clicks" id="your-clicks">0</span>
+          </div>
+        </div>
+        <button class="see-rankings-btn" id="see-rankings-btn">See All Rankings</button>
+      </div>
+
+      <!-- Bottom bar: Status + Submit -->
+      <div id="bottom-bar">
+        <span id="status">Connect wallet to start clicking</span>
+        <button id="submit-btn" disabled>Submit (0)</button>
+      </div>
+    </div>
+
+    <!-- Click counter (always visible when triggered) -->
+    <div id="click-counter">0</div>
+
+    <!-- Mining indicator -->
+    <div id="mining-indicator">Mining...</div>
+
+    <!-- ARCADE DISPLAYS -->
+    <!-- Top center: Current session clicks -->
+    <div id="current-clicks-display">
+      <div class="arcade-label">Session Clicks</div>
+      <div class="arcade-display" id="arcade-current">0</div>
+    </div>
+
+    <!-- Bottom center: All-time stats -->
+    <div id="alltime-stats-display">
+      <div class="alltime-stat">
+        <div class="arcade-label">All-Time Clicks</div>
+        <div class="arcade-display" id="arcade-alltime">0</div>
+      </div>
+      <div class="alltime-stat">
+        <div class="arcade-label">Total Earned</div>
+        <div class="arcade-display" id="arcade-earned">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wallet Modal -->
+  <div id="wallet-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">Connect Wallet</div>
+      <button class="wallet-option" id="connect-metamask">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask">
+        <span>MetaMask</span>
+      </button>
+      <button class="wallet-option" id="connect-walletconnect">
+        <img src="https://avatars.githubusercontent.com/u/37784886?s=200&v=4" alt="WalletConnect">
+        <span>WalletConnect</span>
+      </button>
+      <button class="modal-close" id="modal-close">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Turnstile Modal -->
+  <div id="turnstile-modal" class="modal">
+    <div class="turnstile-content">
+      <div class="turnstile-title">Human Verification</div>
+      <div class="turnstile-subtitle">Please verify you're human to continue</div>
+      <div id="turnstile-widget"></div>
+    </div>
+  </div>
+
+  <!-- Achievement Toast -->
+  <div id="achievement-toast">
+    <div class="achievement-name" id="achievement-name"></div>
+    <div id="achievement-desc"></div>
+  </div>
+
+  <!-- NFT Claim Modal -->
+  <div id="claim-modal" class="modal">
+    <div class="claim-modal-content">
+      <div class="claim-modal-title">Achievement Unlocked!</div>
+      <div class="claim-modal-subtitle">You've earned an NFT</div>
+      <div class="claim-nft-preview" id="claim-nft-preview"></div>
+      <div class="claim-tier-name" id="claim-tier-name"></div>
+      <div class="claim-tier-desc" id="claim-tier-desc"></div>
+      <button class="claim-btn" id="claim-nft-btn">Mint NFT</button>
+      <button class="claim-later-btn" id="claim-later-btn">Claim Later</button>
+      <div class="claim-gas-note">You'll pay a small gas fee to mint</div>
+    </div>
+  </div>
+
+  <!-- Collection Modal -->
+  <div id="collection-modal" class="modal">
+    <div class="collection-modal-content">
+      <div class="collection-header">
+        <span class="collection-title">Your Collection</span>
+        <button class="collection-close-btn" id="collection-close-btn">X</button>
+      </div>
+      <div class="collection-subtitle">Click a cursor to equip it</div>
+      <div class="collection-grid" id="collection-grid">
+        <!-- Populated by JS -->
+      </div>
+      <div class="collection-footer">
+        <div class="equipped-cursor">
+          <span class="equipped-label">Equipped:</span>
+          <span class="equipped-cursor-name" id="equipped-cursor-name">Default</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rankings Modal -->
+  <div id="rankings-modal" class="modal">
+    <div class="rankings-modal-content">
+      <div class="rankings-header">
+        <span class="rankings-title">Rankings</span>
+        <button class="rankings-close-btn" id="rankings-close-btn">X</button>
+      </div>
+      <div class="rankings-list-container">
+        <ul class="rankings-list" id="rankings-list">
+          <li class="rankings-loading">Loading...</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =============================================================================
+    // CONFIGURATION - Toggle between TESTNET and MAINNET
+    // =============================================================================
+
+    // Set to 'mainnet' for production, 'sepolia' for testing
+    const NETWORK = 'sepolia';
+
+    const NETWORKS = {
+      sepolia: {
+        chainId: 11155111,
+        chainName: 'Sepolia',
+        rpcUrl: 'https://eth-sepolia.g.alchemy.com/v2/lY4FnFecvRH4ns5zx4tRWH3MAy6IUNi9',
+        contractAddress: '0xfA0C8a82DC76cA1dB2AD37e85b3DFD91e342F83C',  // StupidClicker
+        tokenAddress: '0xF493D552281ce8328308a04C8153568d3A8422aC',     // MockClickToken
+        nftContractAddress: '0x5b7D583E14B3AAC21d118CEF1e763441cd9af0Bd', // StupidClickerNFT
+        // Test Turnstile key - always passes (for development only!)
+        turnstileSiteKey: '1x00000000000000000000AA',
+      },
+      mainnet: {
+        chainId: 1,
+        chainName: 'Ethereum',
+        rpcUrl: 'https://eth-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY', // TODO: Add mainnet RPC
+        contractAddress: '0x...', // TODO: Deploy and add mainnet StupidClicker address
+        tokenAddress: '0x...',    // TODO: Deploy $CLICK via TokenWorks and add address
+        nftContractAddress: '0x...', // TODO: Deploy and add mainnet NFT address
+        // Production Turnstile key - get from Cloudflare dashboard
+        turnstileSiteKey: 'YOUR_PRODUCTION_TURNSTILE_SITE_KEY', // TODO: Add production key
+      }
+    };
+
+    const CONFIG = {
+      ...NETWORKS[NETWORK],
+      minBatchSize: 50,
+      maxBatchSize: 500,
+      walletConnectProjectId: '0cfe5ae6ddbf271b5829f52573da812b',
+      apiUrl: 'https://mann.cool/api/stupid-clicker',
+      subgraphUrl: 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/stupid-clicker-sepolia/1.0.1/gn',
+    };
+
+    const NFT_CONTRACT_ABI = [
+      "function claim(uint256 tier, bytes calldata signature) external",
+      "function canClaim(address user, uint256 tier) external view returns (bool)",
+      "function claimed(address user, uint256 tier) external view returns (bool)",
+      "function balanceOf(address owner) external view returns (uint256)"
+    ];
+
+    // Milestone metadata for display
+    const MILESTONE_INFO = {
+      // Personal milestones (1-12)
+      1: { name: 'First Timer', emoji: '👆', desc: '1 click' },
+      2: { name: 'Getting Started', emoji: '🌱', desc: '100 clicks' },
+      3: { name: 'Warming Up', emoji: '🔥', desc: '500 clicks' },
+      4: { name: 'Dedicated', emoji: '💪', desc: '1,000 clicks' },
+      5: { name: 'Serious Clicker', emoji: '🎯', desc: '5,000 clicks' },
+      6: { name: 'Obsessed', emoji: '😵', desc: '10,000 clicks' },
+      7: { name: 'No Sleep', emoji: '🌙', desc: '25,000 clicks' },
+      8: { name: 'Touch Grass', emoji: '🌿', desc: '50,000 clicks' },
+      9: { name: 'Legend', emoji: '🏆', desc: '100,000 clicks' },
+      10: { name: 'Ascended', emoji: '👼', desc: '250,000 clicks' },
+      11: { name: 'Transcendent', emoji: '✨', desc: '500,000 clicks' },
+      12: { name: 'Click God', emoji: '🌟', desc: '1,000,000 clicks' },
+      // Streak achievements (101-105)
+      101: { name: 'Week Warrior', emoji: '📅', desc: '7 day streak' },
+      102: { name: 'Month Master', emoji: '🗓️', desc: '30 day streak' },
+      103: { name: 'Perfect Attendance', emoji: '🎓', desc: '90 day streak' },
+      104: { name: 'Day One OG', emoji: '🥇', desc: 'Epoch 1 participant' },
+      105: { name: 'The Final Day', emoji: '🏁', desc: 'Final epoch participant' },
+      // Global 1/1 milestones (201-209)
+      201: { name: 'The First Click', emoji: '1️⃣', desc: 'Global click #1' },
+      202: { name: 'Century', emoji: '💯', desc: 'Global click #100' },
+      203: { name: 'Thousandaire', emoji: '🎰', desc: 'Global click #1,000' },
+      204: { name: 'Ten Grand', emoji: '💰', desc: 'Global click #10,000' },
+      205: { name: 'The Hundred Thousandth', emoji: '🎊', desc: 'Global click #100,000' },
+      206: { name: 'The Millionth Click', emoji: '🎉', desc: 'Global click #1,000,000' },
+      207: { name: 'Ten Million', emoji: '🚀', desc: 'Global click #10,000,000' },
+      208: { name: 'Halfway There', emoji: '⏳', desc: 'Global click #50,000,000' },
+      209: { name: 'The Final Click', emoji: '🏆', desc: 'Global click #100,000,000' },
+      // Hidden achievements (500+)
+      500: { name: 'Nice', emoji: '😏', desc: 'Your 69th click' },
+      501: { name: 'Blaze It', emoji: '🌿', desc: 'Your 420th click' },
+      502: { name: "Devil's Click", emoji: '😈', desc: 'Your 666th click' },
+      503: { name: 'Lucky 7s', emoji: '🎰', desc: 'Your 777th click' },
+      504: { name: 'Elite', emoji: '💻', desc: 'Your 1337th click' },
+      505: { name: 'Palindrome', emoji: '🔄', desc: 'Your 12321st click' },
+    };
+
+    // Mapping from milestone ID to tier number
+    const MILESTONE_ID_TO_TIER = {
+      'first-timer': 1, 'getting-started': 2, 'warming-up': 3, 'dedicated': 4,
+      'serious-clicker': 5, 'obsessed': 6, 'no-sleep': 7, 'touch-grass': 8,
+      'legend': 9, 'ascended': 10, 'transcendent': 11, 'click-god': 12,
+      'week-warrior': 101, 'month-master': 102, 'perfect-attendance': 103,
+      'day-one-og': 104, 'final-day': 105,
+      'global-1': 201, 'global-100': 202, 'global-1000': 203, 'global-10000': 204,
+      'global-100000': 205, 'global-1000000': 206, 'global-10000000': 207,
+      'global-50000000': 208, 'global-100000000': 209,
+      'nice': 500, 'blaze-it': 501, 'devils-click': 502, 'lucky-7s': 503,
+      'elite': 504, 'palindrome': 505,
+    };
+
+    const CONTRACT_ABI = [
+      "function submitClicks(uint256[] calldata nonces) external",
+      "function getCurrentEpochInfo() external view returns (uint256 epoch, uint256 epochStartTime_, uint256 epochEndTime_, uint256 totalClicks, address currentLeader, uint256 leaderClicks, uint256 distributed, uint256 burned)",
+      "function getGameStats() external view returns (uint256 poolRemaining_, uint256 currentEpoch_, uint256 totalEpochs_, uint256 gameStartTime_, uint256 gameEndTime_, uint256 difficulty_, bool started_, bool ended_)",
+      "function getDifficultyTarget() external view returns (uint256)",
+      "function getUserLifetimeStats(address user) external view returns (uint256 totalClicks, uint256 totalEarned, uint256 totalBurned, uint256 epochsWon_)"
+    ];
+
+    // State
+    let provider = null;
+    let signer = null;
+    let contract = null;
+    let userAddress = null;
+    let isConnected = false;
+    let validClicks = 0;
+    let pendingNonces = [];
+    let currentEpoch = 0;
+    let totalEpochs = 0;
+    let difficultyTarget = BigInt(0);
+    let miningWorker = null;
+    let walletConnectProvider = null;
+    let serverStats = null;
+    let turnstileToken = null;
+    let turnstileWidgetId = null;
+    let needsVerification = false;
+    let serverClicksPending = 0;
+    let nftContract = null;
+    let pendingClaimMilestone = null;
+    let claimQueue = []; // Queue of milestones to claim
+
+    // ============ LocalStorage Persistence for Clicks ============
+    const STORAGE_KEY = 'stupidClicker_pendingClicks';
+
+    function saveClicksToStorage() {
+      if (!userAddress) return;
+      const data = {
+        address: userAddress,
+        epoch: currentEpoch,
+        validClicks,
+        pendingNonces: pendingNonces.map(n => n.toString()), // BigInt -> string
+        serverClicksPending,
+        savedAt: Date.now()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      console.log(`[Storage] Saved ${validClicks} clicks for ${userAddress}`);
+    }
+
+    function loadClicksFromStorage() {
+      if (!userAddress) return false;
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (!saved) return false;
+
+        const data = JSON.parse(saved);
+
+        // Only restore if same address and same epoch (nonces are epoch-specific!)
+        if (data.address?.toLowerCase() !== userAddress?.toLowerCase()) {
+          console.log('[Storage] Different address, not restoring');
+          return false;
+        }
+
+        if (data.epoch !== currentEpoch) {
+          console.log(`[Storage] Different epoch (saved: ${data.epoch}, current: ${currentEpoch}), clearing old clicks`);
+          clearClicksFromStorage();
+          return false;
+        }
+
+        // Check if saved data is too old (more than 3 hours = epoch + buffer)
+        const maxAge = 3 * 60 * 60 * 1000; // 3 hours
+        if (Date.now() - data.savedAt > maxAge) {
+          console.log('[Storage] Saved data too old, clearing');
+          clearClicksFromStorage();
+          return false;
+        }
+
+        // Restore the state
+        validClicks = data.validClicks || 0;
+        pendingNonces = (data.pendingNonces || []).map(n => BigInt(n));
+        serverClicksPending = data.serverClicksPending || 0;
+
+        console.log(`[Storage] Restored ${validClicks} clicks from storage`);
+        return true;
+      } catch (e) {
+        console.error('[Storage] Error loading:', e);
+        return false;
+      }
+    }
+
+    function clearClicksFromStorage() {
+      localStorage.removeItem(STORAGE_KEY);
+      console.log('[Storage] Cleared saved clicks');
+    }
+
+    // DOM
+    const game = document.getElementById('game');
+    const buttonImg = document.getElementById('button-img');
+    const buttonClickZone = document.getElementById('button-click-zone');
+    const connectBtn = document.getElementById('connect-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    const statusEl = document.getElementById('status');
+    const validClicksEl = document.getElementById('valid-clicks');
+    const earnedEl = document.getElementById('earned');
+    const epochInfo = document.getElementById('epoch-info');
+    const poolInfo = document.getElementById('pool-info');
+    const clickCounter = document.getElementById('click-counter');
+    const miningIndicator = document.getElementById('mining-indicator');
+    const walletModal = document.getElementById('wallet-modal');
+
+    // Arcade display elements
+    const arcadeCurrentEl = document.getElementById('arcade-current');
+    const arcadeAlltimeEl = document.getElementById('arcade-alltime');
+    const arcadeEarnedEl = document.getElementById('arcade-earned');
+
+    // Leaderboard elements
+    const leaderboardListEl = document.getElementById('leaderboard-list');
+    const leaderboardYouEl = document.getElementById('leaderboard-you');
+    const globalClicksEl = document.getElementById('global-clicks');
+    const yourRankEl = document.getElementById('your-rank');
+    const yourNameEl = document.getElementById('your-name');
+    const yourClicksEl = document.getElementById('your-clicks');
+
+    // Track all-time clicks (fetched from contract)
+    let allTimeClicks = 0;
+    let totalEarned = 0;
+    let leaderboardData = [];
+    let globalClicks = 0;
+    let playerRank = null;
+
+    // Update arcade displays
+    function updateArcadeDisplays() {
+      // Current session clicks
+      if (arcadeCurrentEl) {
+        arcadeCurrentEl.textContent = validClicks.toLocaleString();
+      }
+      // All-time clicks (from contract)
+      if (arcadeAlltimeEl) {
+        arcadeAlltimeEl.textContent = allTimeClicks.toLocaleString();
+      }
+      // Total earned
+      if (arcadeEarnedEl) {
+        arcadeEarnedEl.textContent = formatTokens(totalEarned);
+      }
+    }
+
+    function formatTokens(amount) {
+      if (amount >= 1000000) {
+        return (amount / 1000000).toFixed(2) + 'M';
+      } else if (amount >= 1000) {
+        return (amount / 1000).toFixed(2) + 'K';
+      } else {
+        return amount.toFixed(2);
+      }
+    }
+
+    // ============ LEADERBOARD FUNCTIONS ============
+
+    async function fetchLeaderboard() {
+      try {
+        // Fetch both frontend and contract leaderboards in parallel
+        const [frontendRes, contractRes] = await Promise.all([
+          fetch(`${CONFIG.apiUrl}?leaderboard=true&limit=20`),
+          fetch(CONFIG.subgraphUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: `{ users(first: 20, orderBy: totalClicks, orderDirection: desc) { id totalClicks } }`
+            })
+          })
+        ]);
+
+        // Parse frontend data (indicates human/UI usage)
+        let frontendData = [];
+        if (frontendRes.ok) {
+          const data = await frontendRes.json();
+          if (data.success && data.leaderboard) {
+            frontendData = data.leaderboard;
+          }
+        }
+
+        // Parse contract data (authoritative on-chain clicks)
+        let contractData = [];
+        if (contractRes.ok) {
+          const data = await contractRes.json();
+          if (data.data && data.data.users) {
+            contractData = data.data.users;
+          }
+        }
+
+        // Build merged data - contract clicks are authoritative, frontend indicates human
+        const merged = {};
+
+        // First pass: add frontend data (marks user as human)
+        frontendData.forEach(entry => {
+          const addr = entry.address?.toLowerCase();
+          if (!merged[addr]) {
+            merged[addr] = { address: entry.address, name: entry.name, totalClicks: 0, frontendClicks: 0 };
+          }
+          merged[addr].frontendClicks = entry.totalClicks || 0;
+          if (entry.name) merged[addr].name = entry.name;
+        });
+
+        // Second pass: add contract data (authoritative click count)
+        contractData.forEach(entry => {
+          const addr = entry.id?.toLowerCase();
+          if (!merged[addr]) {
+            merged[addr] = { address: entry.id, name: null, totalClicks: 0, frontendClicks: 0 };
+          }
+          merged[addr].totalClicks = parseInt(entry.totalClicks) || 0;
+        });
+
+        // Sort by on-chain clicks and take top 10
+        // isHuman = true if they have any frontend activity
+        leaderboardData = Object.values(merged)
+          .filter(entry => entry.totalClicks > 0) // Only show users with on-chain clicks
+          .sort((a, b) => b.totalClicks - a.totalClicks)
+          .slice(0, 10)
+          .map((entry, index) => ({
+            ...entry,
+            rank: index + 1,
+            isHuman: entry.frontendClicks > 0
+          }));
+
+        renderLeaderboard();
+      } catch (error) {
+        console.error('Leaderboard fetch error:', error);
+      }
+    }
+
+    async function fetchGlobalStats() {
+      try {
+        // Fetch contract global stats (authoritative on-chain count)
+        const contractRes = await fetch(CONFIG.subgraphUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: `{ globalStats(id: "global") { totalClicks } }`
+          })
+        });
+
+        if (contractRes.ok) {
+          const data = await contractRes.json();
+          if (data.data && data.data.globalStats) {
+            globalClicks = parseInt(data.data.globalStats.totalClicks) || 0;
+          }
+        }
+
+        updateGlobalClicksDisplay();
+      } catch (error) {
+        console.error('Global stats fetch error:', error);
+      }
+    }
+
+    function updateGlobalClicksDisplay() {
+      if (globalClicksEl) {
+        globalClicksEl.textContent = formatNumber(globalClicks);
+      }
+    }
+
+    function formatNumber(num) {
+      if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+      } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+      }
+      return num.toLocaleString();
+    }
+
+    function shortenAddress(addr) {
+      if (!addr) return 'Anonymous';
+      return addr.slice(0, 6) + '...' + addr.slice(-4);
+    }
+
+    function renderLeaderboard() {
+      if (!leaderboardListEl) return;
+
+      if (leaderboardData.length === 0) {
+        leaderboardListEl.innerHTML = '<li class="leaderboard-loading">No clicks yet!</li>';
+        return;
+      }
+
+      const userAddrLower = userAddress?.toLowerCase();
+      let userInTop10 = false;
+
+      const listHTML = leaderboardData.map((entry, index) => {
+        const isYou = userAddrLower && entry.address?.toLowerCase() === userAddrLower;
+        if (isYou) userInTop10 = true;
+
+        const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
+        // Treat "Anonymous" as no name - show shortened address instead
+        const hasRealName = entry.name && entry.name !== 'Anonymous';
+        const displayName = hasRealName ? entry.name : shortenAddress(entry.address);
+        // Human vs Bot indicator
+        const indicator = entry.isHuman ? '🧑' : '🤖';
+
+        return `
+          <li class="leaderboard-item ${isYou ? 'is-you' : ''}">
+            <span class="leaderboard-rank ${rankClass}">#${entry.rank}</span>
+            <span class="leaderboard-indicator">${indicator}</span>
+            <span class="leaderboard-name ${isYou ? 'is-you' : ''}">${displayName}${isYou ? ' (you)' : ''}</span>
+            <span class="leaderboard-clicks">${formatNumber(entry.totalClicks)}</span>
+          </li>
+        `;
+      }).join('');
+
+      leaderboardListEl.innerHTML = listHTML;
+
+      // Show "Your Rank" section if user is not in top 10
+      if (leaderboardYouEl && userAddress && !userInTop10 && playerRank) {
+        leaderboardYouEl.style.display = 'block';
+        if (yourRankEl) yourRankEl.textContent = `#${playerRank}`;
+        if (yourNameEl) yourNameEl.textContent = serverStats?.name || shortenAddress(userAddress);
+        if (yourClicksEl) yourClicksEl.textContent = formatNumber(serverStats?.totalClicks || 0);
+      } else if (leaderboardYouEl) {
+        leaderboardYouEl.style.display = 'none';
+      }
+    }
+
+    // Refresh leaderboard periodically
+    function startLeaderboardUpdates() {
+      // Fetch immediately
+      fetchLeaderboard();
+      fetchGlobalStats();
+
+      // Then refresh every 30 seconds
+      setInterval(() => {
+        fetchLeaderboard();
+        fetchGlobalStats();
+      }, 30000);
+    }
+
+    // Start leaderboard updates on page load
+    startLeaderboardUpdates();
+
+    // ============ RANKINGS MODAL FUNCTIONS ============
+
+    const rankingsModal = document.getElementById('rankings-modal');
+    const rankingsCloseBtn = document.getElementById('rankings-close-btn');
+    const rankingsList = document.getElementById('rankings-list');
+    const seeRankingsBtn = document.getElementById('see-rankings-btn');
+
+    let frontendLeaderboard = [];
+    let contractLeaderboard = [];
+    let globalLeaderboard = [];
+
+    // Fetch frontend leaderboard from API
+    async function fetchFrontendLeaderboard() {
+      try {
+        const response = await fetch(`${CONFIG.apiUrl}?leaderboard=true&limit=50`);
+        if (!response.ok) throw new Error('Failed to fetch frontend leaderboard');
+        const data = await response.json();
+        if (data.success && data.leaderboard) {
+          frontendLeaderboard = data.leaderboard.map(entry => ({
+            address: entry.address?.toLowerCase(),
+            name: entry.name,
+            clicks: entry.totalClicks || 0,
+            source: 'frontend'
+          }));
+        }
+      } catch (error) {
+        console.error('Frontend leaderboard fetch error:', error);
+      }
+    }
+
+    // Fetch contract leaderboard from subgraph
+    async function fetchContractLeaderboard() {
+      try {
+        const response = await fetch(CONFIG.subgraphUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: `{
+              users(first: 50, orderBy: totalClicks, orderDirection: desc) {
+                id
+                totalClicks
+                totalReward
+              }
+            }`
+          })
+        });
+        if (!response.ok) throw new Error('Failed to fetch contract leaderboard');
+        const data = await response.json();
+        if (data.data && data.data.users) {
+          contractLeaderboard = data.data.users.map(user => ({
+            address: user.id.toLowerCase(),
+            name: null,
+            clicks: parseInt(user.totalClicks) || 0,
+            source: 'contract'
+          }));
+        }
+      } catch (error) {
+        console.error('Contract leaderboard fetch error:', error);
+      }
+    }
+
+    // Merge frontend and contract leaderboards
+    function buildGlobalLeaderboard() {
+      const merged = {};
+
+      // Add frontend clicks (indicates human/UI usage)
+      frontendLeaderboard.forEach(entry => {
+        const addr = entry.address;
+        if (!merged[addr]) {
+          merged[addr] = { address: addr, name: entry.name, frontendClicks: 0, contractClicks: 0 };
+        }
+        merged[addr].frontendClicks = entry.clicks;
+        if (entry.name) merged[addr].name = entry.name;
+      });
+
+      // Add contract clicks
+      contractLeaderboard.forEach(entry => {
+        const addr = entry.address;
+        if (!merged[addr]) {
+          merged[addr] = { address: addr, name: null, frontendClicks: 0, contractClicks: 0 };
+        }
+        merged[addr].contractClicks = entry.clicks;
+      });
+
+      // Calculate total, determine human vs bot, and sort
+      globalLeaderboard = Object.values(merged)
+        .map(entry => ({
+          ...entry,
+          clicks: entry.contractClicks, // Use on-chain clicks as the authoritative count
+          isHuman: entry.frontendClicks > 0 // Has frontend activity = human (or mixed)
+        }))
+        .sort((a, b) => b.clicks - a.clicks)
+        .slice(0, 50);
+    }
+
+    // Render rankings list
+    function renderRankings() {
+      if (globalLeaderboard.length === 0) {
+        rankingsList.innerHTML = '<li class="rankings-loading">No data yet</li>';
+        return;
+      }
+
+      const userAddrLower = userAddress?.toLowerCase();
+
+      const listHTML = globalLeaderboard.map((entry, index) => {
+        const isYou = userAddrLower && entry.address === userAddrLower;
+        const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
+        // Treat "Anonymous" as no name - show shortened address instead
+        const hasRealName = entry.name && entry.name !== 'Anonymous';
+        const displayName = hasRealName ? entry.name : shortenAddress(entry.address);
+        // Human vs Bot indicator
+        const indicator = entry.isHuman ? '🧑' : '🤖';
+
+        return `
+          <li class="rankings-item ${isYou ? 'is-you' : ''}">
+            <span class="rankings-rank ${rankClass}">#${index + 1}</span>
+            <span class="rankings-indicator">${indicator}</span>
+            <span class="rankings-name ${isYou ? 'is-you' : ''}">${displayName}${isYou ? ' (you)' : ''}</span>
+            <span class="rankings-clicks">${formatNumber(entry.clicks)}</span>
+          </li>
+        `;
+      }).join('');
+
+      rankingsList.innerHTML = listHTML;
+    }
+
+    // Open rankings modal
+    async function openRankingsModal() {
+      rankingsModal.style.display = 'flex';
+      rankingsList.innerHTML = '<li class="rankings-loading">Loading...</li>';
+
+      // Fetch both leaderboards
+      await Promise.all([
+        fetchFrontendLeaderboard(),
+        fetchContractLeaderboard()
+      ]);
+
+      // Build merged leaderboard with human/bot indicators
+      buildGlobalLeaderboard();
+
+      // Render
+      renderRankings();
+    }
+
+    // Close rankings modal
+    function closeRankingsModal() {
+      rankingsModal.style.display = 'none';
+    }
+
+    // Event listeners
+    if (seeRankingsBtn) {
+      seeRankingsBtn.addEventListener('click', openRankingsModal);
+    }
+    if (rankingsCloseBtn) {
+      rankingsCloseBtn.addEventListener('click', closeRankingsModal);
+    }
+    if (rankingsModal) {
+      rankingsModal.addEventListener('click', (e) => {
+        if (e.target === rankingsModal) closeRankingsModal();
+      });
+    }
+
+    const turnstileModal = document.getElementById('turnstile-modal');
+    const achievementToast = document.getElementById('achievement-toast');
+    const achievementName = document.getElementById('achievement-name');
+    const achievementDesc = document.getElementById('achievement-desc');
+    const claimModal = document.getElementById('claim-modal');
+    const claimNftBtn = document.getElementById('claim-nft-btn');
+    const claimLaterBtn = document.getElementById('claim-later-btn');
+    const claimNftPreview = document.getElementById('claim-nft-preview');
+    const claimTierName = document.getElementById('claim-tier-name');
+    const claimTierDesc = document.getElementById('claim-tier-desc');
+
+    // Preload
+    const imgUp = new Image();
+    const imgDown = new Image();
+    imgUp.src = 'button-up.jpg';
+    imgDown.src = 'button-down.jpg';
+    const soundDown = new Audio('button-down.mp3');
+    const soundUp = new Audio('button-up.mp3');
+    soundDown.preload = 'auto';
+    soundUp.preload = 'auto';
+
+    let isPressed = false;
+    let isMiningClick = false;
+
+    // ========== UI VISIBILITY (edge proximity) ==========
+
+    const uiOverlay = document.getElementById('ui-overlay');
+    const EDGE_MARGIN = 400; // pixels from edge where UI stays visible
+
+    document.addEventListener('mousemove', (e) => {
+      const nearEdge =
+        e.clientX < EDGE_MARGIN ||
+        e.clientX > window.innerWidth - EDGE_MARGIN ||
+        e.clientY < EDGE_MARGIN ||
+        e.clientY > window.innerHeight - EDGE_MARGIN;
+
+      uiOverlay.classList.toggle('hidden', !nearEdge);
+    });
+
+    // Show UI when mouse leaves the window
+    document.addEventListener('mouseleave', () => {
+      uiOverlay.classList.remove('hidden');
+    });
+
+    // ========== SERVER API ==========
+
+    async function checkVerificationStatus() {
+      if (!userAddress) return;
+      try {
+        const response = await fetch(`${CONFIG.apiUrl}?address=${userAddress}&verification=true`);
+        const data = await response.json();
+        if (data.success && data.needsVerification) {
+          needsVerification = true;
+          showTurnstileModal();
+        }
+      } catch (error) {
+        console.error('Verification check error:', error);
+      }
+    }
+
+    async function fetchServerStats() {
+      if (!userAddress) return;
+      try {
+        const response = await fetch(`${CONFIG.apiUrl}?address=${userAddress}`);
+        const data = await response.json();
+        if (data.success) {
+          serverStats = data;
+          playerRank = data.rank;
+          // Re-render leaderboard to update "Your Rank" section
+          renderLeaderboard();
+          // Update NFT panel with claimable achievements
+          renderNftPanel(data);
+        }
+      } catch (error) {
+        console.error('Server stats error:', error);
+      }
+    }
+
+    // NFT Panel elements
+    const nftPanel = document.getElementById('nft-panel');
+    const nftList = document.getElementById('nft-list');
+    const nftClaimableCount = document.getElementById('nft-claimable-count');
+
+    // Track which NFTs have been claimed on-chain
+    let claimedOnChain = new Set();
+
+    async function checkOnChainClaimed(tier) {
+      if (!signer || !CONFIG.nftContractAddress) return false;
+      try {
+        const nftContract = new ethers.Contract(CONFIG.nftContractAddress, NFT_CONTRACT_ABI, signer);
+        return await nftContract.claimed(userAddress, tier);
+      } catch (error) {
+        console.error('Error checking claimed status:', error);
+        return false;
+      }
+    }
+
+    async function renderNftPanel(stats) {
+      if (!stats || !CONFIG.nftContractAddress || CONFIG.nftContractAddress === '0x...') {
+        nftPanel.style.display = 'none';
+        return;
+      }
+
+      // Collect all unlocked milestones and achievements
+      const allUnlocked = [];
+
+      // Personal milestones
+      if (stats.milestones?.unlocked) {
+        for (const id of stats.milestones.unlocked) {
+          const tier = MILESTONE_ID_TO_TIER[id];
+          if (tier) allUnlocked.push({ id, tier, type: 'personal' });
+        }
+      }
+
+      // Other achievements (global, hidden, streak, epoch)
+      if (stats.achievements?.unlocked) {
+        for (const id of stats.achievements.unlocked) {
+          const tier = MILESTONE_ID_TO_TIER[id];
+          if (tier) allUnlocked.push({ id, tier, type: tier >= 200 && tier < 500 ? 'global' : 'hidden' });
+        }
+      }
+
+      if (allUnlocked.length === 0) {
+        nftPanel.style.display = 'none';
+        return;
+      }
+
+      // Show the panel
+      nftPanel.style.display = 'block';
+
+      // Check on-chain claim status for each
+      const nftItems = [];
+      for (const item of allUnlocked) {
+        const isClaimed = claimedOnChain.has(item.tier) || await checkOnChainClaimed(item.tier);
+        if (isClaimed) claimedOnChain.add(item.tier);
+        nftItems.push({ ...item, claimed: isClaimed });
+      }
+
+      // Sort: unclaimed first, then by tier
+      nftItems.sort((a, b) => {
+        if (a.claimed !== b.claimed) return a.claimed ? 1 : -1;
+        return a.tier - b.tier;
+      });
+
+      // Count claimable
+      const claimableCount = nftItems.filter(n => !n.claimed).length;
+      nftClaimableCount.textContent = claimableCount;
+
+      // Render the list
+      nftList.innerHTML = '';
+
+      if (nftItems.length === 0) {
+        nftList.innerHTML = '<li class="nft-empty">No achievements yet</li>';
+        return;
+      }
+
+      for (const item of nftItems) {
+        const info = MILESTONE_INFO[item.tier] || { name: item.id, emoji: '🎖️', desc: 'Achievement' };
+        const li = document.createElement('li');
+        li.className = 'nft-item' + (item.claimed ? ' claimed' : '');
+
+        li.innerHTML = `
+          <span class="nft-emoji">${info.emoji}</span>
+          <div class="nft-info">
+            <div class="nft-name">${info.name}</div>
+            <div class="nft-desc">${info.desc}</div>
+          </div>
+          <span class="nft-status ${item.claimed ? 'claimed' : 'claimable'}">
+            ${item.claimed ? 'MINTED' : 'MINT'}
+          </span>
+        `;
+
+        if (!item.claimed) {
+          li.addEventListener('click', () => showClaimModal(item.id, item.tier));
+        }
+
+        nftList.appendChild(li);
+      }
+    }
+
+    // ============ COLLECTION MODAL & CURSOR SYSTEM ============
+
+    // All collection slots from milestones-v2.csv (95 total)
+    // Each has a tier, name, and cursor file (when earned)
+    const COLLECTION_SLOTS = [
+      // Personal milestones (1-12)
+      { tier: 1, name: 'First Timer', cursor: 'white' },
+      { tier: 2, name: 'Getting Started', cursor: 'gray' },
+      { tier: 3, name: 'Warming Up', cursor: 'brown' },
+      { tier: 4, name: 'Dedicated', cursor: 'bronze' },
+      { tier: 5, name: 'Serious Clicker', cursor: 'silver' },
+      { tier: 6, name: 'Obsessed', cursor: 'gold' },
+      { tier: 7, name: 'No Sleep', cursor: 'rose-gold' },
+      { tier: 8, name: 'Touch Grass', cursor: 'platinum' },
+      { tier: 9, name: 'Legend', cursor: 'diamond' },
+      { tier: 10, name: 'Ascended', cursor: 'holographic' },
+      { tier: 11, name: 'Transcendent', cursor: 'prismatic' },
+      { tier: 12, name: 'Click God', cursor: 'god' },
+      // Streak/Epoch (101-105)
+      { tier: 101, name: 'Week Warrior', cursor: 'orange-flame' },
+      { tier: 102, name: 'Month Master', cursor: 'blue-flame' },
+      { tier: 103, name: 'Perfect Attendance', cursor: 'white-flame' },
+      { tier: 104, name: 'Day One OG', cursor: 'vintage' },
+      { tier: 105, name: 'The Final Day', cursor: 'sunset' },
+      // Global 1/1s (200-209) - no cursors, NFT only
+      { tier: 200, name: 'The First Click', cursor: null },
+      { tier: 201, name: 'The Tenth', cursor: null },
+      { tier: 202, name: 'Century', cursor: null },
+      { tier: 203, name: 'Thousandaire', cursor: null },
+      { tier: 204, name: 'Ten Grand', cursor: null },
+      { tier: 205, name: 'The Hundred Thousandth', cursor: null },
+      { tier: 206, name: 'The Millionth Click', cursor: null },
+      { tier: 207, name: 'Ten Million', cursor: null },
+      { tier: 208, name: 'Hundred Million', cursor: null },
+      { tier: 209, name: 'Billionaire', cursor: null },
+      // Global Hidden 1/1s (220-229) - no cursors, NFT only
+      { tier: 220, name: 'Nice', cursor: null },
+      { tier: 221, name: 'Blaze It', cursor: null },
+      { tier: 222, name: "Devil's Click", cursor: null },
+      { tier: 223, name: 'Lucky Sevens', cursor: null },
+      { tier: 224, name: 'Elite', cursor: null },
+      { tier: 225, name: 'The Perfect Number', cursor: null },
+      { tier: 226, name: 'Ultra Nice', cursor: null },
+      { tier: 227, name: 'Calculator Masterpiece', cursor: null },
+      { tier: 228, name: 'Jenny', cursor: null },
+      { tier: 229, name: 'Meaning of Everything', cursor: null },
+      // Personal Hidden - Meme numbers (500-511)
+      { tier: 500, name: 'Nice', cursor: 'pink' },
+      { tier: 501, name: 'Blaze It', cursor: 'smoke-green' },
+      { tier: 502, name: "Devil's Click", cursor: 'demon-red' },
+      { tier: 503, name: 'Lucky 7s', cursor: 'casino-gold' },
+      { tier: 504, name: 'Elite', cursor: 'matrix-green' },
+      { tier: 505, name: 'Calculator Word', cursor: 'lcd-green' },
+      { tier: 506, name: 'The Perfect Number', cursor: 'vaporwave' },
+      { tier: 507, name: 'Ultra Nice', cursor: 'tie-dye' },
+      { tier: 508, name: 'Old School', cursor: 'retro-90s' },
+      { tier: 509, name: 'Double Blaze', cursor: 'rasta' },
+      { tier: 510, name: 'Maximum Evil', cursor: 'lava' },
+      { tier: 511, name: 'Nice Nice Nice', cursor: 'hot-pink' },
+      // Personal Hidden - Ones family (520-523)
+      { tier: 520, name: 'Triple Ones', cursor: 'light-gray' },
+      { tier: 521, name: 'Quad Ones', cursor: 'silver-ones' },
+      { tier: 522, name: 'Make a Wish', cursor: 'silver-sparkle' },
+      { tier: 523, name: 'Six Ones', cursor: 'white-glow' },
+      // Personal Hidden - Sevens family (524-526)
+      { tier: 524, name: 'Jackpot', cursor: 'gold-7' },
+      { tier: 525, name: 'Mega Jackpot', cursor: 'gold-coins' },
+      { tier: 526, name: 'Slot Machine God', cursor: 'gold-sparkle' },
+      // Personal Hidden - Eights family (527-529)
+      { tier: 527, name: 'Prosperity', cursor: 'red-8' },
+      { tier: 528, name: 'Very Lucky', cursor: 'red-gold' },
+      { tier: 529, name: 'Fortune', cursor: 'dragon' },
+      // Personal Hidden - Nines family (530-532)
+      { tier: 530, name: 'So Close', cursor: 'light-purple' },
+      { tier: 531, name: 'Edge Lord', cursor: 'dark-purple' },
+      { tier: 532, name: 'One Away', cursor: 'glitch-purple' },
+      // Personal Hidden - Palindromes (540-545)
+      { tier: 540, name: 'Binary Palindrome', cursor: 'mirror-chrome' },
+      { tier: 541, name: 'Bookends', cursor: 'polished-silver' },
+      { tier: 542, name: 'Symmetric', cursor: 'glass' },
+      { tier: 543, name: 'Counting Palindrome', cursor: 'frosted-glass' },
+      { tier: 544, name: 'Mirror Mirror', cursor: 'full-mirror' },
+      { tier: 545, name: 'The Mountain', cursor: 'iridescent' },
+      // Personal Hidden - Math (560-566)
+      { tier: 560, name: 'Fine Structure', cursor: 'chalk-white' },
+      { tier: 561, name: 'Pi Day', cursor: 'blueprint' },
+      { tier: 562, name: 'Golden', cursor: 'golden-spiral' },
+      { tier: 563, name: "Euler's Click", cursor: 'graph-paper' },
+      { tier: 564, name: 'More Pi', cursor: 'blue-pi' },
+      { tier: 565, name: 'Pi Squared', cursor: 'glowing-equations' },
+      { tier: 566, name: 'Full Pi', cursor: 'cosmic-nebula' },
+      // Personal Hidden - Powers of 2 (580-588)
+      { tier: 580, name: 'Byte', cursor: 'pcb-green' },
+      { tier: 581, name: 'Half K', cursor: 'pcb-led' },
+      { tier: 582, name: 'Kilobyte', cursor: 'pcb-traces' },
+      { tier: 583, name: 'The Game', cursor: 'pixel-8bit' },
+      { tier: 584, name: '2^12', cursor: 'pixel-16bit' },
+      { tier: 585, name: '2^13', cursor: 'wireframe' },
+      { tier: 586, name: '2^14', cursor: 'low-poly' },
+      { tier: 587, name: '2^15', cursor: 'hologram-blue' },
+      { tier: 588, name: '2^16', cursor: 'rgb-animated' },
+      // Personal Hidden - Cultural (600-609)
+      { tier: 600, name: 'Not Found', cursor: 'glitched' },
+      { tier: 601, name: 'Server Error', cursor: 'red-warning' },
+      { tier: 602, name: 'Jumbo', cursor: 'cloud-white' },
+      { tier: 603, name: 'Emergency', cursor: 'ambulance' },
+      { tier: 604, name: 'Orwellian', cursor: 'surveillance' },
+      { tier: 605, name: 'Space Odyssey', cursor: 'starfield' },
+      { tier: 606, name: 'End Times', cursor: 'mayan-stone' },
+      { tier: 607, name: 'Love You 3000', cursor: 'iron-man' },
+      { tier: 608, name: 'Meaning of Everything', cursor: 'towel' },
+      { tier: 609, name: 'Seasons of Love', cursor: 'rainbow-gradient' },
+    ];
+
+    // Collection modal elements
+    const collectionModal = document.getElementById('collection-modal');
+    const collectionGrid = document.getElementById('collection-grid');
+    const collectionCloseBtn = document.getElementById('collection-close-btn');
+    const seeCollectionBtn = document.getElementById('see-collection-btn');
+    const equippedCursorName = document.getElementById('equipped-cursor-name');
+
+    // Current equipped cursor (saved to localStorage)
+    let equippedCursor = localStorage.getItem('stupidClicker_cursor') || 'default';
+
+    // Apply cursor on page load
+    applyCursor(equippedCursor);
+
+    function applyCursor(cursorId) {
+      // Find the slot with this cursor
+      const slot = COLLECTION_SLOTS.find(s => s.cursor === cursorId);
+
+      if (cursorId && cursorId !== 'default') {
+        // Try to load the cursor file
+        const cursorFile = `cursors/${cursorId}.png`;
+        document.body.style.cursor = `url('${cursorFile}'), auto`;
+      } else {
+        document.body.style.cursor = 'auto';
+      }
+
+      equippedCursor = cursorId;
+      localStorage.setItem('stupidClicker_cursor', cursorId || 'default');
+
+      if (equippedCursorName) {
+        equippedCursorName.textContent = slot ? slot.name : 'Default';
+      }
+    }
+
+    function showCollectionModal() {
+      renderCollectionGrid();
+      collectionModal.classList.add('visible');
+    }
+
+    function hideCollectionModal() {
+      collectionModal.classList.remove('visible');
+    }
+
+    function renderCollectionGrid() {
+      collectionGrid.innerHTML = '';
+
+      // Show all collection slots (95 total from milestones-v2.csv)
+      for (const slot of COLLECTION_SLOTS) {
+        const isMinted = claimedOnChain.has(slot.tier);
+        const isEquipped = slot.cursor && slot.cursor === equippedCursor;
+
+        const div = document.createElement('div');
+        div.className = 'collection-item' + (isMinted ? '' : ' locked') + (isEquipped ? ' equipped' : '');
+
+        if (isMinted) {
+          // Show the earned item with emoji and name
+          const info = MILESTONE_INFO[slot.tier] || { emoji: '🎖️' };
+          div.innerHTML = `
+            <span class="collection-item-emoji">${info.emoji}</span>
+            <span class="collection-item-name">${slot.name}</span>
+          `;
+
+          // Only add click handler if it has a cursor
+          if (slot.cursor) {
+            div.addEventListener('click', () => {
+              equipCursor(slot.cursor);
+              renderCollectionGrid(); // Re-render to update equipped state
+            });
+          }
+        } else {
+          // Locked - show empty slot with ????
+          div.innerHTML = `
+            <div class="collection-item-slot">?</div>
+            <span class="collection-item-name">????</span>
+          `;
+        }
+
+        collectionGrid.appendChild(div);
+      }
+    }
+
+    function equipCursor(cursorId) {
+      applyCursor(cursorId);
+      showAchievementToast('Cursor Equipped!', `Now using: ${equippedCursorName.textContent}`);
+    }
+
+    // Event listeners for collection modal
+    seeCollectionBtn?.addEventListener('click', showCollectionModal);
+    collectionCloseBtn?.addEventListener('click', hideCollectionModal);
+    collectionModal?.addEventListener('click', (e) => {
+      if (e.target === collectionModal) hideCollectionModal();
+    });
+
+    async function recordClicksToServer(clickCount) {
+      if (!userAddress) return { success: false };
+      try {
+        const body = { address: userAddress, clicks: clickCount };
+        if (turnstileToken) body.turnstileToken = turnstileToken;
+
+        const response = await fetch(CONFIG.apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (response.status === 403) {
+          const data = await response.json();
+          if (data.requiresVerification) {
+            needsVerification = true;
+            showTurnstileModal();
+            return { success: false, needsVerification: true };
+          }
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          turnstileToken = null;
+          handleAchievements(data);
+          // Update player rank and global clicks from response
+          if (data.rank) playerRank = data.rank;
+          if (data.globalClicks) {
+            globalClicks = data.globalClicks;
+            updateGlobalClicksDisplay();
+          }
+          // Refresh leaderboard after successful submission
+          fetchLeaderboard();
+          return { success: true, data };
+        }
+        return { success: false };
+      } catch (error) {
+        console.error('Record clicks error:', error);
+        return { success: false };
+      }
+    }
+
+    function handleAchievements(data) {
+      // Collect all claimable achievements
+      const claimable = [];
+
+      // Handle personal milestones (newMilestones array)
+      if (data.newMilestones?.length > 0) {
+        for (const m of data.newMilestones) {
+          showAchievementToast(m.name, m.cosmetic ? `Unlocked: ${m.cosmetic}` : 'Achievement unlocked!');
+          if (m.tier) claimable.push({ id: m.id, tier: m.tier });
+        }
+      }
+
+      // Handle all other achievements (newAchievements array)
+      // Each has a 'type' property: 'global', 'hidden', 'streak', 'epoch'
+      if (data.newAchievements?.length > 0) {
+        for (const a of data.newAchievements) {
+          if (a.type === 'global') {
+            showAchievementToast(`🏆 ${a.name}`, '1/1 NFT incoming!');
+          } else if (a.type === 'hidden') {
+            showAchievementToast(`🎯 ${a.name}`, 'Secret achievement!');
+          } else if (a.type === 'streak') {
+            showAchievementToast(`🔥 ${a.name}`, `${a.days} day streak!`);
+          } else if (a.type === 'epoch') {
+            showAchievementToast(`📅 ${a.name}`, 'Epoch achievement!');
+          } else {
+            showAchievementToast(a.name, 'Achievement unlocked!');
+          }
+          if (a.tier) claimable.push({ id: a.id, tier: a.tier });
+        }
+      }
+
+      // Queue up claim modals (show first one after toast, queue the rest)
+      if (claimable.length > 0 && CONFIG.nftContractAddress && CONFIG.nftContractAddress !== '0x...') {
+        // Delay to let toast show first
+        setTimeout(() => {
+          const first = claimable.shift();
+          claimQueue.push(...claimable);
+          showClaimModal(first.id, first.tier);
+        }, 2000);
+      }
+    }
+
+    function showTurnstileModal() {
+      turnstileModal.classList.add('visible');
+      if (!turnstileWidgetId && typeof turnstile !== 'undefined') {
+        turnstileWidgetId = turnstile.render('#turnstile-widget', {
+          sitekey: CONFIG.turnstileSiteKey,
+          callback: onTurnstileSuccess,
+          'error-callback': () => statusEl.textContent = 'Verification failed',
+          'expired-callback': () => { turnstileToken = null; needsVerification = true; },
+          theme: 'dark'
+        });
+      } else if (turnstileWidgetId && typeof turnstile !== 'undefined') {
+        turnstile.reset(turnstileWidgetId);
+      }
+    }
+
+    function onTurnstileSuccess(token) {
+      turnstileToken = token;
+      needsVerification = false;
+      turnstileModal.classList.remove('visible');
+      if (serverClicksPending > 0) {
+        recordClicksToServer(serverClicksPending).then(r => { if (r.success) serverClicksPending = 0; });
+      }
+    }
+
+    function showAchievementToast(name, desc) {
+      achievementName.textContent = name;
+      achievementDesc.textContent = desc;
+      achievementToast.classList.add('visible');
+      setTimeout(() => achievementToast.classList.remove('visible'), 4000);
+    }
+
+    // ========== NFT CLAIMING ==========
+
+    function showClaimModal(milestoneId, tier) {
+      pendingClaimMilestone = { id: milestoneId, tier };
+      const info = MILESTONE_INFO[tier] || { name: milestoneId, emoji: '🎖️', desc: 'Achievement' };
+
+      claimNftPreview.textContent = info.emoji;
+      claimTierName.textContent = info.name;
+      claimTierDesc.textContent = info.desc;
+      claimNftBtn.textContent = 'Mint NFT';
+      claimNftBtn.disabled = false;
+      claimNftBtn.classList.remove('claiming');
+
+      claimModal.classList.add('visible');
+    }
+
+    function hideClaimModal() {
+      claimModal.classList.remove('visible');
+      pendingClaimMilestone = null;
+
+      // Check if there are more claims in queue
+      if (claimQueue.length > 0) {
+        const next = claimQueue.shift();
+        setTimeout(() => showClaimModal(next.id, next.tier), 500);
+      }
+    }
+
+    async function claimNFT() {
+      if (!pendingClaimMilestone || !userAddress || !signer) return;
+
+      const { id, tier } = pendingClaimMilestone;
+
+      try {
+        claimNftBtn.textContent = 'Getting signature...';
+        claimNftBtn.disabled = true;
+        claimNftBtn.classList.add('claiming');
+
+        // Get signature from server
+        // API is at /api/stupid-clicker-claim-signature (Vercel serverless function naming)
+        const response = await fetch('https://mann.cool/api/stupid-clicker-claim-signature', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: userAddress, milestone: id })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to get signature');
+        }
+
+        const { signature, tier: serverTier } = await response.json();
+
+        claimNftBtn.textContent = 'Confirm in wallet...';
+
+        // Initialize NFT contract if not already
+        if (!nftContract) {
+          nftContract = new ethers.Contract(CONFIG.nftContractAddress, NFT_CONTRACT_ABI, signer);
+        }
+
+        // Send claim transaction
+        const tx = await nftContract.claim(serverTier, signature);
+
+        claimNftBtn.textContent = 'Minting...';
+        await tx.wait();
+
+        claimNftBtn.textContent = 'Minted!';
+        showAchievementToast('NFT Minted!', `${MILESTONE_INFO[tier]?.name || id} is now in your wallet`);
+
+        // Mark as claimed and refresh NFT panel
+        claimedOnChain.add(tier);
+        if (serverStats) renderNftPanel(serverStats);
+
+        setTimeout(() => hideClaimModal(), 1500);
+
+      } catch (error) {
+        console.error('NFT claim error:', error);
+        claimNftBtn.textContent = 'Error - Try Again';
+        claimNftBtn.disabled = false;
+        claimNftBtn.classList.remove('claiming');
+
+        if (error.message.includes('user rejected')) {
+          claimNftBtn.textContent = 'Mint NFT';
+        }
+      }
+    }
+
+    // Event listeners for claim modal
+    claimNftBtn.addEventListener('click', claimNFT);
+    claimLaterBtn.addEventListener('click', hideClaimModal);
+    claimModal.addEventListener('click', (e) => {
+      if (e.target === claimModal) hideClaimModal();
+    });
+
+    // ========== BUTTON MECHANICS ==========
+
+    function pressDown() {
+      if (isPressed || isMiningClick) return;
+      isPressed = true;
+      buttonImg.src = 'button-down.jpg';
+      soundDown.cloneNode().play();
+
+      if (isConnected) {
+        isMiningClick = true;
+        miningIndicator.classList.add('visible');
+        startMiningOneClick();
+      }
+    }
+
+    function pressUp() {
+      if (!isConnected && isPressed) {
+        isPressed = false;
+        buttonImg.src = 'button-up.jpg';
+        soundUp.cloneNode().play();
+      }
+    }
+
+    function onClickMined(nonce) {
+      isMiningClick = false;
+      isPressed = false;
+      miningIndicator.classList.remove('visible');
+
+      buttonImg.src = 'button-up.jpg';
+      soundUp.cloneNode().play();
+
+      pendingNonces.push(nonce);
+      validClicks++;
+      serverClicksPending++;
+      validClicksEl.textContent = validClicks;
+
+      // Update arcade displays (removes the flashing white counter)
+      updateArcadeDisplays();
+
+      // Save to localStorage after each click
+      saveClicksToStorage();
+
+      updateSubmitButton();
+      updateStatus();
+    }
+
+    function updateStatus() {
+      if (!isConnected) {
+        statusEl.textContent = 'Connect wallet to play';
+      } else if (isMiningClick) {
+        statusEl.textContent = 'Mining...';
+      } else if (validClicks >= CONFIG.minBatchSize) {
+        statusEl.textContent = 'Ready to submit!';
+      } else if (validClicks > 0) {
+        statusEl.textContent = `${CONFIG.minBatchSize - validClicks} more to submit`;
+      } else {
+        statusEl.textContent = 'Click the button!';
+      }
+    }
+
+    // Events - click zone is the circular overlay centered on the button
+    buttonClickZone.addEventListener('mousedown', e => { e.preventDefault(); pressDown(); });
+    buttonClickZone.addEventListener('mouseup', pressUp);
+    buttonClickZone.addEventListener('mouseleave', pressUp);
+    buttonClickZone.addEventListener('touchstart', e => { e.preventDefault(); pressDown(); });
+    buttonClickZone.addEventListener('touchend', pressUp);
+    buttonClickZone.addEventListener('touchcancel', pressUp);
+    buttonClickZone.addEventListener('contextmenu', e => e.preventDefault());
+
+    // ========== WALLET ==========
+
+    connectBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (isConnected) disconnect();
+      else walletModal.classList.add('visible');
+    });
+
+    document.getElementById('modal-close').addEventListener('click', () => walletModal.classList.remove('visible'));
+    walletModal.addEventListener('click', e => { if (e.target === walletModal) walletModal.classList.remove('visible'); });
+
+    document.getElementById('connect-metamask').addEventListener('click', async () => {
+      walletModal.classList.remove('visible');
+      await connectWithMetaMask();
+    });
+
+    document.getElementById('connect-walletconnect').addEventListener('click', async () => {
+      walletModal.classList.remove('visible');
+      await connectWithWalletConnect();
+    });
+
+    async function connectWithMetaMask() {
+      if (typeof window.ethereum === 'undefined') {
+        alert('Please install MetaMask');
+        return;
+      }
+      try {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const network = await provider.getNetwork();
+        if (network.chainId !== CONFIG.chainId) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x' + CONFIG.chainId.toString(16) }],
+            });
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+          } catch {
+            connectBtn.textContent = 'Wrong Network';
+            connectBtn.classList.add('wrong-network');
+            return;
+          }
+        }
+        await finalizeConnection();
+        window.ethereum.on('accountsChanged', accts => accts.length === 0 ? disconnect() : location.reload());
+        window.ethereum.on('chainChanged', () => location.reload());
+      } catch (error) {
+        console.error('MetaMask error:', error);
+      }
+    }
+
+    async function connectWithWalletConnect() {
+      try {
+        if (typeof EthereumProvider === 'undefined') {
+          alert('WalletConnect failed to load');
+          return;
+        }
+        walletConnectProvider = await EthereumProvider.init({
+          projectId: CONFIG.walletConnectProjectId,
+          chains: [CONFIG.chainId],
+          showQrModal: true,
+          metadata: { name: 'Stupid Clicker', description: 'Click game', url: location.origin, icons: [] },
+          rpcMap: { [CONFIG.chainId]: CONFIG.rpcUrl }
+        });
+        await walletConnectProvider.enable();
+        provider = new ethers.providers.Web3Provider(walletConnectProvider);
+        await finalizeConnection();
+        walletConnectProvider.on('accountsChanged', accts => accts.length === 0 ? disconnect() : location.reload());
+        walletConnectProvider.on('chainChanged', () => location.reload());
+        walletConnectProvider.on('disconnect', disconnect);
+      } catch (error) {
+        console.error('WalletConnect error:', error);
+        walletConnectProvider = null;
+      }
+    }
+
+    async function finalizeConnection() {
+      signer = provider.getSigner();
+      userAddress = await signer.getAddress();
+      contract = new ethers.Contract(CONFIG.contractAddress, CONTRACT_ABI, signer);
+      isConnected = true;
+      connectBtn.textContent = userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+      connectBtn.classList.add('connected');
+      connectBtn.classList.remove('wrong-network');
+      await fetchGameData();
+
+      // Try to restore saved clicks from localStorage
+      const restored = loadClicksFromStorage();
+      if (restored) {
+        validClicksEl.textContent = validClicks;
+        updateArcadeDisplays();
+        updateSubmitButton();
+        statusEl.textContent = `Restored ${validClicks} saved clicks!`;
+      }
+
+      await fetchUserStats();
+      await checkVerificationStatus();
+      await fetchServerStats();
+      updateStatus();
+    }
+
+    async function disconnect() {
+      if (walletConnectProvider) {
+        try { await walletConnectProvider.disconnect(); } catch {}
+        walletConnectProvider = null;
+      }
+      isConnected = false;
+      provider = null;
+      signer = null;
+      contract = null;
+      userAddress = null;
+      connectBtn.textContent = 'Connect Wallet';
+      connectBtn.classList.remove('connected', 'wrong-network');
+      if (miningWorker) { miningWorker.terminate(); miningWorker = null; }
+      isMiningClick = false;
+      isPressed = false;
+      miningIndicator.classList.remove('visible');
+      buttonImg.src = 'button-up.jpg';
+      updateStatus();
+    }
+
+    async function fetchGameData() {
+      if (!contract) return;
+      try {
+        const [gameStats, difficulty] = await Promise.all([
+          contract.getGameStats(),
+          contract.getDifficultyTarget()
+        ]);
+        currentEpoch = gameStats.currentEpoch_.toNumber();
+        totalEpochs = gameStats.totalEpochs_.toNumber();
+        difficultyTarget = difficulty.toBigInt();
+
+        const poolRemaining = parseFloat(ethers.utils.formatEther(gameStats.poolRemaining_));
+        epochInfo.textContent = `${currentEpoch} / ${totalEpochs}`;
+        poolInfo.textContent = formatTokens(poolRemaining);
+
+        if (!gameStats.started_) {
+          statusEl.textContent = 'Game not started';
+          return false;
+        }
+        if (gameStats.ended_) {
+          statusEl.textContent = 'Game ended';
+          return false;
+        }
+        return true;
+      } catch (error) {
+        console.error('Fetch game data error:', error);
+        return false;
+      }
+    }
+
+    async function fetchUserStats() {
+      if (!contract || !userAddress) return;
+      try {
+        const stats = await contract.getUserLifetimeStats(userAddress);
+        const earned = parseFloat(ethers.utils.formatEther(stats.totalEarned));
+        earnedEl.textContent = formatTokensOld(earned);
+
+        // Update all-time stats for arcade display
+        allTimeClicks = parseInt(stats.totalClicks.toString());
+        totalEarned = earned;
+        updateArcadeDisplays();
+      } catch (error) {
+        console.error('Fetch user stats error:', error);
+      }
+    }
+
+    function formatTokensOld(amount) {
+      if (amount >= 1000000) return (amount / 1000000).toFixed(1) + 'M';
+      if (amount >= 1000) return (amount / 1000).toFixed(1) + 'K';
+      if (amount >= 1) return amount.toFixed(1);
+      if (amount > 0) return amount.toFixed(4);
+      return '0';
+    }
+
+    // ========== MINING ==========
+
+    function startMiningOneClick() {
+      if (!isConnected || !userAddress) return;
+
+      const workerCode = `
+        self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/js-sha3/0.9.2/sha3.min.js');
+        let userAddress, currentEpoch, chainId, difficultyTarget;
+        let nonce = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER));
+
+        function packData(address, nonce, epoch, chainId) {
+          const addrBytes = new Uint8Array(20);
+          const addrHex = address.slice(2);
+          for (let i = 0; i < 20; i++) addrBytes[i] = parseInt(addrHex.substr(i * 2, 2), 16);
+          const nonceBytes = new Uint8Array(32);
+          let n = BigInt(nonce);
+          for (let i = 31; i >= 0; i--) { nonceBytes[i] = Number(n & 0xFFn); n = n >> 8n; }
+          const epochBytes = new Uint8Array(32);
+          let e = BigInt(epoch);
+          for (let i = 31; i >= 0; i--) { epochBytes[i] = Number(e & 0xFFn); e = e >> 8n; }
+          const chainBytes = new Uint8Array(32);
+          let c = BigInt(chainId);
+          for (let i = 31; i >= 0; i--) { chainBytes[i] = Number(c & 0xFFn); c = c >> 8n; }
+          const packed = new Uint8Array(116);
+          packed.set(addrBytes, 0);
+          packed.set(nonceBytes, 20);
+          packed.set(epochBytes, 52);
+          packed.set(chainBytes, 84);
+          return packed;
+        }
+
+        function hashToBigInt(hash) {
+          let result = 0n;
+          for (let i = 0; i < hash.length; i++) result = (result << 8n) | BigInt(hash[i]);
+          return result;
+        }
+
+        function mineOne() {
+          for (let i = 0; i < 1000; i++) {
+            const packed = packData(userAddress, nonce, currentEpoch, chainId);
+            const hash = keccak256.array(packed);
+            if (hashToBigInt(hash) < difficultyTarget) {
+              self.postMessage({ type: 'FOUND', nonce: nonce.toString() });
+              return;
+            }
+            nonce++;
+          }
+          setTimeout(mineOne, 0);
+        }
+
+        self.onmessage = function(e) {
+          if (e.data.type === 'START') {
+            userAddress = e.data.address;
+            currentEpoch = e.data.epoch;
+            chainId = e.data.chainId;
+            difficultyTarget = BigInt(e.data.difficulty);
+            mineOne();
+          }
+        };
+      `;
+
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      miningWorker = new Worker(URL.createObjectURL(blob));
+      miningWorker.onmessage = e => {
+        if (e.data.type === 'FOUND') {
+          miningWorker.terminate();
+          miningWorker = null;
+          onClickMined(e.data.nonce);
+        }
+      };
+      miningWorker.postMessage({
+        type: 'START',
+        address: userAddress,
+        epoch: currentEpoch,
+        chainId: CONFIG.chainId,
+        difficulty: difficultyTarget.toString()
+      });
+    }
+
+    function updateSubmitButton() {
+      const canSubmit = validClicks >= CONFIG.minBatchSize;
+      submitBtn.disabled = !canSubmit || !isConnected;
+      submitBtn.textContent = `Submit (${validClicks})`;
+    }
+
+    // Submit
+    submitBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!contract || pendingNonces.length < CONFIG.minBatchSize) return;
+
+      const noncesToSubmit = pendingNonces.slice(0, CONFIG.maxBatchSize);
+      const clicksToRecord = Math.min(serverClicksPending, noncesToSubmit.length);
+
+      try {
+        submitBtn.disabled = true;
+        statusEl.textContent = 'Submitting...';
+
+        if (clicksToRecord > 0) {
+          const result = await recordClicksToServer(clicksToRecord);
+          if (result.success) serverClicksPending -= clicksToRecord;
+          else if (result.needsVerification) { submitBtn.disabled = false; return; }
+        }
+
+        const tx = await contract.submitClicks(noncesToSubmit);
+        statusEl.textContent = 'Confirming...';
+        await tx.wait();
+
+        // Record on-chain submission to server (for tracking frontend->chain activity)
+        try {
+          await fetch(CONFIG.apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              address: userAddress,
+              onChainClicks: noncesToSubmit.length,
+              txHash: tx.hash,
+              epoch: currentEpoch
+            })
+          });
+        } catch (err) {
+          console.warn('Failed to record on-chain submission to server:', err);
+        }
+
+        pendingNonces = pendingNonces.slice(noncesToSubmit.length);
+        validClicks = pendingNonces.length;
+        validClicksEl.textContent = validClicks;
+        updateArcadeDisplays();
+
+        // Clear or update storage after successful submission
+        if (validClicks === 0) {
+          clearClicksFromStorage();
+        } else {
+          saveClicksToStorage();
+        }
+
+        statusEl.textContent = 'Submitted!';
+        updateSubmitButton();
+        updateStatus();
+        await fetchUserStats(); // This will refresh all-time stats
+        await fetchServerStats();
+      } catch (error) {
+        console.error('Submit error:', error);
+        statusEl.textContent = 'Error: ' + (error.reason || error.message);
+        submitBtn.disabled = false;
+      }
+    });
+
+    // Periodic refresh
+    setInterval(async () => {
+      if (isConnected) {
+        await fetchGameData();
+        await fetchUserStats();
+        await checkVerificationStatus();
+      }
+    }, 30000);
+  </script>
+</body>
+</html>

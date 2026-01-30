@@ -1,0 +1,36 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: StupidClicker
+    # =========================================================================
+    # IMPORTANT: Update this for each new season deployment!
+    # Current: Sepolia 2-day test deployment (Jan 28-30, 2026)
+    # =========================================================================
+    network: sepolia
+    source:
+      address: "0x8ac0facc097ba05d70fa5A480F334A28B0802c7e"
+      abi: StupidClicker
+      # Start block should be the block the contract was deployed
+      startBlock: 10142512
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - User
+        - ClickSubmission
+        - Epoch
+        - GlobalStats
+      abis:
+        - name: StupidClicker
+          file: ./abis/StupidClicker.json
+      eventHandlers:
+        - event: GameStarted(uint256,uint256,uint256)
+          handler: handleGameStarted
+        - event: Clicked(indexed address,indexed uint256,uint256,uint256,uint256)
+          handler: handleClicked
+        - event: EpochFinalized(indexed uint256,indexed address,uint256,uint256,uint256,uint256,address,uint256)
+          handler: handleEpochFinalized
+      file: ./src/mapping.ts

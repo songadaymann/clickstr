@@ -1,0 +1,25 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "testRun": true,
+  "config": {
+    "totalEpochs": 24,
+    "epochDuration": 7200,
+    "epochDurationHours": 2,
+    "poolAmount": "2000000",
+    "seasonLengthDays": 2,
+    "targetClicksPerEpoch": 83333,
+    "nftBaseUri": "https://mann.cool/api/stupid-clicker/nft/"
+  },
+  "contracts": {
+    "clickToken": "0xe068de6E3A830BB09b5dcdBB0cD0F631FDC23f28",
+    "stupidClicker": "0x8ac0facc097ba05d70fa5A480F334A28B0802c7e",
+    "nftContract": "0x36E0ecd8E2A5cb854c1F02f07933B81f439c28F8"
+  },
+  "nftSigner": "0xAd9fDaD276AB1A430fD03177A07350CD7C61E897",
+  "deployer": "0xAd9fDaD276AB1A430fD03177A07350CD7C61E897",
+  "deployedAt": "2026-01-28T16:19:25.688Z",
+  "gameStartTime": "2026-01-28T16:19:24.000Z",
+  "gameEndTime": "2026-01-30T16:19:24.000Z",
+  "blockNumber": 10142512
+}

@@ -1,0 +1,95 @@
+Tier,Name,Type,Trigger,Rarity,Edition Type,Cursor,Cursor Notes
+1,First Timer,Personal,1 click,common,edition,White (default),Starting cursor
+2,Getting Started,Personal,100 clicks,common,edition,Gray,Slightly upgraded
+3,Warming Up,Personal,500 clicks,common,edition,Brown (leather),Worn in
+4,Dedicated,Personal,1000 clicks,uncommon,edition,Bronze,First metal
+5,Serious Clicker,Personal,5000 clicks,uncommon,edition,Silver,
+6,Obsessed,Personal,10000 clicks,rare,edition,Gold,
+7,No Sleep,Personal,25000 clicks,rare,edition,Rose Gold,
+8,Touch Grass,Personal,50000 clicks,epic,edition,Platinum,
+9,Legend,Personal,100000 clicks,epic,edition,Diamond/Crystal,Gem tier
+10,Ascended,Personal,250000 clicks,legendary,edition,Holographic,
+11,Transcendent,Personal,500000 clicks,legendary,edition,Prismatic (animated rainbow),
+12,Click God,Personal,1000000 clicks,mythic,edition,Golden aura + sparkle trail,Ultimate
+101,Week Warrior,Streak,7-day streak,uncommon,edition,Orange flame,Fire theme
+102,Month Master,Streak,30-day streak,rare,edition,Blue flame,Hotter fire
+103,Perfect Attendance,Streak,90-day streak,legendary,edition,White/plasma flame,Hottest fire
+104,Day One OG,Epoch,Epoch 1 participant,epic,edition,Vintage sepia,Old school
+105,The Final Day,Epoch,Final epoch participant,epic,edition,Sunset gradient,Ending vibes
+200,The First Click,Global,Global click #1,mythic,1/1,,Global 1/1 - no cursor (NFT only)
+201,The Tenth,Global,Global click #10,mythic,1/1,,Global 1/1 - no cursor (NFT only)
+202,Century,Global,Global click #100,mythic,1/1,,Global 1/1 - no cursor (NFT only)
+203,Thousandaire,Global,Global click #1000,mythic,1/1,,Global 1/1 - no cursor (NFT only)
+204,Ten Grand,Global,Global click #10000,mythic,1/1,,Global 1/1 - no cursor (NFT only)
+205,The Hundred Thousandth,Global,Global click #100000,mythic,1/1,,Global 1/1 - no cursor (NFT only)
+206,The Millionth Click,Global,Global click #1000000,mythic,1/1,,Global 1/1 - no cursor (NFT only)
+207,Ten Million,Global,Global click #10000000,mythic,1/1,,Global 1/1 - no cursor (NFT only)
+208,Hundred Million,Global,Global click #100000000,mythic,1/1,,Global 1/1 - no cursor (NFT only)
+209,Billionaire,Global,Global click #1000000000,mythic,1/1,,Global 1/1 - no cursor (NFT only)
+220,Nice,Global Hidden,Global click #69,legendary,1/1,,Hidden global 1/1 - no cursor (NFT only)
+221,Blaze It,Global Hidden,Global click #420,legendary,1/1,,Hidden global 1/1 - no cursor (NFT only)
+222,Devil's Click,Global Hidden,Global click #666,legendary,1/1,,Hidden global 1/1 - no cursor (NFT only)
+223,Lucky Sevens,Global Hidden,Global click #777,legendary,1/1,,Hidden global 1/1 - no cursor (NFT only)
+224,Elite,Global Hidden,Global click #1337,legendary,1/1,,Hidden global 1/1 - no cursor (NFT only)
+225,The Perfect Number,Global Hidden,Global click #42069,legendary,1/1,,Hidden global 1/1 - no cursor (NFT only)
+226,Ultra Nice,Global Hidden,Global click #69420,legendary,1/1,,Hidden global 1/1 - no cursor (NFT only)
+227,Calculator Masterpiece,Global Hidden,Global click #8008135,legendary,1/1,,Hidden global 1/1 - no cursor (NFT only)
+228,Jenny,Global Hidden,Global click #8675309,legendary,1/1,,Hidden global 1/1 - no cursor (NFT only)
+229,Meaning of Everything,Global Hidden,Global click #42,legendary,1/1,,Hidden global 1/1 - no cursor (NFT only)
+500,Nice,Personal Hidden,Personal click #69,uncommon,edition,Pink,Meme - obvious
+501,Blaze It,Personal Hidden,Personal click #420,uncommon,edition,Smoke/hazy green,Meme - weed vibes
+502,Devil's Click,Personal Hidden,Personal click #666,rare,edition,Demon red + flames,Meme - evil
+503,Lucky 7s,Personal Hidden,Personal click #777,rare,edition,Casino gold + sparkles,Meme - jackpot
+504,Elite,Personal Hidden,Personal click #1337,rare,edition,Matrix green (falling code),Meme - l33t
+505,Calculator Word,Personal Hidden,Personal click #8008,rare,edition,LCD green (calculator display),Meme - BOOB
+506,The Perfect Number,Personal Hidden,Personal click #42069,epic,edition,Vaporwave (pink/cyan gradient),Meme - ultimate combo
+507,Ultra Nice,Personal Hidden,Personal click #69420,epic,edition,Tie-dye,Meme - peak absurdity
+508,Old School,Personal Hidden,Personal click #80085,rare,edition,Retro 90s (teal/purple),Meme - classic calculator
+509,Double Blaze,Personal Hidden,Personal click #420420,epic,edition,Rasta (red/yellow/green),Meme - extra baked
+510,Maximum Evil,Personal Hidden,Personal click #666666,epic,edition,Black with lava cracks,Meme - maximum evil
+511,Nice Nice Nice,Personal Hidden,Personal click #696969,epic,edition,Hot pink neon glow,Meme - so nice
+520,Triple Ones,Personal Hidden,Personal click #111,rare,edition,Light gray,Ones family - basic
+521,Quad Ones,Personal Hidden,Personal click #1111,rare,edition,Silver,Ones family - upgraded
+522,Make a Wish,Personal Hidden,Personal click #11111,rare,edition,Silver sparkle,Ones family - sparkly
+523,Six Ones,Personal Hidden,Personal click #111111,epic,edition,White glow,Ones family - glowing
+524,Jackpot,Personal Hidden,Personal click #7777,rare,edition,Gold,Sevens family - basic
+525,Mega Jackpot,Personal Hidden,Personal click #77777,epic,edition,Gold + coins,Sevens family - coins
+526,Slot Machine God,Personal Hidden,Personal click #777777,legendary,edition,Animated gold sparkle burst,Sevens family - ultimate
+527,Prosperity,Personal Hidden,Personal click #888,rare,edition,Red,Eights family - basic (Chinese lucky)
+528,Very Lucky,Personal Hidden,Personal click #8888,rare,edition,Red + gold trim,Eights family - upgraded
+529,Fortune,Personal Hidden,Personal click #888888,epic,edition,Imperial red + gold dragon pattern,Eights family - ornate
+530,So Close,Personal Hidden,Personal click #999,rare,edition,Light purple,Nines family - basic
+531,Edge Lord,Personal Hidden,Personal click #9999,rare,edition,Dark purple,Nines family - darker
+532,One Away,Personal Hidden,Personal click #999999,epic,edition,Purple with glitch effect,Nines family - anxious glitch
+540,Binary Palindrome,Personal Hidden,Personal click #101,rare,edition,Simple mirror chrome,Palindrome - basic
+541,Bookends,Personal Hidden,Personal click #1001,rare,edition,Polished silver,Palindrome - polished
+542,Symmetric,Personal Hidden,Personal click #10001,rare,edition,Glass/transparent,Palindrome - see-through
+543,Counting Palindrome,Personal Hidden,Personal click #12321,rare,edition,Frosted glass,Palindrome - frosted
+544,Mirror Mirror,Personal Hidden,Personal click #123321,epic,edition,Full mirror + reflection,Palindrome - reflective
+545,The Mountain,Personal Hidden,Personal click #1234321,legendary,edition,Iridescent/oil slick,Palindrome - ultimate
+560,Fine Structure,Personal Hidden,Personal click #137,rare,edition,Chalk white,Math - physics constant
+561,Pi Day,Personal Hidden,Personal click #314,rare,edition,Blueprint blue,Math - 3.14
+562,Golden,Personal Hidden,Personal click #1618,rare,edition,Golden ratio spiral pattern,Math - phi
+563,Euler's Click,Personal Hidden,Personal click #2718,rare,edition,Graph paper texture,Math - e
+564,More Pi,Personal Hidden,Personal click #3141,rare,edition,Blue with pi symbol,Math - more pi
+565,Pi Squared,Personal Hidden,Personal click #31415,epic,edition,Glowing blue equations,Math - even more pi
+566,Full Pi,Personal Hidden,Personal click #314159,legendary,edition,Cosmic/nebula,Math - pi master
+580,Byte,Personal Hidden,Personal click #256,rare,edition,Simple green PCB,Powers of 2 - 2^8
+581,Half K,Personal Hidden,Personal click #512,rare,edition,PCB with one LED,Powers of 2 - 2^9
+582,Kilobyte,Personal Hidden,Personal click #1024,rare,edition,PCB with traces,Powers of 2 - 2^10
+583,The Game,Personal Hidden,Personal click #2048,rare,edition,Pixel art (8-bit),Powers of 2 - 2^11
+584,2^12,Personal Hidden,Personal click #4096,rare,edition,Pixel art (16-bit),Powers of 2
+585,2^13,Personal Hidden,Personal click #8192,rare,edition,Wireframe 3D,Powers of 2
+586,2^14,Personal Hidden,Personal click #16384,epic,edition,Low poly,Powers of 2
+587,2^15,Personal Hidden,Personal click #32768,epic,edition,Hologram blue,Powers of 2
+588,2^16,Personal Hidden,Personal click #65536,epic,edition,Full RGB animated,Powers of 2 - ultimate
+600,Not Found,Personal Hidden,Personal click #404,rare,edition,Glitched/broken,Cultural - HTTP error
+601,Server Error,Personal Hidden,Personal click #500,rare,edition,Red warning,Cultural - HTTP error
+602,Jumbo,Personal Hidden,Personal click #747,rare,edition,Cloud white,Cultural - Boeing 747
+603,Emergency,Personal Hidden,Personal click #911,rare,edition,Red + white (ambulance),Cultural - emergency services
+604,Orwellian,Personal Hidden,Personal click #1984,rare,edition,Surveillance eye pattern,Cultural - the book
+605,Space Odyssey,Personal Hidden,Personal click #2001,rare,edition,Starfield/space,Cultural - Kubrick film
+606,End Times,Personal Hidden,Personal click #2012,rare,edition,Mayan stone texture,Cultural - apocalypse meme
+607,Love You 3000,Personal Hidden,Personal click #3000,rare,edition,Iron Man red/gold,Cultural - MCU reference
+608,Meaning of Everything,Personal Hidden,Personal click #42,uncommon,edition,Towel texture (beige),Cultural - Hitchhiker's Guide
+609,Seasons of Love,Personal Hidden,Personal click #525600,legendary,edition,Rainbow gradient,Cultural - RENT musical

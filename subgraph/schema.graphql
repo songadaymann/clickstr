@@ -1,0 +1,47 @@
+# Tracks individual click submissions
+type ClickSubmission @entity {
+  id: ID!                    # txHash-logIndex
+  user: User!
+  epoch: BigInt!
+  validClicks: BigInt!
+  reward: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+# Aggregated user stats (leaderboard data)
+type User @entity {
+  id: ID!                    # user address
+  totalClicks: BigInt!       # lifetime clicks across all epochs
+  totalReward: BigInt!       # lifetime rewards earned
+  epochsParticipated: BigInt! # number of epochs participated in
+  epochsWon: BigInt!         # number of epochs won
+  submissions: [ClickSubmission!]! @derivedFrom(field: "user")
+  lastActiveEpoch: BigInt!
+  lastActiveTimestamp: BigInt!
+}
+
+# Epoch summary stats
+type Epoch @entity {
+  id: ID!                    # epoch number as string
+  epochNumber: BigInt!
+  totalClicks: BigInt!
+  totalDistributed: BigInt!
+  totalBurned: BigInt!
+  participantCount: BigInt!
+  winner: Bytes              # winner address (set on finalization)
+  winnerClicks: BigInt
+  finalized: Boolean!
+  finalizedAt: BigInt
+  finalizedBy: Bytes         # finalizer address
+}
+
+# Global stats
+type GlobalStats @entity {
+  id: ID!                    # "global"
+  totalClicks: BigInt!
+  totalDistributed: BigInt!
+  totalBurned: BigInt!
+  uniqueUsers: BigInt!
+  currentEpoch: BigInt!
+}

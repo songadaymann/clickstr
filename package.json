@@ -1,0 +1,37 @@
+{
+  "name": "stupid-clicker",
+  "version": "1.0.0",
+  "description": "The stupidest deflationary game on Ethereum",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network mainnet",
+    "deploy:sepolia": "hardhat run scripts/deploy-sepolia.js --network sepolia",
+    "deploy:test": "hardhat run scripts/test-deploy.js --network sepolia",
+    "test:bot-a": "node scripts/test-bot-a-contract.js",
+    "test:bot-b": "node scripts/test-bot-b-frontend.js",
+    "test:monitor": "node scripts/test-monitor.js",
+    "mine": "node scripts/optimized-miner.js",
+    "mine:max": "BATCH_SIZE=500 NUM_WORKERS=auto node scripts/optimized-miner.js",
+    "node": "hardhat node"
+  },
+  "dependencies": {
+    "js-sha3": "^0.9.2"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "^5.0.0",
+    "dotenv": "^16.3.1",
+    "hardhat": "^2.19.0",
+    "puppeteer": "^21.6.0"
+  },
+  "keywords": [
+    "ethereum",
+    "game",
+    "proof-of-work",
+    "deflationary"
+  ],
+  "author": "",
+  "license": "MIT"
+}

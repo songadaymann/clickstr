@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+
+# Environment variables (contains private keys!)
+.env
+.env.local
+.env.*.local
+
+# Hardhat artifacts and cache
+artifacts/
+cache/
+typechain/
+typechain-types/
+
+# Coverage
+coverage/
+coverage.json
+
+# Build outputs
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Human materials (design assets, not for repo)
+human-materials-ignore/
+
+# Symlinks to other projects (don't track)
+agents.md
+GAME_INTEGRATION.md
+games.json
+
+# Claude settings
+.claude/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+.nyc_output/
+
+# Test deployment logs and large files
+test-deployment/*.log
+
+# Unused/old images in root (moved to public/)
+clicker-down.jpg
+clicker-up.jpg
+Gemini_Generated_Image_*.jpeg
+thumb.jpg
+
+# Old progress file (replaced by docs/)
+progress.md
+
+# Subgraph build artifacts
+subgraph/build/
+subgraph/generated/
+subgraph/node_modules/
