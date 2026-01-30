@@ -1474,6 +1474,15 @@
       filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
     }
 
+    .trophy-img {
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
+    }
+
     .trophy-name {
       font-family: 'SevenSegment', 'Courier New', monospace;
       color: #ffd700;
@@ -3120,11 +3129,10 @@
       trophyGrid.innerHTML = '';
 
       for (const trophy of ownedTrophies) {
-        const info = MILESTONE_INFO[trophy.tier] || { emoji: '🏆' };
         const div = document.createElement('div');
         div.className = 'trophy-item';
         div.innerHTML = `
-          <span class="trophy-emoji">${info.emoji}</span>
+          <img src="one-of-ones/${trophy.tier}.png" class="trophy-img" alt="${trophy.name}">
           <span class="trophy-name">${trophy.name}</span>
           <span class="trophy-click-num">Click #${trophy.globalClick.toLocaleString()}</span>
         `;
