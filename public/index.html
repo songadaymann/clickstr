@@ -3249,8 +3249,17 @@
     function showClaimModal(milestoneId, tier) {
       pendingClaimMilestone = { id: milestoneId, tier };
       const info = MILESTONE_INFO[tier] || { name: milestoneId, emoji: '🎖️', desc: 'Achievement' };
+      const slot = COLLECTION_SLOTS.find(s => s.tier === tier);
 
-      claimNftPreview.textContent = info.emoji;
+      // Use cursor image, 1/1 image, or emoji fallback
+      if (slot && slot.cursor) {
+        claimNftPreview.innerHTML = `<img src="cursors/${slot.cursor}.png" alt="${info.name}" style="width:100%;height:100%;object-fit:contain;">`;
+      } else if (tier >= 200 && tier < 500) {
+        claimNftPreview.innerHTML = `<img src="one-of-ones/${tier}.png" alt="${info.name}" style="width:100%;height:100%;object-fit:contain;">`;
+      } else {
+        claimNftPreview.innerHTML = '';
+        claimNftPreview.textContent = info.emoji;
+      }
       claimTierName.textContent = info.name;
       claimTierDesc.textContent = info.desc;
       claimNftBtn.textContent = 'Mint NFT';
