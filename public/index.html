@@ -3769,17 +3769,21 @@
         submitBtn.disabled = true;
         statusEl.textContent = 'Submitting...';
 
-        if (clicksToRecord > 0) {
-          const result = await recordClicksToServer(clicksToRecord);
-          if (result.success) serverClicksPending -= clicksToRecord;
-          else if (result.needsVerification) { submitBtn.disabled = false; return; }
-        }
-
+        // Submit to blockchain FIRST
         const tx = await contract.submitClicks(noncesToSubmit);
         statusEl.textContent = 'Confirming...';
         await tx.wait();
 
-        // Record on-chain submission to server (for tracking frontend->chain activity)
+        // Only record to server API AFTER blockchain tx succeeds
+        // This keeps frontend API in sync with on-chain state
+        if (clicksToRecord > 0) {
+          const result = await recordClicksToServer(clicksToRecord);
+          if (result.success) serverClicksPending -= clicksToRecord;
+          // Note: If verification needed after tx success, we still completed the tx
+          // but achievements won't trigger until next successful verification
+        }
+
+        // Also record on-chain submission metadata
         try {
           await fetch(CONFIG.apiUrl, {
             method: 'POST',
