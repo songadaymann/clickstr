@@ -820,6 +820,14 @@
       margin-right: 6px;
     }
 
+    .leaderboard-cursor-icon {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+      margin-right: 6px;
+      border-radius: 2px;
+    }
+
     .leaderboard-name {
       flex: 1;
       color: #ff0000;
@@ -955,6 +963,14 @@
       font-size: 16px;
       margin-right: 8px;
       filter: grayscale(0);
+    }
+
+    .rankings-cursor-icon {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      margin-right: 8px;
+      border-radius: 2px;
     }
 
     .rankings-list-container {
@@ -2337,6 +2353,46 @@
       return addr.slice(0, 6) + '...' + addr.slice(-4);
     }
 
+    // Personal milestone thresholds with cursor info (tier -> minimum clicks + cursor)
+    const PERSONAL_MILESTONE_THRESHOLDS = [
+      { tier: 12, clicks: 1000000, cursor: 'god', name: 'Click God' },
+      { tier: 11, clicks: 500000, cursor: 'prismatic', name: 'Transcendent' },
+      { tier: 10, clicks: 250000, cursor: 'holographic', name: 'Ascended' },
+      { tier: 9, clicks: 100000, cursor: 'diamond', name: 'Legend' },
+      { tier: 8, clicks: 50000, cursor: 'platinum', name: 'Touch Grass' },
+      { tier: 7, clicks: 25000, cursor: 'rose-gold', name: 'No Sleep' },
+      { tier: 6, clicks: 10000, cursor: 'gold', name: 'Obsessed' },
+      { tier: 5, clicks: 5000, cursor: 'silver', name: 'Serious Clicker' },
+      { tier: 4, clicks: 1000, cursor: 'bronze', name: 'Dedicated' },
+      { tier: 3, clicks: 500, cursor: 'brown', name: 'Warming Up' },
+      { tier: 2, clicks: 100, cursor: 'gray', name: 'Getting Started' },
+      { tier: 1, clicks: 1, cursor: 'white', name: 'First Timer' },
+    ];
+
+    // Get the highest personal milestone for a given click count
+    function getHighestMilestone(clicks) {
+      for (const milestone of PERSONAL_MILESTONE_THRESHOLDS) {
+        if (clicks >= milestone.clicks) {
+          return milestone;
+        }
+      }
+      return null; // No milestone yet
+    }
+
+    // Get cursor/icon HTML for a user based on their click count
+    // iconClass: 'leaderboard-cursor-icon' or 'rankings-cursor-icon'
+    // indicatorClass: 'leaderboard-indicator' or 'rankings-indicator'
+    function getMilestoneIcon(clicks, isHuman, iconClass = 'leaderboard-cursor-icon', indicatorClass = 'leaderboard-indicator') {
+      const milestone = getHighestMilestone(clicks);
+
+      if (milestone && milestone.cursor) {
+        return `<img src="cursors/${milestone.cursor}.png" class="${iconClass}" alt="${milestone.name}">`;
+      }
+
+      // Fallback to human/bot emoji if no milestone
+      return `<span class="${indicatorClass}">${isHuman ? '🧑' : '🤖'}</span>`;
+    }
+
     function renderLeaderboard() {
       if (!leaderboardListEl) return;
 
@@ -2356,13 +2412,13 @@
         // Treat "Anonymous" as no name - show shortened address instead
         const hasRealName = entry.name && entry.name !== 'Anonymous';
         const displayName = hasRealName ? entry.name : shortenAddress(entry.address);
-        // Human vs Bot indicator
-        const indicator = entry.isHuman ? '🧑' : '🤖';
+        // Get icon based on clicks (cursor image if they have a milestone)
+        const iconHtml = getMilestoneIcon(entry.totalClicks, entry.isHuman);
 
         return `
           <li class="leaderboard-item ${isYou ? 'is-you' : ''}">
             <span class="leaderboard-rank ${rankClass}">#${entry.rank}</span>
-            <span class="leaderboard-indicator">${indicator}</span>
+            ${iconHtml}
             <span class="leaderboard-name ${isYou ? 'is-you' : ''}">${displayName}${isYou ? ' (you)' : ''}</span>
             <span class="leaderboard-clicks">${formatNumber(entry.totalClicks)}</span>
           </li>
@@ -2508,13 +2564,13 @@
         // Treat "Anonymous" as no name - show shortened address instead
         const hasRealName = entry.name && entry.name !== 'Anonymous';
         const displayName = hasRealName ? entry.name : shortenAddress(entry.address);
-        // Human vs Bot indicator
-        const indicator = entry.isHuman ? '🧑' : '🤖';
+        // Get icon based on clicks (cursor image if they have a milestone)
+        const iconHtml = getMilestoneIcon(entry.clicks, entry.isHuman, 'rankings-cursor-icon', 'rankings-indicator');
 
         return `
           <li class="rankings-item ${isYou ? 'is-you' : ''}">
             <span class="rankings-rank ${rankClass}">#${index + 1}</span>
-            <span class="rankings-indicator">${indicator}</span>
+            ${iconHtml}
             <span class="rankings-name ${isYou ? 'is-you' : ''}">${displayName}${isYou ? ' (you)' : ''}</span>
             <span class="rankings-clicks">${formatNumber(entry.clicks)}</span>
           </li>
