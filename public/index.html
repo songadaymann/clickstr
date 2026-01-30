@@ -3198,7 +3198,7 @@
         turnstileWidgetId = turnstile.render('#turnstile-widget', {
           sitekey: CONFIG.turnstileSiteKey,
           callback: onTurnstileSuccess,
-          'error-callback': () => statusEl.textContent = 'Verification failed',
+          'error-callback': (errorCode) => { console.error('Turnstile error:', errorCode); statusEl.textContent = 'Verification failed'; },
           'expired-callback': () => { turnstileToken = null; needsVerification = true; },
           theme: 'dark'
         });
@@ -3265,7 +3265,7 @@
         const response = await fetch('https://mann.cool/api/stupid-clicker-claim-signature', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: userAddress, milestone: id })
+          body: JSON.stringify({ address: userAddress, tier: tier })
         });
 
         if (!response.ok) {
