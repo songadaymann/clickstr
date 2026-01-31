@@ -884,6 +884,141 @@
       }
     }
 
+    /* ============ MOBILE HAMBURGER MENU ============ */
+    #mobile-menu-btn {
+      display: none; /* Hidden on desktop */
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: linear-gradient(to bottom, #330000, #1a0000);
+      border: 3px solid #660000;
+      color: #ff0000;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.3), inset 0 0 8px rgba(0, 0, 0, 0.5);
+      transition: all 0.2s ease;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 10px;
+    }
+
+    #mobile-menu-btn:hover {
+      background: linear-gradient(to bottom, #440000, #220000);
+      border-color: #ff0000;
+      box-shadow: 0 0 20px rgba(255, 0, 0, 0.5), inset 0 0 8px rgba(0, 0, 0, 0.5);
+    }
+
+    #mobile-menu-btn span {
+      display: block;
+      width: 20px;
+      height: 2px;
+      background: #ff0000;
+      border-radius: 1px;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 4px rgba(255, 0, 0, 0.5);
+    }
+
+    #mobile-menu-btn.open span:nth-child(1) {
+      transform: rotate(45deg) translate(5px, 5px);
+    }
+
+    #mobile-menu-btn.open span:nth-child(2) {
+      opacity: 0;
+    }
+
+    #mobile-menu-btn.open span:nth-child(3) {
+      transform: rotate(-45deg) translate(5px, -5px);
+    }
+
+    /* Mobile menu overlay */
+    #mobile-menu {
+      display: none;
+      position: fixed;
+      top: 0;
+      right: -280px;
+      width: 280px;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.95);
+      border-left: 3px solid #660000;
+      z-index: 999;
+      transition: right 0.3s ease;
+      padding: 80px 20px 20px;
+      box-shadow: -5px 0 30px rgba(0, 0, 0, 0.8);
+      overflow-y: auto;
+    }
+
+    #mobile-menu.open {
+      right: 0;
+    }
+
+    .mobile-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      margin-bottom: 8px;
+      background: linear-gradient(to bottom, #220000, #110000);
+      border: 2px solid #440000;
+      border-radius: 4px;
+      color: #ff0000;
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
+    }
+
+    .mobile-menu-item:hover,
+    .mobile-menu-item:active {
+      background: linear-gradient(to bottom, #330000, #220000);
+      border-color: #660000;
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+    }
+
+    .mobile-menu-item-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+
+    /* Mobile menu backdrop */
+    #mobile-menu-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 998;
+    }
+
+    #mobile-menu-backdrop.open {
+      display: block;
+    }
+
+    /* Show hamburger on mobile, hide help button */
+    @media (max-width: 768px) {
+      #mobile-menu-btn {
+        display: flex;
+      }
+
+      #mobile-menu {
+        display: block;
+      }
+
+      #help-btn {
+        display: none;
+      }
+    }
+
     .modal-title {
       font-family: 'Press Start 2P', 'Courier New', monospace;
       color: #00ffff;
@@ -2519,8 +2654,34 @@
     </div>
   </div>
 
-  <!-- Help Button (fixed position) -->
+  <!-- Help Button (fixed position, hidden on mobile) -->
   <button id="help-btn">?</button>
+
+  <!-- Mobile Hamburger Menu Button -->
+  <button id="mobile-menu-btn">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
+  <!-- Mobile Menu Backdrop -->
+  <div id="mobile-menu-backdrop"></div>
+
+  <!-- Mobile Menu -->
+  <div id="mobile-menu">
+    <div class="mobile-menu-item" id="mobile-menu-rewards">
+      <span class="mobile-menu-item-icon">*</span>
+      <span>Mint Rewards</span>
+    </div>
+    <div class="mobile-menu-item" id="mobile-menu-leaderboard">
+      <span class="mobile-menu-item-icon">#</span>
+      <span>Leaderboard</span>
+    </div>
+    <div class="mobile-menu-item" id="mobile-menu-about">
+      <span class="mobile-menu-item-icon">?</span>
+      <span>How to Play</span>
+    </div>
+  </div>
 
   <!-- Help Modal -->
   <div id="help-modal" class="modal">
@@ -3257,6 +3418,64 @@
     if (helpModal) {
       helpModal.addEventListener('click', (e) => {
         if (e.target === helpModal) closeHelpModal();
+      });
+    }
+
+    // Mobile hamburger menu
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const mobileMenuBackdrop = document.getElementById('mobile-menu-backdrop');
+    const mobileMenuRewards = document.getElementById('mobile-menu-rewards');
+    const mobileMenuLeaderboard = document.getElementById('mobile-menu-leaderboard');
+    const mobileMenuAbout = document.getElementById('mobile-menu-about');
+
+    function openMobileMenu() {
+      mobileMenuBtn.classList.add('open');
+      mobileMenu.classList.add('open');
+      mobileMenuBackdrop.classList.add('open');
+    }
+
+    function closeMobileMenu() {
+      mobileMenuBtn.classList.remove('open');
+      mobileMenu.classList.remove('open');
+      mobileMenuBackdrop.classList.remove('open');
+    }
+
+    if (mobileMenuBtn) {
+      mobileMenuBtn.addEventListener('click', () => {
+        if (mobileMenu.classList.contains('open')) {
+          closeMobileMenu();
+        } else {
+          openMobileMenu();
+        }
+      });
+    }
+
+    if (mobileMenuBackdrop) {
+      mobileMenuBackdrop.addEventListener('click', closeMobileMenu);
+    }
+
+    if (mobileMenuRewards) {
+      mobileMenuRewards.addEventListener('click', () => {
+        closeMobileMenu();
+        // Open collection modal (same as "See Collection" button)
+        showCollectionModal();
+      });
+    }
+
+    if (mobileMenuLeaderboard) {
+      mobileMenuLeaderboard.addEventListener('click', () => {
+        closeMobileMenu();
+        // Open rankings modal (same as "See All Rankings" button)
+        openRankingsModal();
+      });
+    }
+
+    if (mobileMenuAbout) {
+      mobileMenuAbout.addEventListener('click', () => {
+        closeMobileMenu();
+        // Open help modal
+        openHelpModal();
       });
     }
 
