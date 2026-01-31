@@ -26,6 +26,180 @@
       background: #000;
     }
 
+    /* Custom cursor that follows mouse */
+    #custom-cursor {
+      position: fixed;
+      width: 48px;
+      height: 48px;
+      pointer-events: none;
+      z-index: 99999;
+      transform: translate(-50%, -50%);
+      display: none;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+
+    #custom-cursor img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* Hide default cursor when custom cursor is active */
+    body.custom-cursor-active,
+    body.custom-cursor-active * {
+      cursor: none !important;
+    }
+
+    /* Cursor particle effects container */
+    #cursor-particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 99998;
+      overflow: hidden;
+    }
+
+    /* ============ CURSOR PARTICLE EFFECTS ============ */
+    .cursor-particle {
+      position: absolute;
+      pointer-events: none;
+      border-radius: 50%;
+    }
+
+    /* Smoke Rise Animation (green smoke, flames) */
+    @keyframes smokeRise {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.8; }
+      50% { opacity: 0.5; }
+      100% { transform: translate(-50%, calc(-50% - 40px)) scale(1.5); opacity: 0; }
+    }
+
+    /* Sparkle Animation (sparkles, gold effects) */
+    @keyframes sparkle {
+      0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 1; }
+      50% { transform: translate(-50%, -50%) scale(1) rotate(180deg); opacity: 0.8; }
+      100% { transform: translate(-50%, -50%) scale(0) rotate(360deg); opacity: 0; }
+    }
+
+    /* Float Away Animation (general particles) */
+    @keyframes floatAway {
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+      100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.5); opacity: 0; }
+    }
+
+    /* Glitch Animation */
+    @keyframes glitchShift {
+      0% { transform: translate(-50%, -50%); opacity: 0.8; }
+      25% { transform: translate(calc(-50% + 5px), calc(-50% - 2px)); opacity: 0.6; }
+      50% { transform: translate(calc(-50% - 3px), calc(-50% + 3px)); opacity: 0.4; }
+      75% { transform: translate(calc(-50% + 2px), calc(-50% - 5px)); opacity: 0.2; }
+      100% { transform: translate(-50%, -50%); opacity: 0; }
+    }
+
+    /* Rainbow Cycle Animation */
+    @keyframes rainbowCycle {
+      0% { filter: hue-rotate(0deg); transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+      100% { filter: hue-rotate(360deg); transform: translate(-50%, calc(-50% - 30px)) scale(0.5); opacity: 0; }
+    }
+
+    /* === SMOKE/FLAME PARTICLES === */
+    .particle-smoke-green {
+      background: radial-gradient(circle, rgba(50, 205, 50, 0.9) 0%, rgba(34, 139, 34, 0.6) 40%, transparent 100%);
+      box-shadow: 0 0 8px rgba(50, 205, 50, 0.8), 0 0 16px rgba(34, 139, 34, 0.5);
+      animation: smokeRise 1s ease-out forwards;
+    }
+
+    .particle-flame-orange {
+      background: radial-gradient(circle, rgba(255, 200, 50, 1) 0%, rgba(255, 100, 0, 0.8) 40%, rgba(200, 50, 0, 0.4) 70%, transparent 100%);
+      box-shadow: 0 0 10px rgba(255, 150, 0, 0.9), 0 0 20px rgba(255, 80, 0, 0.5);
+      animation: smokeRise 0.8s ease-out forwards;
+    }
+
+    .particle-flame-blue {
+      background: radial-gradient(circle, rgba(150, 200, 255, 1) 0%, rgba(50, 150, 255, 0.8) 40%, rgba(0, 80, 200, 0.4) 70%, transparent 100%);
+      box-shadow: 0 0 10px rgba(100, 180, 255, 0.9), 0 0 20px rgba(50, 100, 255, 0.5);
+      animation: smokeRise 0.8s ease-out forwards;
+    }
+
+    .particle-flame-white {
+      background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(200, 220, 255, 0.8) 40%, rgba(150, 180, 255, 0.4) 70%, transparent 100%);
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.9), 0 0 25px rgba(200, 220, 255, 0.6);
+      animation: smokeRise 0.7s ease-out forwards;
+    }
+
+    .particle-flame-red {
+      background: radial-gradient(circle, rgba(255, 100, 50, 1) 0%, rgba(200, 0, 0, 0.8) 40%, rgba(100, 0, 0, 0.4) 70%, transparent 100%);
+      box-shadow: 0 0 10px rgba(255, 50, 0, 0.9), 0 0 20px rgba(200, 0, 0, 0.5);
+      animation: smokeRise 0.8s ease-out forwards;
+    }
+
+    /* === SPARKLE PARTICLES === */
+    .particle-sparkle-gold {
+      background: radial-gradient(circle, rgba(255, 215, 0, 1) 0%, rgba(255, 180, 0, 0.6) 50%, transparent 100%);
+      box-shadow: 0 0 6px rgba(255, 215, 0, 1), 0 0 12px rgba(255, 180, 0, 0.8);
+      animation: sparkle 0.6s ease-out forwards;
+    }
+
+    .particle-sparkle-silver {
+      background: radial-gradient(circle, rgba(220, 220, 230, 1) 0%, rgba(180, 180, 200, 0.6) 50%, transparent 100%);
+      box-shadow: 0 0 6px rgba(220, 220, 230, 1), 0 0 12px rgba(200, 200, 220, 0.8);
+      animation: sparkle 0.6s ease-out forwards;
+    }
+
+    .particle-sparkle-rainbow {
+      background: radial-gradient(circle, rgba(255, 100, 100, 1) 0%, rgba(255, 200, 100, 0.8) 25%, rgba(100, 255, 100, 0.6) 50%, rgba(100, 200, 255, 0.4) 75%, transparent 100%);
+      box-shadow: 0 0 8px rgba(255, 150, 150, 0.8);
+      animation: rainbowCycle 1s ease-out forwards;
+    }
+
+    /* === GLOW PARTICLES === */
+    .particle-glow-white {
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(220, 240, 255, 0.5) 50%, transparent 100%);
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 30px rgba(200, 220, 255, 0.4);
+      animation: floatAway 1.2s ease-out forwards;
+    }
+
+    .particle-glow-pink {
+      background: radial-gradient(circle, rgba(255, 100, 200, 0.9) 0%, rgba(255, 50, 150, 0.5) 50%, transparent 100%);
+      box-shadow: 0 0 12px rgba(255, 100, 200, 0.8), 0 0 24px rgba(255, 50, 150, 0.4);
+      animation: floatAway 1s ease-out forwards;
+    }
+
+    /* === SPECIAL EFFECT PARTICLES === */
+    .particle-matrix {
+      background: rgba(0, 255, 0, 0.9);
+      box-shadow: 0 0 4px rgba(0, 255, 0, 0.8);
+      border-radius: 2px;
+      font-family: monospace;
+      animation: floatAway 1.5s linear forwards;
+    }
+
+    .particle-glitch {
+      background: rgba(255, 0, 255, 0.7);
+      box-shadow: 0 0 4px rgba(0, 255, 255, 0.8), 0 0 8px rgba(255, 0, 255, 0.6);
+      animation: glitchShift 0.5s steps(4) forwards;
+    }
+
+    .particle-lava {
+      background: radial-gradient(circle, rgba(255, 200, 0, 1) 0%, rgba(255, 100, 0, 0.8) 30%, rgba(200, 0, 0, 0.6) 60%, rgba(50, 0, 0, 0.3) 100%);
+      box-shadow: 0 0 8px rgba(255, 100, 0, 0.9), 0 0 16px rgba(200, 0, 0, 0.5);
+      animation: smokeRise 1.2s ease-out forwards;
+    }
+
+    .particle-rasta {
+      background: conic-gradient(rgba(0, 128, 0, 0.8), rgba(255, 215, 0, 0.8), rgba(255, 0, 0, 0.8), rgba(0, 128, 0, 0.8));
+      animation: floatAway 1s ease-out forwards;
+    }
+
+    .particle-dragon {
+      background: radial-gradient(circle, rgba(255, 50, 0, 1) 0%, rgba(255, 150, 0, 0.7) 40%, rgba(200, 0, 0, 0.4) 70%, transparent 100%);
+      box-shadow: 0 0 10px rgba(255, 100, 0, 0.9), 0 0 20px rgba(255, 50, 0, 0.5);
+      animation: smokeRise 0.9s ease-out forwards;
+    }
+
     /* Full-screen button container */
     #game {
       position: relative;
@@ -1403,6 +1577,24 @@
       text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
     }
 
+    .reset-cursor-btn {
+      background: transparent;
+      border: 1px solid #660000;
+      color: #ff6666;
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+      margin-left: 15px;
+      transition: all 0.2s ease;
+    }
+
+    .reset-cursor-btn:hover {
+      background: #330000;
+      border-color: #ff0000;
+      color: #ff0000;
+    }
+
     .collection-empty {
       font-family: 'SevenSegment', 'Courier New', monospace;
       color: #ff0000;
@@ -1800,6 +1992,11 @@
   </style>
 </head>
 <body>
+  <!-- Custom cursor element -->
+  <div id="custom-cursor"><img src="" alt=""></div>
+  <!-- Particle effects container for cursor trails -->
+  <div id="cursor-particles"></div>
+
   <div id="game">
     <img id="button-img" src="button-up.jpg" alt="Click me!">
 
@@ -1977,6 +2174,7 @@
         <div class="equipped-cursor">
           <span class="equipped-label">Equipped:</span>
           <span class="equipped-cursor-name" id="equipped-cursor-name">Default</span>
+          <button class="reset-cursor-btn" id="reset-cursor-btn">Reset</button>
         </div>
       </div>
     </div>
@@ -3048,8 +3246,115 @@
     const seeCollectionBtn = document.getElementById('see-collection-btn');
     const equippedCursorName = document.getElementById('equipped-cursor-name');
 
+    // Custom cursor elements
+    const customCursorEl = document.getElementById('custom-cursor');
+    const customCursorImg = customCursorEl.querySelector('img');
+    const cursorParticlesEl = document.getElementById('cursor-particles');
+
     // Current equipped cursor (saved to localStorage)
     let equippedCursor = localStorage.getItem('stupidClicker_cursor') || 'default';
+    let cursorEffect = null; // Current effect type (e.g., 'smoke-green')
+    let particleInterval = null;
+    let lastParticleTime = 0;
+
+    // Define cursor particle effects
+    // particle: CSS class, interval: ms between spawns, size: [min, max] px, duration: animation length ms
+    const CURSOR_EFFECTS = {
+      // Flames
+      'flame-orange':  { particle: 'particle-flame-orange', interval: 40, size: [10, 18], duration: 800 },
+      'flame-blue':    { particle: 'particle-flame-blue', interval: 40, size: [10, 18], duration: 800 },
+      'flame-white':   { particle: 'particle-flame-white', interval: 35, size: [10, 20], duration: 700 },
+      'flame-red':     { particle: 'particle-flame-red', interval: 45, size: [10, 18], duration: 800 },
+      // Smoke
+      'smoke-green':   { particle: 'particle-smoke-green', interval: 50, size: [8, 16], duration: 1000 },
+      // Sparkles
+      'sparkle-gold':  { particle: 'particle-sparkle-gold', interval: 80, size: [6, 12], duration: 600 },
+      'sparkle-silver':{ particle: 'particle-sparkle-silver', interval: 80, size: [6, 12], duration: 600 },
+      'sparkle-rainbow':{ particle: 'particle-sparkle-rainbow', interval: 60, size: [8, 14], duration: 1000 },
+      // Glows
+      'glow-white':    { particle: 'particle-glow-white', interval: 100, size: [12, 20], duration: 1200 },
+      'glow-pink':     { particle: 'particle-glow-pink', interval: 80, size: [10, 18], duration: 1000 },
+      // Special
+      'matrix':        { particle: 'particle-matrix', interval: 30, size: [3, 6], duration: 1500 },
+      'glitch':        { particle: 'particle-glitch', interval: 60, size: [8, 16], duration: 500 },
+      'lava':          { particle: 'particle-lava', interval: 60, size: [10, 18], duration: 1200 },
+      'rasta':         { particle: 'particle-rasta', interval: 70, size: [8, 14], duration: 1000 },
+      'dragon':        { particle: 'particle-dragon', interval: 45, size: [10, 18], duration: 900 },
+    };
+
+    // Map cursor IDs to their effects (cursor filename -> effect key)
+    const CURSOR_TO_EFFECT = {
+      // Streak flames (tiers 101-103)
+      'orange-flame': 'flame-orange',    // 101 - Week Warrior
+      'blue-flame': 'flame-blue',        // 102 - Month Master
+      'white-flame': 'flame-white',      // 103 - Perfect Attendance
+
+      // Meme cursors with effects (tier 500+)
+      'smoke-green': 'smoke-green',      // 501 - Blaze It (420)
+      'demon-red': 'flame-red',          // 502 - Devil's Click (666)
+      'casino-gold': 'sparkle-gold',     // 503 - Lucky 7s (777)
+      'matrix-green': 'matrix',          // 504 - Elite (1337)
+      'silver-sparkle': 'sparkle-silver',// 522 - Make a Wish (11111)
+      'white-glow': 'glow-white',        // 523 - Six Ones (111111)
+      'gold-sparkle': 'sparkle-gold',    // 526 - Slot Machine God (777777)
+      'glitch-purple': 'glitch',         // 532 - One Away (999999)
+      'lava': 'lava',                    // 510 - Maximum Evil (666666)
+      'rasta': 'rasta',                  // 509 - Double Blaze (420420)
+      'hot-pink': 'glow-pink',           // 511 - Nice Nice Nice (696969)
+      'dragon': 'dragon',                // 529 - Fortune (888888)
+
+      // High-tier personal milestones
+      'prismatic': 'sparkle-rainbow',    // 11 - Transcendent (500K)
+      'god': 'sparkle-gold',             // 12 - Click God (1M) - golden aura
+    };
+
+    // Track mouse position for custom cursor
+    document.addEventListener('mousemove', (e) => {
+      if (equippedCursor && equippedCursor !== 'default') {
+        customCursorEl.style.left = e.clientX + 'px';
+        customCursorEl.style.top = e.clientY + 'px';
+
+        // Spawn particles if this cursor has an effect
+        if (cursorEffect) {
+          const now = Date.now();
+          const effect = CURSOR_EFFECTS[cursorEffect];
+          if (effect && now - lastParticleTime > effect.interval) {
+            spawnParticle(e.clientX, e.clientY, effect);
+            lastParticleTime = now;
+          }
+        }
+      }
+    });
+
+    function spawnParticle(x, y, effect) {
+      const particle = document.createElement('div');
+      particle.className = `cursor-particle ${effect.particle}`;
+
+      // Random size within range
+      const size = effect.size[0] + Math.random() * (effect.size[1] - effect.size[0]);
+      particle.style.width = size + 'px';
+      particle.style.height = size + 'px';
+
+      // Slight random offset for organic feel
+      const offsetX = (Math.random() - 0.5) * 10;
+      const offsetY = (Math.random() - 0.5) * 10;
+      particle.style.left = (x + offsetX) + 'px';
+      particle.style.top = (y + offsetY) + 'px';
+
+      // Set CSS variables for floatAway animation direction
+      const dx = (Math.random() - 0.5) * 40;
+      const dy = -20 - Math.random() * 30; // Mostly upward
+      particle.style.setProperty('--dx', dx + 'px');
+      particle.style.setProperty('--dy', dy + 'px');
+
+      cursorParticlesEl.appendChild(particle);
+
+      // Remove particle after animation completes
+      const duration = effect.duration || 1000;
+      setTimeout(() => {
+        particle.remove();
+      }, duration);
+    }
 
     // Apply cursor on page load
     applyCursor(equippedCursor);
@@ -3058,12 +3363,25 @@
       // Find the slot with this cursor
       const slot = COLLECTION_SLOTS.find(s => s.cursor === cursorId);
 
+      // Clear any existing particle effect
+      cursorEffect = null;
+      cursorParticlesEl.innerHTML = '';
+
       if (cursorId && cursorId !== 'default') {
-        // Try to load the cursor file
+        // Use custom cursor element that follows mouse
         const cursorFile = `cursors/${cursorId}.png`;
-        document.body.style.cursor = `url('${cursorFile}'), auto`;
+        customCursorImg.src = cursorFile;
+        customCursorEl.style.display = 'block';
+        document.body.classList.add('custom-cursor-active');
+
+        // Check if this cursor has a special effect
+        if (CURSOR_TO_EFFECT[cursorId]) {
+          cursorEffect = CURSOR_TO_EFFECT[cursorId];
+        }
       } else {
-        document.body.style.cursor = 'auto';
+        // Reset to default cursor
+        customCursorEl.style.display = 'none';
+        document.body.classList.remove('custom-cursor-active');
       }
 
       equippedCursor = cursorId;
@@ -3197,6 +3515,14 @@
     collectionCloseBtn?.addEventListener('click', hideCollectionModal);
     collectionModal?.addEventListener('click', (e) => {
       if (e.target === collectionModal) hideCollectionModal();
+    });
+
+    // Reset cursor button
+    const resetCursorBtn = document.getElementById('reset-cursor-btn');
+    resetCursorBtn?.addEventListener('click', () => {
+      applyCursor('default');
+      renderCollectionGrid(); // Re-render to update equipped state
+      showAchievementToast('Cursor Reset', 'Using default cursor');
     });
 
     async function recordClicksToServer(clickCount) {
