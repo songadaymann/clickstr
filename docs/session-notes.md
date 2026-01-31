@@ -416,3 +416,59 @@ node scripts/public-miner.js
 ### Files Changed
 - `public/index.html` - Custom cursor system, particle effects, help modal
 - `scripts/public-miner.js` - New public-facing miner script
+
+### UI Label Updates
+
+Renamed bottom stats display for clarity:
+- "All-Time Clicks" → "Your Total Clicks"
+- "Total Earned" → "Your Total Earned"
+
+Increased stats label visibility:
+- Font size: 14px (up from default)
+- Full opacity (was 0.7)
+- Stronger red glow effect
+- Number display: 28px font, 160px min-width
+
+## Session: January 31, 2026 - UI Theme Unification & Mobile UX
+
+### Submit Button Redesign
+
+Moved submit button from bottom bar to contextual display above the main button:
+- Only appears when 50+ clicks accumulated AND wallet connected
+- Positioned above the red button, centered
+- Restyled to match red/black arcade theme (was orange)
+- Added help text: "Batch 50-500 clicks per tx" with tooltip
+- Moved outside UI overlay so it doesn't fade on inactivity
+
+### Mobile Hamburger Menu
+
+Added slide-out menu for mobile screens (≤768px):
+- Replaces hidden side panels (leaderboard, mint rewards)
+- Three menu items: Mint Rewards, Leaderboard, How to Play
+- Animated hamburger icon transforms to X when open
+- Backdrop click closes menu
+- Help button hidden on mobile (consolidated into menu)
+
+### Unified Red/Black Theme
+
+Updated all modals to match arcade aesthetic:
+- **Wallet Connect Modal**: Dark red background, red borders, SevenSegment font
+- **Turnstile Modal**: Same red/black treatment
+- **NFT Claim Modal**: Consistent styling with glow effects
+- **Connect Wallet Button**: Changed from green to red/black theme
+  - Added pulse animation for wrong-network state
+
+### WalletConnect Improvements
+
+Fixed WalletConnect v2 integration:
+- Provider was failing to load - fixed by accessing `window['@walletconnect/ethereum-provider']`
+- Added multiple wallet options to our modal:
+  - MetaMask (direct browser extension)
+  - Rainbow (via WalletConnect)
+  - Rabby (via WalletConnect)
+  - Coinbase (via WalletConnect)
+  - Other Wallets (curated WalletConnect list)
+- Each wallet button pre-selects that wallet in the WalletConnect modal
+
+### Files Changed
+- `public/index.html` - All UI changes

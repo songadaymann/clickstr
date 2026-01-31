@@ -73,6 +73,11 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 - [x] Help modal ("How to Play") with game overview
 - [x] Help button (red "?" circle, upper right)
 - [x] Responsive help modal for mobile
+- [x] Mobile hamburger menu (Mint Rewards, Leaderboard, How to Play)
+- [x] Contextual submit button (appears above button at 50+ clicks)
+- [x] Unified red/black arcade theme for all modals
+- [x] Multiple wallet options (MetaMask, Rainbow, Rabby, Coinbase, WalletConnect)
+- [x] Fixed WalletConnect v2 provider loading
 
 ### Remaining
 - [ ] Show streak counter in header
