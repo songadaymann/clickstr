@@ -3565,7 +3565,16 @@
     }
 
     function launchConfetti(duration = 3000) {
-      const startTime = Date.now();
+      // Ensure canvas has dimensions (fixes first-call race condition)
+      if (confettiCanvas.width === 0 || confettiCanvas.height === 0) {
+        resizeConfettiCanvas();
+      }
+
+      // Add initial burst of particles immediately
+      for (let i = 0; i < 20; i++) {
+        confettiParticles.push(createConfettiParticle());
+      }
+
       const particleInterval = setInterval(() => {
         for (let i = 0; i < 5; i++) {
           confettiParticles.push(createConfettiParticle());
@@ -3574,9 +3583,12 @@
 
       setTimeout(() => clearInterval(particleInterval), duration);
 
-      if (!confettiAnimationId) {
-        animateConfetti();
+      // Force-start animation (cancel any stale state first)
+      if (confettiAnimationId) {
+        cancelAnimationFrame(confettiAnimationId);
+        confettiAnimationId = null;
       }
+      animateConfetti();
     }
 
     function animateConfetti() {
