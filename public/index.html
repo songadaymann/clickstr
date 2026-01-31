@@ -619,6 +619,199 @@
       border-radius: 2px;
     }
 
+    /* ============ HELP BUTTON & MODAL ============ */
+    #help-btn {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(to bottom, #330000, #1a0000);
+      border: 3px solid #660000;
+      color: #ff0000;
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.3), inset 0 0 8px rgba(0, 0, 0, 0.5);
+      transition: all 0.2s ease;
+      pointer-events: auto;
+    }
+
+    #help-btn:hover {
+      background: linear-gradient(to bottom, #440000, #220000);
+      border-color: #ff0000;
+      box-shadow: 0 0 20px rgba(255, 0, 0, 0.5), inset 0 0 8px rgba(0, 0, 0, 0.5);
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+    }
+
+    .help-modal-content {
+      background: #0a0000;
+      border: 3px solid #660000;
+      border-radius: 4px;
+      padding: 36px;
+      max-width: 580px;
+      width: 92%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow:
+        inset 0 0 30px rgba(0, 0, 0, 0.8),
+        0 0 40px rgba(255, 0, 0, 0.2),
+        0 0 80px rgba(255, 0, 0, 0.1);
+      position: relative;
+    }
+
+    .help-modal-content::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.1) 2px,
+          rgba(0, 0, 0, 0.1) 4px
+        );
+      pointer-events: none;
+      border-radius: 2px;
+    }
+
+    .help-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .help-title {
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      color: #ff0000;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
+    }
+
+    .help-close-btn {
+      background: transparent;
+      border: 2px solid #660000;
+      color: #ff0000;
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      font-size: 12px;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .help-close-btn:hover {
+      background: #330000;
+      border-color: #ff0000;
+    }
+
+    .help-section {
+      margin-bottom: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .help-section-title {
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      color: #ff6666;
+      font-size: 11px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+
+    .help-text {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff9999;
+      font-size: 15px;
+      line-height: 1.7;
+      text-shadow: 0 0 4px rgba(255, 0, 0, 0.3);
+    }
+
+    .help-text strong {
+      color: #ffcc00;
+    }
+
+    .help-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .help-list li {
+      font-family: 'SevenSegment', 'Courier New', monospace;
+      color: #ff9999;
+      font-size: 14px;
+      line-height: 2;
+      padding-left: 20px;
+      position: relative;
+      text-shadow: 0 0 4px rgba(255, 0, 0, 0.3);
+    }
+
+    .help-list li::before {
+      content: '>';
+      position: absolute;
+      left: 0;
+      color: #ff0000;
+    }
+
+    .help-divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, #660000, transparent);
+      margin: 20px 0;
+    }
+
+    /* Help modal responsive */
+    @media (max-width: 600px) {
+      .help-modal-content {
+        padding: 24px 20px;
+        width: 95%;
+        max-height: 90vh;
+      }
+
+      .help-title {
+        font-size: 12px;
+      }
+
+      .help-section-title {
+        font-size: 9px;
+      }
+
+      .help-text {
+        font-size: 13px;
+      }
+
+      .help-list li {
+        font-size: 12px;
+        line-height: 1.8;
+      }
+
+      #help-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 16px;
+        top: 10px;
+        right: 10px;
+      }
+    }
+
     .modal-title {
       font-family: 'Press Start 2P', 'Courier New', monospace;
       color: #00ffff;
@@ -2195,6 +2388,84 @@
     </div>
   </div>
 
+  <!-- Help Button (fixed position) -->
+  <button id="help-btn">?</button>
+
+  <!-- Help Modal -->
+  <div id="help-modal" class="modal">
+    <div class="help-modal-content">
+      <div class="help-header">
+        <span class="help-title">How to Play</span>
+        <button class="help-close-btn" id="help-close-btn">X</button>
+      </div>
+
+      <div class="help-section">
+        <div class="help-section-title">The Basics</div>
+        <p class="help-text">
+          Click the button to mine <strong>$CLICK</strong>. Each click does real cryptographic work (proof-of-work) to earn tokens.
+        </p>
+      </div>
+
+      <div class="help-divider"></div>
+
+      <div class="help-section">
+        <div class="help-section-title">How It Works</div>
+        <ul class="help-list">
+          <li>Connect your wallet</li>
+          <li>Click the button</li>
+          <li>Once you've clicked 50 and up to 500 times, submit a transaction</li>
+          <li>You pay gas to claim your $CLICK tokens</li>
+        </ul>
+      </div>
+
+      <div class="help-divider"></div>
+
+      <div class="help-section">
+        <div class="help-section-title">The 50/50 Burn</div>
+        <p class="help-text">
+          Every token earned also <strong>burns</strong> a token. If you earn 100 $CLICK, another 100 is burned forever. More clicking = scarcer token.
+        </p>
+      </div>
+
+      <div class="help-divider"></div>
+
+      <div class="help-section">
+        <div class="help-section-title">Seasons & Epochs</div>
+        <p class="help-text">
+          The game runs in <strong>seasons</strong> divided into <strong>epochs</strong> (24 hours). Each epoch, 2% of the remaining pool is distributed. Top clicker each epoch gets a 10% bonus.
+        </p>
+      </div>
+
+      <div class="help-divider"></div>
+
+      <div class="help-section">
+        <div class="help-section-title">NFT Rewards</div>
+        <p class="help-text">
+          Hit click milestones to unlock collectible NFTs and custom cursors. Check your <strong>Mint Rewards</strong> panel and <strong>Collection</strong> to see what you've earned.
+        </p>
+      </div>
+
+      <div class="help-divider"></div>
+
+      <div class="help-section">
+        <div class="help-section-title">Scripts Welcome</div>
+        <p class="help-text">
+          You can also click directly via the smart contract using our <strong>bot script</strong> (or your own custom one). But only frontend clicks count toward NFT rewards and milestones. Scripts earn $CLICK, humans earn $CLICK + collectibles.
+        </p>
+      </div>
+
+      <div class="help-divider"></div>
+
+      <div class="help-section">
+        <div class="help-section-title">Between Seasons</div>
+        <p class="help-text">
+          Even without an active season, your frontend clicks are still tracked and count toward <strong>NFT milestones</strong>. You just won't earn $CLICK until the next season starts.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
   <script>
     // =============================================================================
     // CONFIGURATION - Toggle between TESTNET and MAINNET
@@ -2829,6 +3100,31 @@
     if (rankingsModal) {
       rankingsModal.addEventListener('click', (e) => {
         if (e.target === rankingsModal) closeRankingsModal();
+      });
+    }
+
+    // Help modal
+    const helpBtn = document.getElementById('help-btn');
+    const helpModal = document.getElementById('help-modal');
+    const helpCloseBtn = document.getElementById('help-close-btn');
+
+    function openHelpModal() {
+      helpModal.classList.add('visible');
+    }
+
+    function closeHelpModal() {
+      helpModal.classList.remove('visible');
+    }
+
+    if (helpBtn) {
+      helpBtn.addEventListener('click', openHelpModal);
+    }
+    if (helpCloseBtn) {
+      helpCloseBtn.addEventListener('click', closeHelpModal);
+    }
+    if (helpModal) {
+      helpModal.addEventListener('click', (e) => {
+        if (e.target === helpModal) closeHelpModal();
       });
     }
 

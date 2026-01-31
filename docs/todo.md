@@ -59,16 +59,22 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 - [x] Add season info display
 - [x] Mobile responsiveness
 - [x] Collection modal (95 slots)
-- [x] Cursor cosmetics system (scaffolded)
+- [x] Cursor cosmetics system (fully implemented)
 - [x] Cursor PNG assets renamed and working (73 cursors)
 - [x] One-of-one NFT images renamed and working (24 images)
 - [x] Mint Rewards panel shows cursor/NFT images instead of emojis
 - [x] Claim modal shows cursor/NFT images instead of emojis
 - [x] NFT claim API fix (send tier number instead of milestone string)
 - [x] Turnstile error code logging for debugging
+- [x] Custom cursor element (follows mouse, 48x48px)
+- [x] Cursor particle effects (flames, sparkles, glows, matrix, glitch, etc.)
+- [x] 16 special cursors with unique effects
+- [x] Cursor Reset button in collection modal
+- [x] Help modal ("How to Play") with game overview
+- [x] Help button (red "?" circle, upper right)
+- [x] Responsive help modal for mobile
 
 ### Remaining
-- [ ] Add click effects/particles for special achievements
 - [ ] Show streak counter in header
 - [ ] Sound effects for achievements
 - [ ] Confetti animation for legendary unlocks
@@ -80,6 +86,17 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 
 - [ ] Create NFT metadata API endpoint (`/api/stupid-clicker/nft/[tokenId]`)
 - [ ] Add streak tracking display to stats endpoint
+
+---
+
+## Scripts & Tools
+
+### Done
+- [x] `scripts/public-miner.js` - Public-facing mining script for users
+  - Self-contained (hardcoded contract addresses)
+  - Multi-threaded (uses all CPU cores)
+  - Simple setup (just needs PRIVATE_KEY in .env)
+  - Clear messaging that scripts don't earn NFTs
 
 ---
 

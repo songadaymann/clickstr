@@ -327,3 +327,92 @@ Also added `updateSubmitButton()` and `updateStatus()` calls after transaction f
 
 ### Files Changed
 - `public/index.html` - All UI and bug fix changes
+
+## Session: January 30, 2026 (Late Night) - Custom Cursors, Help Modal & Public Miner
+
+### Custom Cursor System with Particle Effects
+
+Implemented full cursor cosmetics system that was previously scaffolded:
+
+**Core Implementation:**
+- Custom cursor element (48x48px) follows mouse instead of CSS `cursor` property
+  - CSS cursors have strict size limits (~32x32), our artwork is 1024x1024
+- Cursor selection persists to localStorage
+- Reset button in collection modal to return to default
+
+**Particle Effects for Special Cursors:**
+
+Added 16 cursor effects with different visual styles:
+
+| Effect Type | Cursors | Animation |
+|-------------|---------|-----------|
+| Flames | orange-flame, blue-flame, white-flame, demon-red | Rising fire particles |
+| Smoke | smoke-green (Blaze It) | Green smoke trail |
+| Sparkles | casino-gold, silver-sparkle, gold-sparkle, prismatic | Rotating sparkle burst |
+| Glows | white-glow, hot-pink | Floating glow particles |
+| Special | matrix-green (falling code), glitch-purple (glitchy), lava, rasta, dragon | Various unique effects |
+
+**Cursor → Effect Mapping:**
+- Tier 101-103 (Streaks): Flame effects (orange → blue → white/plasma)
+- Tier 501 (420): Green smoke
+- Tier 502 (666): Red demon flames
+- Tier 503 (777): Gold sparkles
+- Tier 504 (1337): Matrix falling code
+- Tier 509-511: Rasta, lava, pink glow
+- Tier 522-532: Various sparkles and glitch effects
+- Tier 11-12 (500K-1M): Rainbow prismatic, golden aura
+
+### Help Modal ("How to Play")
+
+Added arcade-themed help button and modal:
+
+**Help Button:**
+- Red circular "?" in upper right corner
+- 44x44px, matches arcade red-on-black theme
+- Fixed position, always accessible
+
+**Help Modal Sections:**
+1. **The Basics** - Click to mine $CLICK via proof-of-work
+2. **How It Works** - Connect wallet, click, batch 50-500, submit, pay gas
+3. **The 50/50 Burn** - Every earned token burns another
+4. **Seasons & Epochs** - 24-hour epochs, 2% distribution, winner bonus
+5. **NFT Rewards** - Milestones unlock collectibles and cursors
+6. **Scripts Welcome** - Bot script earns $CLICK but not NFTs
+7. **Between Seasons** - Frontend clicks still count for NFT milestones
+
+**Responsive Design:**
+- Desktop: 580px max-width, larger fonts
+- Mobile (<600px): 95% width, smaller fonts, adjusted button size
+
+### Public Miner Script
+
+Created `scripts/public-miner.js` for users who want to mine via script:
+
+**Key Features:**
+- Self-contained (no dependency on local deployment.json)
+- Hardcoded contract addresses for Sepolia (mainnet ready when addresses added)
+- Simple setup: just needs `PRIVATE_KEY` in .env file
+- Clear startup banner noting scripts don't earn NFTs
+- Multi-threaded mining (uses all CPU cores)
+- Explorer links for transactions
+- Friendly error messages
+
+**Usage:**
+```bash
+# Create .env with your private key
+echo "PRIVATE_KEY=0xYourKey" > .env
+
+# Run the miner
+node scripts/public-miner.js
+```
+
+**Environment Variables:**
+- `PRIVATE_KEY` - Required: wallet private key
+- `NETWORK` - Optional: 'sepolia' or 'mainnet' (default: sepolia)
+- `RPC_URL` - Optional: custom RPC endpoint
+- `BATCH_SIZE` - Optional: proofs per TX (default/max: 500)
+- `NUM_WORKERS` - Optional: CPU threads (default: all cores)
+
+### Files Changed
+- `public/index.html` - Custom cursor system, particle effects, help modal
+- `scripts/public-miner.js` - New public-facing miner script
