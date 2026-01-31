@@ -3819,7 +3819,10 @@
       } catch (error) {
         console.error('Submit error:', error);
         statusEl.textContent = 'Error: ' + (error.reason || error.message);
+        // Re-enable button and update UI to show clicks still pending
         submitBtn.disabled = false;
+        updateSubmitButton();
+        updateStatus();
       }
     });
 
