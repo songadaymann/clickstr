@@ -26,6 +26,26 @@
       background: #000;
     }
 
+    /* Force WalletConnect modal above all game UI */
+    wcm-modal, w3m-modal,
+    [class*="walletconnect"],
+    [class*="wcm-"],
+    [class*="w3m-"],
+    div[data-testid="dynamic-modal-shadow"],
+    .wcm-overlay,
+    .w3m-overlay {
+      z-index: 100000 !important;
+    }
+
+    /* WalletConnect v2 uses Web3Modal which injects at body level */
+    body > wcm-modal,
+    body > w3m-modal,
+    body > div[class*="w3m"],
+    body > div[class*="wcm"] {
+      z-index: 100000 !important;
+      position: fixed !important;
+    }
+
     /* Custom cursor that follows mouse */
     #custom-cursor {
       position: fixed;
@@ -647,7 +667,7 @@
       right: 0;
       bottom: 0;
       background: rgba(0, 0, 0, 0.95);
-      z-index: 1000;
+      z-index: 50000;
       justify-content: center;
       align-items: center;
     }
