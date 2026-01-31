@@ -299,3 +299,31 @@ https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/s
 - `subgraph/subgraph.yaml` - new contract address + start block
 - `.env` - Pinata credentials (fixed format)
 - `nft-ipfs-config.json` - IPFS hashes for deploy script
+
+## Session: January 30, 2026 (Night) - UI Polish & Click Tracking Fix
+
+### Cursor/NFT Images in UI
+
+Replaced emoji placeholders with actual cursor and 1/1 NFT artwork throughout the UI:
+
+1. **Leaderboard panel** (sidebar) - Shows cursor image based on user's click milestone tier
+2. **Rankings modal** (expanded view) - Same cursor images, larger size
+3. **Collection modal grid** - Cursor images for personal milestones, 1/1 images for globals
+4. **Legendary 1/1s section** - Shows actual NFT artwork instead of numbered emoji
+
+Added helper function `getMilestoneIcon()` that maps click count → highest tier → cursor filename.
+
+### Critical Bug Fix: Click Count Mismatch
+
+**Problem discovered:** Frontend API showed 505 clicks, but on-chain (subgraph) showed only 320.
+
+**Root cause:** Clicks were being recorded to the frontend API BEFORE submitting to blockchain. If the transaction failed or was rejected, the API already had those clicks but they never made it on-chain.
+
+**Fix:** Reordered the submit flow:
+- Before: Record to API → Submit to blockchain (if tx fails, API has phantom clicks)
+- After: Submit to blockchain → Wait for confirmation → Record to API (API stays in sync)
+
+Also added `updateSubmitButton()` and `updateStatus()` calls after transaction failures so the UI properly reflects that clicks are still pending and ready to retry.
+
+### Files Changed
+- `public/index.html` - All UI and bug fix changes
