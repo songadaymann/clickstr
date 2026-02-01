@@ -472,3 +472,31 @@ Fixed WalletConnect v2 integration:
 
 ### Files Changed
 - `public/index.html` - All UI changes
+
+## Session: February 1, 2026 - Bug Fixes & Polish
+
+### WalletConnect Modal Z-Index Fix
+
+Fixed issue where game UI elements (stats displays) were showing through the WalletConnect modal.
+
+**Solution:**
+- Added CSS overrides to force WalletConnect modal elements to z-index 100000
+- Increased game modals z-index from 1000 to 50000
+- Targets various WalletConnect selectors: `wcm-modal`, `w3m-modal`, `[class*="wcm-"]`, etc.
+
+### Confetti Race Condition Fix
+
+Fixed intermittent bug where confetti wouldn't appear on first milestone celebration.
+
+**Root Cause:** Multiple race conditions:
+1. Canvas might not have dimensions on first call
+2. Animation started before particles were added (setInterval delay)
+3. Stale animation state not being cleared
+
+**Solution:**
+- Check and resize canvas if dimensions are 0
+- Add initial burst of 20 particles immediately (not waiting for setInterval)
+- Force-restart animation on each launch (cancel any existing animation frame)
+
+### Files Changed
+- `public/index.html` - Z-index fixes, confetti race condition fixes
