@@ -53,12 +53,14 @@ export async function checkVerificationStatus(address: string): Promise<Verifica
  * @param clicks Number of clicks to record
  * @param turnstileToken Optional Turnstile verification token
  * @param nonces Optional array of nonces as proof-of-work (for off-chain submissions)
+ * @param epoch Optional epoch number (required for PoW verification when game is active)
  */
 export async function recordClicksToServer(
   address: string,
   clicks: number,
   turnstileToken?: string | null,
-  nonces?: string[]
+  nonces?: string[],
+  epoch?: number
 ): Promise<RecordClicksResponse> {
   try {
     const body: Record<string, unknown> = { address, clicks };
@@ -67,6 +69,9 @@ export async function recordClicksToServer(
     }
     if (nonces && nonces.length > 0) {
       body.nonces = nonces;
+    }
+    if (epoch !== undefined) {
+      body.epoch = epoch;
     }
 
     const response = await fetch(CONFIG.apiUrl, {

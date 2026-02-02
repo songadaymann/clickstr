@@ -103,6 +103,7 @@ let rankingsModal: HTMLElement;
 let achievementToast: HTMLElement;
 let achievementNameEl: HTMLElement;
 let achievementDescEl: HTMLElement;
+let turnstileModal: HTMLElement;
 
 // Global stats panel elements
 let globalTotalClicksEl: HTMLElement;
@@ -114,6 +115,7 @@ let gameStatusEl: HTMLElement;
 let isPressed = false;
 let isMiningClick = false;
 let turnstileToken: string | null = null;
+let turnstileWidgetId: string | null = null;
 let leaderboardData: MergedLeaderboardEntry[] = [];
 let claimedOnChain: Set<number> = new Set();
 let serverStats: ServerStatsResponse | null = null;
@@ -199,6 +201,7 @@ function cacheElements(): void {
   leaderboardListEl = getElement('leaderboard-list');
   walletModal = getElement('wallet-modal');
   helpModal = getElement('help-modal');
+  turnstileModal = getElement('turnstile-modal');
   claimModal = getElement('claim-modal');
   collectionModal = getElement('collection-modal');
   rankingsModal = getElement('rankings-modal');
@@ -600,18 +603,22 @@ async function handleOnChainSubmit(nonces: readonly bigint[]): Promise<void> {
   const receipt = await submitClicks([...nonces]);
   if (!receipt) return;
 
-  // Record to server
+  // Record to server (send nonces for PoW verification to bypass Turnstile)
   const clicksToRecord = Math.min(gameState.serverClicksPending, nonces.length);
   if (clicksToRecord > 0) {
     const result = await recordClicksToServer(
       gameState.userAddress!,
       clicksToRecord,
-      turnstileToken
+      turnstileToken,
+      nonces.slice(0, clicksToRecord).map(n => n.toString()),
+      gameState.currentEpoch // Pass epoch for correct PoW verification
     );
     if (result.success) {
       gameState.markServerClicksRecorded(clicksToRecord);
       turnstileToken = null;
       handleAchievements(result);
+    } else if (result.requiresVerification) {
+      console.warn('[Submit] Server requires verification despite PoW nonces');
     }
   }
 
@@ -668,6 +675,11 @@ async function handleOffChainSubmit(nonces: readonly bigint[]): Promise<void> {
       gameState.setServerStats(stats);
       await renderNftPanel(stats);
     }
+  } else if (result.requiresVerification) {
+    // Show Turnstile modal for verification
+    showTurnstileModal();
+    submitBtn.disabled = false;
+    updateSubmitButton();
   } else {
     submitBtn.disabled = false;
     updateSubmitButton();
@@ -983,6 +995,51 @@ function showAchievementToast(name: string, desc: string): void {
   setText(achievementDescEl, desc);
   addClass(achievementToast, 'visible');
   setTimeout(() => removeClass(achievementToast, 'visible'), 4000);
+}
+
+// ============ Turnstile Verification ============
+
+declare const turnstile: {
+  render: (selector: string, options: {
+    sitekey: string;
+    callback: (token: string) => void;
+    'error-callback'?: (errorCode: string) => void;
+    'expired-callback'?: () => void;
+    theme?: 'light' | 'dark';
+  }) => string;
+  reset: (widgetId: string) => void;
+};
+
+function showTurnstileModal(): void {
+  showModal(turnstileModal);
+
+  if (!turnstileWidgetId && typeof turnstile !== 'undefined') {
+    turnstileWidgetId = turnstile.render('#turnstile-widget', {
+      sitekey: CONFIG.turnstileSiteKey,
+      callback: onTurnstileSuccess,
+      'error-callback': (errorCode) => {
+        console.error('[Turnstile] Error:', errorCode);
+      },
+      'expired-callback': () => {
+        turnstileToken = null;
+        // Token expired, will need to re-verify on next submit
+      },
+      theme: 'dark'
+    });
+  } else if (turnstileWidgetId && typeof turnstile !== 'undefined') {
+    turnstile.reset(turnstileWidgetId);
+  }
+}
+
+function onTurnstileSuccess(token: string): void {
+  turnstileToken = token;
+  hideModal(turnstileModal);
+
+  // Retry pending clicks if any
+  if (gameState.serverClicksPending > 0 && gameState.pendingNonces.length > 0) {
+    // Re-trigger submit - create a dummy event
+    handleSubmit(new Event('click'));
+  }
 }
 
 function showClaimModal(milestoneId: string, tier: number): void {
