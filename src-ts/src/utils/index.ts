@@ -5,6 +5,7 @@
 export {
   formatNumber,
   formatTokens,
+  formatTokensSplit,
   formatTokensLegacy,
   shortenAddress,
   formatDate,

@@ -62,6 +62,7 @@ import {
   setHtml,
   formatNumber,
   formatTokens,
+  formatTokensSplit,
   shortenAddress,
 } from './utils/index.ts';
 
@@ -89,6 +90,7 @@ let submitBtn: HTMLButtonElement;
 let submitContainer: HTMLElement;
 let epochInfoEl: HTMLElement;
 let poolInfoEl: HTMLElement;
+let poolSuffixEl: HTMLElement;
 let arcadeCurrentEl: HTMLElement;
 let arcadeAlltimeEl: HTMLElement;
 let arcadeEarnedEl: HTMLElement;
@@ -190,6 +192,7 @@ function cacheElements(): void {
   submitContainer = getElement('submit-container');
   epochInfoEl = getElement('epoch-info');
   poolInfoEl = getElement('pool-info');
+  poolSuffixEl = getElement('pool-suffix');
   arcadeCurrentEl = getElement('arcade-current');
   arcadeAlltimeEl = getElement('arcade-alltime');
   arcadeEarnedEl = getElement('arcade-earned');
@@ -771,13 +774,16 @@ function updateDisplays(): void {
     removeClass(gameStatusEl, 'inactive');
     addClass(gameStatusEl, 'active');
     setText(epochInfoEl, `${gameState.currentEpoch} / ${gameState.totalEpochs}`);
-    setText(poolInfoEl, formatTokens(gameState.poolRemaining));
+    const poolFormatted = formatTokensSplit(gameState.poolRemaining);
+    setText(poolInfoEl, poolFormatted.value);
+    setText(poolSuffixEl, poolFormatted.suffix);
   } else {
     setText(gameStatusEl, 'INACTIVE');
     removeClass(gameStatusEl, 'active');
     addClass(gameStatusEl, 'inactive');
     setText(epochInfoEl, '0 / 0');
     setText(poolInfoEl, '0');
+    setText(poolSuffixEl, '');
   }
 }
 

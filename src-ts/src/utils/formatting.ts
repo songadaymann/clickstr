@@ -28,6 +28,19 @@ export function formatTokens(amount: number): string {
 }
 
 /**
+ * Format token amounts split into number and suffix (for seven-segment displays)
+ */
+export function formatTokensSplit(amount: number): { value: string; suffix: string } {
+  if (amount >= 1_000_000) {
+    return { value: (amount / 1_000_000).toFixed(2), suffix: 'M' };
+  } else if (amount >= 1_000) {
+    return { value: (amount / 1_000).toFixed(2), suffix: 'K' };
+  } else {
+    return { value: amount.toFixed(2), suffix: '' };
+  }
+}
+
+/**
  * Format token amounts for display (older style)
  */
 export function formatTokensLegacy(amount: number): string {

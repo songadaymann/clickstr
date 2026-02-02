@@ -234,24 +234,28 @@
 }
 
 .info-help-icon {
-  width: 14px;
-  height: 14px;
-  border: 1px solid var(--color-red-700);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-red-400);
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
-  color: var(--color-red-400);
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--color-red-300);
   cursor: help;
   position: relative;
-  opacity: 0.7;
+  opacity: 1;
   pointer-events: auto;
+  text-shadow: 0 0 6px rgba(255, 0, 0, 0.8);
+  box-shadow: 0 0 8px rgba(255, 0, 0, 0.4);
 }
 
 .info-help-icon:hover {
-  border-color: var(--color-red-500);
-  opacity: 1;
+  border-color: var(--color-red-300);
+  color: var(--color-red-200);
+  box-shadow: 0 0 12px rgba(255, 0, 0, 0.6);
 }
 
 .info-help-tooltip {
@@ -288,6 +292,13 @@
   text-shadow:
     var(--glow-red-md),
     var(--glow-red-lg);
+}
+
+.info-suffix {
+  font-family: var(--font-label);
+  font-size: 16px;
+  margin-left: 2px;
+  opacity: 0.9;
 }
 
 /* Game status indicator */
