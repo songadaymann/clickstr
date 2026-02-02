@@ -6,13 +6,13 @@
 @media (max-width: 1024px) {
   #leaderboard-panel {
     min-width: 220px;
-    right: 15px;
+    left: 15px;
     padding: var(--spacing-md) var(--spacing-lg);
   }
 
   #nft-panel {
     min-width: 200px;
-    left: 15px;
+    right: 15px;
     padding: var(--spacing-md) var(--spacing-lg);
   }
 

@@ -6,7 +6,7 @@
 #leaderboard-panel {
   position: absolute;
   top: calc(50% - 220px);
-  right: 30px;
+  left: 30px;
   transform: translateY(-50%);
   background: var(--color-dark-overlay);
   border: 2px solid var(--color-red-950);
@@ -197,7 +197,7 @@
 /* ============ NFT PANEL ============ */
 #nft-panel {
   position: absolute;
-  top: calc(50% + 140px);
+  top: calc(50% - 220px);
   right: 30px;
   transform: translateY(-50%);
   background: var(--color-dark-overlay);
