@@ -60,8 +60,8 @@ body > div[class*="wcm"] {
   pointer-events: none;
   z-index: var(--z-cursor);
   /* Offset so the fingertip (click point) aligns with actual mouse position */
-  /* Hand cursors have click point at top-left, roughly 15% from edges */
-  transform: translate(-15%, -10%);
+  /* Hand cursors have click point near top-left corner (index finger tip) */
+  transform: translate(-25%, -10%);
   display: none;
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
