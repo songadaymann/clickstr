@@ -104,6 +104,7 @@ let helpModal: HTMLElement;
 let claimModal: HTMLElement;
 let collectionModal: HTMLElement;
 let rankingsModal: HTMLElement;
+let imageLightbox: HTMLElement;
 let achievementToast: HTMLElement;
 let achievementNameEl: HTMLElement;
 let achievementDescEl: HTMLElement;
@@ -147,6 +148,11 @@ let leaderboardGameName: HTMLElement;
 let rankingsTabsEl: HTMLElement;
 let rankingsListEl: HTMLElement;
 let rankingsTab: 'global' | string = 'global'; // 'global' or game id
+
+// Lightbox elements
+let lightboxImage: HTMLImageElement;
+let lightboxName: HTMLElement;
+let lightboxClickNum: HTMLElement;
 
 // ============ Preload Images ============
 const imgUp = new Image();
@@ -245,6 +251,12 @@ function cacheElements(): void {
   // Rankings modal elements
   rankingsTabsEl = getElement('rankings-tabs');
   rankingsListEl = getElement('rankings-list');
+
+  // Lightbox elements
+  imageLightbox = getElement('image-lightbox');
+  lightboxImage = getElement<HTMLImageElement>('lightbox-image');
+  lightboxName = getElement('lightbox-name');
+  lightboxClickNum = getElement('lightbox-click-num');
 }
 
 /**
@@ -331,6 +343,9 @@ function setupEventListeners(): void {
   // Leaderboard toggle
   leaderboardToggleGlobal.addEventListener('click', () => setLeaderboardMode('global'));
   leaderboardToggleGame.addEventListener('click', () => setLeaderboardMode('game'));
+
+  // Lightbox
+  setupLightboxListeners();
 }
 
 // Wallet modal setup removed - AppKit provides its own modal UI
@@ -465,6 +480,41 @@ function setupClaimModalListeners(): void {
   claimModal?.addEventListener('click', (e) => {
     if (e.target === claimModal) hideModal(claimModal);
   });
+}
+
+/**
+ * Set up lightbox event listeners
+ */
+function setupLightboxListeners(): void {
+  const lightboxCloseBtn = getElementOrNull('lightbox-close-btn');
+
+  lightboxCloseBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hideModal(imageLightbox);
+  });
+
+  // Click on backdrop to close
+  imageLightbox?.addEventListener('click', (e) => {
+    if (e.target === imageLightbox) {
+      hideModal(imageLightbox);
+    }
+  });
+
+  // Prevent clicks on the content from closing
+  const lightboxContent = imageLightbox?.querySelector('.lightbox-content');
+  lightboxContent?.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+}
+
+/**
+ * Show an image in the lightbox modal
+ */
+function showImageLightbox(imageSrc: string, name: string, clickNum?: string): void {
+  lightboxImage.src = imageSrc;
+  setText(lightboxName, name);
+  setText(lightboxClickNum, clickNum || '');
+  showModal(imageLightbox);
 }
 
 /**
@@ -1484,11 +1534,22 @@ function renderTrophySection(): void {
   for (const trophy of ownedTrophies) {
     const div = document.createElement('div');
     div.className = 'trophy-item';
+    div.style.cursor = 'pointer';
     div.innerHTML = `
       <img src="one-of-ones/${trophy.tier}.png" class="trophy-img" alt="${trophy.name}">
       <span class="trophy-name">${trophy.name}</span>
       <span class="trophy-click-num">Click #${trophy.globalClick.toLocaleString()}</span>
     `;
+
+    // Click to view larger
+    div.addEventListener('click', () => {
+      showImageLightbox(
+        `one-of-ones/${trophy.tier}.png`,
+        trophy.name,
+        `Click #${trophy.globalClick.toLocaleString()}`
+      );
+    });
+
     trophyGrid.appendChild(div);
   }
 }
@@ -1509,9 +1570,11 @@ function renderCollectionGrid(): void {
 
     if (isMinted) {
       let iconHtml: string;
+      const isGlobal = slot.tier >= 200 && slot.tier < 500;
+
       if (slot.cursor) {
         iconHtml = `<img src="cursors/${slot.cursor}.png" class="collection-item-img" alt="${slot.name}">`;
-      } else if (slot.tier >= 200 && slot.tier < 500) {
+      } else if (isGlobal) {
         iconHtml = `<img src="one-of-ones/${slot.tier}.png" class="collection-item-img" alt="${slot.name}">`;
       } else {
         const info = getMilestoneInfo(slot.tier);
@@ -1523,13 +1586,26 @@ function renderCollectionGrid(): void {
         <span class="collection-item-name">${slot.name}</span>
       `;
 
-      // Add click handler to equip cursor
+      // Add click handler: cursor items equip, global 1/1s open lightbox
       if (slot.cursor) {
         div.addEventListener('click', () => {
           applyCursor(slot.cursor!);
           setText(equippedCursorName, slot.name);
           renderCollectionGrid();
           showAchievementToast('Cursor Equipped!', `Now using: ${slot.name}`);
+        });
+      } else if (isGlobal) {
+        // Global 1/1 NFT - click to view larger
+        div.style.cursor = 'pointer';
+        // Find the global click number from GLOBAL_ONE_OF_ONE_TIERS
+        const globalInfo = GLOBAL_ONE_OF_ONE_TIERS.find(g => g.tier === slot.tier);
+        const clickNumText = globalInfo ? `Click #${globalInfo.globalClick.toLocaleString()}` : '';
+        div.addEventListener('click', () => {
+          showImageLightbox(
+            `one-of-ones/${slot.tier}.png`,
+            slot.name,
+            clickNumText
+          );
         });
       }
     } else {

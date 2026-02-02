@@ -13,6 +13,16 @@ let cursorImg: HTMLImageElement | null = null;
 /** Mouse move handler reference */
 let mouseMoveHandler: ((e: MouseEvent) => void) | null = null;
 
+/** Whether we're on a touch device (mobile) */
+let isTouchDevice = false;
+
+/**
+ * Check if the device is a touch device (mobile/tablet)
+ */
+function checkIsTouchDevice(): boolean {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+
 /**
  * Initialize custom cursor
  */
@@ -20,13 +30,24 @@ export function initCursor(element: HTMLElement): void {
   cursorElement = element;
   cursorImg = element.querySelector('img');
 
-  // Apply saved cursor
+  // Detect touch device - don't use custom cursors on mobile
+  isTouchDevice = checkIsTouchDevice();
+
+  if (isTouchDevice) {
+    // On mobile/touch devices, keep the cursor hidden and don't apply custom cursors
+    if (cursorElement) {
+      cursorElement.style.display = 'none';
+    }
+    return;
+  }
+
+  // Apply saved cursor (desktop only)
   const savedCursor = gameState.equippedCursor;
   if (savedCursor && savedCursor !== 'default') {
     applyCursor(savedCursor);
   }
 
-  // Set up mouse tracking
+  // Set up mouse tracking (desktop only)
   mouseMoveHandler = (e: MouseEvent) => {
     if (cursorElement && gameState.equippedCursor !== 'default') {
       cursorElement.style.left = e.clientX + 'px';
@@ -50,6 +71,13 @@ export function applyCursor(cursorId: string): void {
   // Clear any existing particle effect
   clearParticles();
   setParticleEffect(null);
+
+  // On mobile/touch devices, don't show custom cursor visuals
+  // but still save the equipped cursor to state (for showing in collection modal)
+  if (isTouchDevice) {
+    gameState.equipCursor(cursorId);
+    return;
+  }
 
   if (cursorId && cursorId !== 'default') {
     // Use custom cursor element that follows mouse
