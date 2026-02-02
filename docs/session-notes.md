@@ -1757,3 +1757,113 @@ async function handleSubmit(e: Event): Promise<void> {
 3. **Vite asset paths** - Use absolute paths (`/Fonts/...`) for public assets to prevent Vite from processing them into `assets/` folder
 
 4. **CSS `transform` for cursor offset** - The translate percentages are relative to the element's own dimensions, not the mouse position
+
+---
+
+## Session: 2025-02-02 (Continued) - NFT System Audit & Sync Feature
+
+### Problem Discovery
+
+User reported that some hidden achievements weren't triggering:
+- "Day One OG" (tier 104) and "First Timer" (tier 1) worked ✓
+- "Meaning of Everything" (tier 608 - personal click #42) did NOT work ✗
+- Other achievements like 666, 777 worked, but 42, 101, 314 didn't
+
+### Root Cause Analysis
+
+Traced through entire NFT system from CSV → API → Frontend:
+
+1. **CSV is source of truth** (`milestones-v2.csv`) with 98 tiers
+2. **API had extra tiers** that didn't exist in CSV (hallucinated tiers 240-349)
+3. **Frontend had incomplete mappings** for many tiers
+4. **collection.ts had wrong globalClick values** for tiers 225-229
+5. **Achievement trigger logic issue** - only checked "pass-through" not "already passed"
+
+### Fixes Applied
+
+#### 1. Frontend Milestone Configs Synced with CSV
+
+**Files changed:**
+- `src-ts/src/config/collection.ts` - Fixed GLOBAL_ONE_OF_ONE_TIERS tiers 225-229
+- `src-ts/src/config/milestones.ts` - Completed MILESTONE_INFO with all 98 tiers
+- `src-ts/src/config/milestones.ts` - Completed MILESTONE_ID_TO_TIER with all IDs
+- `src-ts/src/types/nft.ts` - Updated MilestoneId type with all IDs
+
+**collection.ts fixes (tiers 225-229):**
+| Tier | Was | Now |
+|------|-----|-----|
+| 225 | globalClick: 8008 | globalClick: 42069 |
+| 226 | globalClick: 42069 | globalClick: 69420 |
+| 227 | globalClick: 69420 | globalClick: 8008135 |
+| 228 | globalClick: 420420 | globalClick: 8675309 |
+| 229 | globalClick: 696969 | globalClick: 42 |
+
+#### 2. API Cleaned to Match CSV (Removed Hallucinated Tiers)
+
+**Files changed:**
+- `mann-dot-cool/api/clickstr.js` - Removed tiers 240-349 from GLOBAL_MILESTONES
+- `mann-dot-cool/api/clickstr-claim-signature.js` - Synced MILESTONE_TO_TIER and TIER_INFO
+
+**Before:** API had ~70 global milestones (many invented)
+**After:** API has exactly 24 global milestones matching CSV (200-213 + 220-229)
+
+**Tier counts verified:**
+- CSV: 98 tiers
+- clickstr.js: 98 tiers
+- clickstr-claim-signature.js: 98 tiers
+
+#### 3. Achievement Trigger Logic Fixed
+
+**Problem:** The "pass-through" check only triggered if you crossed the threshold in the current submission:
+```javascript
+// OLD - only triggers on cross
+if (previousClicks < hidden.triggerClick && newTotalClicks >= hidden.triggerClick)
+```
+
+If a user had 500 clicks before achievement #42 was added, they'd never get it because they already passed 42.
+
+**Fix:** Grant achievement if total clicks exceeds threshold (with duplicate prevention):
+```javascript
+// NEW - grants if threshold ever passed
+if (newTotalClicks >= hidden.triggerClick)
+```
+
+#### 4. Sync Achievements Feature (Backfill Button)
+
+Added a manual sync button for users to retroactively get missing achievements:
+
+**API endpoint:** `GET /api/clickstr?address=0x...&syncAchievements=true`
+- Looks up user's total clicks from Redis
+- Checks all hidden achievements and personal milestones
+- Grants any they should have but don't
+- Returns list of newly granted items
+
+**Frontend:**
+- Added ↻ button in NFT panel header
+- Spins while syncing
+- Shows toast: "Found X achievements" or "No missing achievements"
+- Processes new achievements through normal flow (adds to claim queue)
+
+**Files changed:**
+- `mann-dot-cool/api/clickstr.js` - New `syncAchievements` query handler
+- `src-ts/src/services/api.ts` - New `syncAchievements()` function
+- `src-ts/src/services/index.ts` - Export new function
+- `src-ts/src/main.ts` - `handleSyncAchievements()` handler, button listener
+- `src-ts/index.html` - Sync button in NFT panel header
+- `src-ts/src/styles/panels.css` - `.sync-btn` styles with spin animation
+
+### Commits
+
+**stupid-clicker repo:**
+- `2ac59cc` - Sync frontend milestone configs with CSV source of truth
+- `cc8ee78` - Add sync achievements button to retroactively grant missing achievements
+
+### Key Learnings
+
+1. **CSV must be single source of truth** - API and frontend should derive from it, not invent new tiers
+
+2. **Retroactive achievement grants** - When adding new achievements, need a way for existing users to claim ones they should already have
+
+3. **"Pass-through" vs "threshold" logic** - For achievements, checking `>= threshold` is safer than `crossed threshold this session`
+
+4. **Verify tier counts match** - Easy sanity check: `grep -c "tier:" file.js` should match CSV row count
