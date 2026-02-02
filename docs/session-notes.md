@@ -1639,3 +1639,121 @@ Two bugs fixed:
 2. ✅ Turnstile verification restored for off-chain submissions
 
 The key insight: During on-chain mode, we already have valid PoW nonces (the blockchain verified them). By passing those same nonces to the API, it can verify PoW and bypass Turnstile - no need for separate human verification since the blockchain submission is proof of legitimate activity.
+
+---
+
+## Session: 2025-02-02 - UI Redesign + Turnstile + Milestone Fixes
+
+### Summary
+
+Major session covering UI layout improvements, Turnstile enforcement for NFT protection, and critical milestone definition sync between API files.
+
+### UI Layout Changes
+
+**Panel Positioning:**
+- Leaderboard moved to **left side**, pinned at `top: 100px`, expands downward
+- Mint Rewards (NFT panel) moved to **right side**, pinned at `top: 100px`, expands downward
+- Combined Game/Epoch/Pool with Global Activity into single **Game Status Panel** at bottom-left
+
+**Game Status Panel Structure:**
+```
+┌─────────────────────────────────┐
+│   GAME      EPOCH      POOL     │  <- horizontal header row
+│  ACTIVE     1/12     99990K     │
+├─────────────────────────────────┤
+│ All-Time Clicks           370   │
+│─────────────────────────────────│
+│ Clicking Now    1 humans  0 bots│
+└─────────────────────────────────┘
+```
+
+**Files Changed:**
+- `index.html`: Restructured to combine `#center-info` into `#game-status-panel`
+- `styles/panels.css`: New `#game-status-panel` styles, removed old `#global-stats-panel`
+- `styles/layout.css`: Updated pointer-events, removed old `#center-info` styles
+- `styles/responsive.css`: Updated media queries for new panel structure
+
+**Other UI Fixes:**
+- Custom cursor overlay offset: Changed from `translate(-50%, -50%)` to `translate(-25%, -10%)` so fingertip aligns with click point
+- Game status tooltip: Now appears **above** the panel (`bottom: calc(100% + 8px)`)
+- Submit button tooltip: Now appears **above** the help icon
+- Font path fix: Changed `url('Fonts/Seven Segment.ttf')` to `url('/Fonts/Seven Segment.ttf')` to prevent Vite mangling
+
+### Turnstile Enforcement for NFT Protection
+
+**Problem:** PoW nonces were bypassing Turnstile verification, allowing bots to earn NFT milestones.
+
+**Solution:** Require Turnstile verification **before** any submission. PoW proves work was done, Turnstile proves human is present - both required for NFT milestone progress.
+
+**Changes to `main.ts`:**
+```javascript
+async function handleSubmit(e: Event): Promise<void> {
+  // ...
+
+  // Require Turnstile verification before any submission
+  if (!turnstileToken) {
+    showTurnstileModal();
+    return;
+  }
+
+  // ... proceed with on-chain or off-chain submit
+}
+```
+
+- Token kept for session (not cleared after each submit)
+- Server can still force re-verification via `requiresVerification` response
+
+### Milestone Definition Sync (Critical Bug Fix)
+
+**Problem:** Many NFT milestones weren't triggering because `clickstr.js` (which triggers milestones) had an outdated/minimal set, while `claim-signature.js` (which validates claims) had a different set. Neither matched the full `milestones-v2.csv`.
+
+**Root Cause:**
+- `clickstr.js` only had 9 global milestones and 6 hidden achievements
+- `claim-signature.js` had different tier numbers
+- When user triggered global #666, it got tier 222 but claim-signature didn't recognize it
+
+**Solution:** Updated both API files in `mann-dot-cool` repo to have complete, matching milestone definitions:
+
+**GLOBAL_MILESTONES (1/1 NFTs) - tier 200-349:**
+- Main: 1, 10, 100, 1000, 10000, 100000, 1M, 10M, 100M, 1B
+- Meme: 42, 69, 420, 666, 777, 1337, 42069, 69420, 8008135, 8675309
+- Repeated digits: 111, 1111, 7777, 77777, 888, 8888, 999, 9999, etc.
+- Palindromes: 101, 1001, 10001, 12321, 123321, 1234321
+- Mathematical: 137, 314, 1618, 2718, 3141, 31415, 314159
+- Powers of 2: 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536
+- Cultural: 404, 500, 747, 911, 1984, 2001, 2012, 3000, 525600
+
+**HIDDEN_ACHIEVEMENTS (Personal editions) - tier 500-609:**
+- Same categories as global but for personal click counts
+- Triggers when user's personal click count passes through the number
+
+**Files Changed (mann-dot-cool repo):**
+- `api/clickstr.js`: Added ~70 global milestones, ~60 hidden achievements
+- `api/clickstr-claim-signature.js`: Synced `MILESTONE_TO_TIER` and `TIER_INFO` mappings
+
+### Commits
+
+**stupid-clicker repo:**
+- `0f54462` - Move leaderboard to left side, mint rewards to right
+- `62bd8d6` - Move global activity + game info to left side
+- `588335a` - Fix panel positioning - pin to top, expand downward
+- `e0ea619` - Require Turnstile verification for all submissions
+- `f5b9c1b` - Combine Game/Epoch/Pool with Global Activity into single panel
+- `ef22065` - Fix cursor offset and tooltip positioning
+- `835e452` - Adjust cursor overlay offset more to the left
+- `02bb569` - Move submit button tooltip higher above the help icon
+- `c33f1f8` - Fix font path for Seven Segment.ttf
+
+**mann-dot-cool repo:**
+- `c05fb5a` - Add all missing milestones to clickstr.js API
+- `edc6a2c` - Update claim-signature.js with all milestone tiers
+
+### Key Learnings
+
+1. **Milestone definitions must be synced** across `clickstr.js` (triggers) and `claim-signature.js` (validates) - they use different data structures but must have matching tier numbers
+
+2. **Turnstile + PoW = defense in depth** - PoW prevents trivial spam, Turnstile ensures human presence for NFT rewards
+
+3. **Vite asset paths** - Use absolute paths (`/Fonts/...`) for public assets to prevent Vite from processing them into `assets/` folder
+
+4. **CSS `transform` for cursor offset** - The translate percentages are relative to the element's own dimensions, not the mouse position
