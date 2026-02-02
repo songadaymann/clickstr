@@ -127,8 +127,9 @@ export const COLLECTION_SLOTS: readonly CollectionSlot[] = [
   { tier: 609, name: 'Seasons of Love', cursor: 'rainbow-gradient' },
 ] as const;
 
-/** Global 1/1 trophy tiers with arcade game names */
+/** Global 1/1 trophy tiers with arcade game names (from CSV) */
 export const GLOBAL_ONE_OF_ONE_TIERS: readonly GlobalOneOfOneTier[] = [
+  // Main global 1/1s (200-213)
   { tier: 200, name: 'Spacewar', globalClick: 1 },
   { tier: 201, name: 'Pong', globalClick: 10 },
   { tier: 202, name: 'Space Invaders', globalClick: 100 },
@@ -143,17 +144,17 @@ export const GLOBAL_ONE_OF_ONE_TIERS: readonly GlobalOneOfOneTier[] = [
   { tier: 211, name: 'DigDug', globalClick: 100000000000 },
   { tier: 212, name: 'Joust', globalClick: 1000000000000 },
   { tier: 213, name: 'PolePosition', globalClick: 10000000000000 },
-  // Hidden global 1/1s
+  // Hidden global 1/1s (220-229)
   { tier: 220, name: 'Smash TV', globalClick: 69 },
   { tier: 221, name: 'NBA Jam', globalClick: 420 },
   { tier: 222, name: 'Mortal Kombat', globalClick: 666 },
   { tier: 223, name: 'Jurassic Park', globalClick: 777 },
   { tier: 224, name: 'Area 51', globalClick: 1337 },
-  { tier: 225, name: 'Street Fighter 2', globalClick: 8008 },
-  { tier: 226, name: 'TMNT', globalClick: 42069 },
-  { tier: 227, name: 'X-Men', globalClick: 69420 },
-  { tier: 228, name: 'Virtua Fighter', globalClick: 420420 },
-  { tier: 229, name: "Cruis'n USA", globalClick: 696969 },
+  { tier: 225, name: 'TMNT', globalClick: 42069 },
+  { tier: 226, name: 'X-Men', globalClick: 69420 },
+  { tier: 227, name: 'Street Fighter 2', globalClick: 8008135 },
+  { tier: 228, name: 'Virtua Fighter', globalClick: 8675309 },
+  { tier: 229, name: "Cruis'n USA", globalClick: 42 },
 ] as const;
 
 /** Find a collection slot by tier */
