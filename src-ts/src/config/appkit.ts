@@ -20,6 +20,14 @@ const metadata = {
   icons: ['/favicon.png'],
 };
 
+// Featured wallet IDs (from WalletConnect Explorer)
+const FEATURED_WALLETS = [
+  'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96', // MetaMask
+  '1ae92b26df02f0abca6304df07debccd18262fdf5fe82daa81593582dac9a369', // Rainbow
+  '7674bb4e353bf52886768a3ddc2a4562ce2f4191c80831291218ebd90f5f5e26', // Rabby
+  'fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3cfb6b3a38bd033aa', // Coinbase
+];
+
 // Create the AppKit instance
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const appKit = createAppKit({
@@ -27,6 +35,7 @@ export const appKit = createAppKit({
   networks,
   metadata,
   projectId: CONFIG.walletConnectProjectId,
+  featuredWalletIds: FEATURED_WALLETS,
   features: {
     analytics: false,
     email: false,
