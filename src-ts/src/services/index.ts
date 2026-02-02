@@ -31,6 +31,11 @@ export {
   connectWithWalletConnect,
   disconnect,
   hasMetaMask,
+  initWalletSubscriptions,
+  openConnectModal,
+  isConnected,
+  getAddress,
+  switchNetwork,
 } from './wallet.ts';
 
 // Contract service

@@ -16,7 +16,6 @@ import { CONFIG, hasNftContract, getCurrentGame, getAllGames, type GameConfig } 
 
 // Import services
 import {
-  connect,
   disconnect,
   initializeContracts,
   refreshGameData,
@@ -36,6 +35,8 @@ import {
   syncAchievements,
   lookupEns,
   getCachedEns,
+  initWalletSubscriptions,
+  openConnectModal,
 } from './services/index.ts';
 
 // Import effects
@@ -83,7 +84,7 @@ import {
 // Import contract services for NFT claiming
 import { checkNftClaimed, claimNft, getClaimSignature, confirmClaim } from './services/index.ts';
 
-import type { WalletType, MergedLeaderboardEntry, UnlockedAchievement, ClaimState, ServerStatsResponse } from './types/index.ts';
+import type { MergedLeaderboardEntry, UnlockedAchievement, ClaimState, ServerStatsResponse } from './types/index.ts';
 
 // ============ DOM Elements ============
 let buttonImg: HTMLImageElement;
@@ -98,7 +99,7 @@ let arcadeCurrentEl: HTMLElement;
 let arcadeAlltimeEl: HTMLElement;
 let arcadeEarnedEl: HTMLElement;
 let leaderboardListEl: HTMLElement;
-let walletModal: HTMLElement;
+// walletModal removed - AppKit handles wallet modal
 let helpModal: HTMLElement;
 let claimModal: HTMLElement;
 let collectionModal: HTMLElement;
@@ -162,6 +163,9 @@ async function init(): Promise<void> {
   // Cache DOM elements
   cacheElements();
 
+  // Initialize wallet subscriptions (must be early to catch connection events)
+  initWalletSubscriptions();
+
   // Initialize effects
   initEffects();
 
@@ -202,7 +206,7 @@ function cacheElements(): void {
   arcadeAlltimeEl = getElement('arcade-alltime');
   arcadeEarnedEl = getElement('arcade-earned');
   leaderboardListEl = getElement('leaderboard-list');
-  walletModal = getElement('wallet-modal');
+  // walletModal removed - AppKit handles wallet modal
   helpModal = getElement('help-modal');
   turnstileModal = getElement('turnstile-modal');
   claimModal = getElement('claim-modal');
@@ -294,18 +298,17 @@ function setupEventListeners(): void {
   buttonClickZone.addEventListener('touchcancel', pressUp);
   buttonClickZone.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  // Connect button
+  // Connect button - opens AppKit modal
   connectBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (gameState.isConnected) {
       handleDisconnect();
     } else {
-      showWalletModal();
+      openConnectModal();
     }
   });
 
-  // Wallet modal options
-  setupWalletModalListeners();
+  // Legacy wallet modal listeners removed - AppKit handles its own modal
 
   // Submit button
   submitBtn.addEventListener('click', handleSubmit);
@@ -330,34 +333,7 @@ function setupEventListeners(): void {
   leaderboardToggleGame.addEventListener('click', () => setLeaderboardMode('game'));
 }
 
-/**
- * Set up wallet modal event listeners
- */
-function setupWalletModalListeners(): void {
-  const closeBtn = getElementOrNull('modal-close');
-  closeBtn?.addEventListener('click', () => hideModal(walletModal));
-
-  walletModal.addEventListener('click', (e) => {
-    if (e.target === walletModal) hideModal(walletModal);
-  });
-
-  // Wallet options
-  const walletOptions: Array<[string, WalletType]> = [
-    ['connect-metamask', 'metamask'],
-    ['connect-rainbow', 'rainbow'],
-    ['connect-rabby', 'rabby'],
-    ['connect-coinbase', 'coinbase'],
-    ['connect-walletconnect', 'walletconnect'],
-  ];
-
-  for (const [id, walletType] of walletOptions) {
-    const btn = getElementOrNull(id);
-    btn?.addEventListener('click', async () => {
-      hideModal(walletModal);
-      await handleConnect(walletType);
-    });
-  }
-}
+// Wallet modal setup removed - AppKit provides its own modal UI
 
 /**
  * Set up help modal event listeners
@@ -411,7 +387,7 @@ function setupMobileMenuListeners(): void {
     if (gameState.isConnected) {
       handleDisconnect();
     } else {
-      showWalletModal();
+      openConnectModal();
     }
   });
 
@@ -559,13 +535,6 @@ function onClickMined(nonce: bigint): void {
 }
 
 // ============ Connection ============
-
-async function handleConnect(walletType: WalletType): Promise<void> {
-  const success = await connect(walletType);
-  if (success) {
-    await onConnected();
-  }
-}
 
 async function onConnected(): Promise<void> {
   initializeContracts();
@@ -842,10 +811,21 @@ async function handleSyncAchievements(): Promise<void> {
 
 // ============ UI Updates ============
 
+/** Track previous connection state to detect new connections */
+let wasConnected = false;
+
 function handleStateChange(event: string): void {
   switch (event) {
     case 'connectionChanged':
       updateConnectButton();
+      updateMobileWalletText();
+      // Detect new connection (transition from disconnected to connected)
+      if (gameState.isConnected && !wasConnected) {
+        wasConnected = true;
+        onConnected();
+      } else if (!gameState.isConnected) {
+        wasConnected = false;
+      }
       break;
     case 'clicksChanged':
       updateDisplays();
@@ -1119,9 +1099,7 @@ function hideModal(modal: HTMLElement): void {
   removeClass(modal, 'visible');
 }
 
-function showWalletModal(): void {
-  showModal(walletModal);
-}
+// showWalletModal removed - AppKit handles wallet modal
 
 function showAchievementToast(name: string, desc: string): void {
   setText(achievementNameEl, name);
