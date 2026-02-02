@@ -581,6 +581,13 @@ async function handleSubmit(e: Event): Promise<void> {
   const nonces = gameState.pendingNonces.slice(0, CONFIG.maxBatchSize);
   if (nonces.length < CONFIG.minBatchSize) return;
 
+  // Require Turnstile verification before any submission
+  // PoW proves the work was done, Turnstile proves a human is present
+  if (!turnstileToken) {
+    showTurnstileModal();
+    return;
+  }
+
   try {
     submitBtn.disabled = true;
 
@@ -603,7 +610,7 @@ async function handleOnChainSubmit(nonces: readonly bigint[]): Promise<void> {
   const receipt = await submitClicks([...nonces]);
   if (!receipt) return;
 
-  // Record to server (send nonces for PoW verification to bypass Turnstile)
+  // Record to server (with Turnstile token + PoW nonces)
   const clicksToRecord = Math.min(gameState.serverClicksPending, nonces.length);
   if (clicksToRecord > 0) {
     const result = await recordClicksToServer(
@@ -611,14 +618,16 @@ async function handleOnChainSubmit(nonces: readonly bigint[]): Promise<void> {
       clicksToRecord,
       turnstileToken,
       nonces.slice(0, clicksToRecord).map(n => n.toString()),
-      gameState.currentEpoch // Pass epoch for correct PoW verification
+      gameState.currentEpoch
     );
     if (result.success) {
       gameState.markServerClicksRecorded(clicksToRecord);
-      turnstileToken = null;
+      // Keep turnstileToken for session - server tracks verification status
       handleAchievements(result);
     } else if (result.requiresVerification) {
-      console.warn('[Submit] Server requires verification despite PoW nonces');
+      // Server says re-verify (e.g., after N clicks)
+      turnstileToken = null;
+      showTurnstileModal();
     }
   }
 
@@ -648,17 +657,17 @@ async function handleOnChainSubmit(nonces: readonly bigint[]): Promise<void> {
 }
 
 async function handleOffChainSubmit(nonces: readonly bigint[]): Promise<void> {
-  // Record to API with nonces as proof-of-work (no blockchain submission)
+  // Record to API with Turnstile token + PoW nonces (no blockchain submission)
   const result = await recordClicksToServer(
     gameState.userAddress!,
     nonces.length,
     turnstileToken,
-    nonces.map(n => n.toString()) // Send nonces for server-side validation
+    nonces.map(n => n.toString())
   );
 
   if (result.success) {
     gameState.markServerClicksRecorded(nonces.length);
-    turnstileToken = null;
+    // Keep turnstileToken for session - server tracks verification status
     handleAchievements(result);
 
     // Clear submitted clicks
@@ -676,7 +685,8 @@ async function handleOffChainSubmit(nonces: readonly bigint[]): Promise<void> {
       await renderNftPanel(stats);
     }
   } else if (result.requiresVerification) {
-    // Show Turnstile modal for verification
+    // Server says re-verify (e.g., after N clicks)
+    turnstileToken = null;
     showTurnstileModal();
     submitBtn.disabled = false;
     updateSubmitButton();
