@@ -16,10 +16,6 @@
     padding: var(--spacing-md) var(--spacing-lg);
   }
 
-  #center-info {
-    left: 15px;
-  }
-
   #current-clicks-display .arcade-display {
     font-size: 36px;
     min-width: 160px;
@@ -39,9 +35,14 @@
 @media (max-width: 1024px) {
   #global-stats-panel {
     min-width: 220px;
-    right: 15px;
+    left: 15px;
     bottom: 20px;
     padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  #center-info {
+    bottom: 145px;
+    left: 15px;
   }
 
   .global-stat-value {

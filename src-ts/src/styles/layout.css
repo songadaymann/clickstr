@@ -191,12 +191,13 @@
 }
 
 /* Center info - epoch/pool - SIMPLE SEGMENT DISPLAY */
+/* Positioned horizontally above the global stats panel */
 #center-info {
   position: absolute;
-  bottom: 30px;
+  bottom: 165px;
   left: 30px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 8px;
 }
 

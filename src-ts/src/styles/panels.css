@@ -690,7 +690,7 @@
 #global-stats-panel {
   position: absolute;
   bottom: 30px;
-  right: 30px;
+  left: 30px;
   background: var(--color-dark-overlay);
   border: 2px solid var(--color-red-950);
   border-radius: var(--radius-md);
