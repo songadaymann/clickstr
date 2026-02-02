@@ -1477,3 +1477,165 @@ This is the final test deployment before mainnet. Everything is wired up:
 - ✅ Frontend pointing to new contracts
 - ✅ API configured with new NFT address
 - ✅ UI fixes (pool display, help icon)
+
+## Session: February 2, 2026 (Late Night) - API Click Recording Bug + Turnstile Restoration
+
+### Bug Fix: API Clicks Not Recording During On-Chain Submissions
+
+**Symptoms:** After clicking 50 times and submitting on-chain:
+- ✅ Total earned (tokens) updated - from contract
+- ✅ Beta Game 2 leaderboard updated - from subgraph
+- ❌ "Your Total Clicks" stayed at 0 - from Redis API
+- ❌ Global leaderboard not updating - from Redis API
+- ❌ Global activity total clicks not updating - from Redis API
+
+**Root Cause:** In `handleOnChainSubmit()`, we were calling `recordClicksToServer()` **without passing nonces**:
+
+```typescript
+// OLD CODE - broken
+const result = await recordClicksToServer(
+  gameState.userAddress!,
+  clicksToRecord,
+  turnstileToken  // No nonces passed!
+);
+```
+
+The API requires EITHER:
+1. Valid Turnstile token (human verification)
+2. Valid PoW nonces (proof-of-work verification)
+
+Since we weren't passing nonces and `turnstileToken` was likely null/expired, the API returned 403 `requiresVerification`. The code checked `if (result.success)` which was false, so it silently did nothing - clicks never recorded to Redis.
+
+Meanwhile, `recordOnChainSubmission()` worked but only updates a separate `onChainClicks` counter - NOT `totalClicks` which powers the displays.
+
+**Fix:** Pass nonces AND epoch to `recordClicksToServer()`:
+
+```typescript
+// NEW CODE - fixed
+const result = await recordClicksToServer(
+  gameState.userAddress!,
+  clicksToRecord,
+  turnstileToken,
+  nonces.slice(0, clicksToRecord).map(n => n.toString()),
+  gameState.currentEpoch  // Epoch needed for correct hash verification
+);
+```
+
+**Why epoch matters:** The PoW nonce hash includes the epoch in its packed data:
+```
+keccak256(abi.encodePacked(address, nonce, epoch, chainId))
+```
+
+If we don't pass the epoch, the API verifies with `epoch || 0`, producing a different hash, and all nonces fail verification.
+
+### Bug Fix: Turnstile Verification Missing from TypeScript Refactor
+
+**Problem:** The Turnstile modal HTML existed in `index.html`, but **no code in main.ts** to show it or handle verification. The refactor completely dropped this functionality.
+
+**What was missing:**
+- `turnstileModal` element reference
+- `turnstileWidgetId` state variable
+- `showTurnstileModal()` function to render Cloudflare widget
+- `onTurnstileSuccess()` callback to capture token and retry submit
+- Handling `requiresVerification` response in submit flows
+
+**Fix:** Added complete Turnstile implementation to `main.ts`:
+
+```typescript
+// Element reference
+let turnstileModal: HTMLElement;
+let turnstileWidgetId: string | null = null;
+
+// Type declaration for Cloudflare's global
+declare const turnstile: {
+  render: (selector: string, options: {...}) => string;
+  reset: (widgetId: string) => void;
+};
+
+// Show modal and render widget
+function showTurnstileModal(): void {
+  showModal(turnstileModal);
+  if (!turnstileWidgetId && typeof turnstile !== 'undefined') {
+    turnstileWidgetId = turnstile.render('#turnstile-widget', {
+      sitekey: CONFIG.turnstileSiteKey,
+      callback: onTurnstileSuccess,
+      'expired-callback': () => { turnstileToken = null; },
+      theme: 'dark'
+    });
+  } else if (turnstileWidgetId) {
+    turnstile.reset(turnstileWidgetId);
+  }
+}
+
+// Callback when user passes verification
+function onTurnstileSuccess(token: string): void {
+  turnstileToken = token;
+  hideModal(turnstileModal);
+  // Auto-retry pending submit
+  if (gameState.serverClicksPending > 0 && gameState.pendingNonces.length > 0) {
+    handleSubmit(new Event('click'));
+  }
+}
+```
+
+Updated `handleOffChainSubmit()` to show Turnstile when needed:
+
+```typescript
+} else if (result.requiresVerification) {
+  showTurnstileModal();
+  submitBtn.disabled = false;
+  updateSubmitButton();
+}
+```
+
+### How the Two Submit Flows Work Now
+
+**On-Chain Flow (game active):**
+1. Mine clicks with contract's epoch + difficulty
+2. Submit nonces to blockchain → tokens distributed, subgraph updated
+3. Call API with same nonces + epoch → PoW verified → Redis `totalClicks` updated
+4. Turnstile bypassed because blockchain submission IS the proof
+
+**Off-Chain Flow (no game running):**
+1. Mine clicks with epoch 0 + max difficulty (fast, no competition)
+2. Call API with nonces → PoW verified → Redis updated
+3. If API returns 403 `requiresVerification` → show Turnstile modal
+4. After user passes → token captured → auto-retry submit
+
+### Files Changed
+
+**Frontend (`src-ts/src/`):**
+- `main.ts`:
+  - Added `turnstileModal` element reference
+  - Added `turnstileWidgetId` state variable
+  - Added `showTurnstileModal()` function
+  - Added `onTurnstileSuccess()` callback
+  - Updated `handleOnChainSubmit()` to pass nonces + epoch
+  - Updated `handleOffChainSubmit()` to show Turnstile on 403
+- `services/api.ts`:
+  - Added `epoch` parameter to `recordClicksToServer()`
+
+### API Endpoint Reference
+
+The API (`mann.cool/api/clickstr`) has these verification paths:
+
+| Verification Method | When Used | Bypasses Turnstile? |
+|---------------------|-----------|---------------------|
+| Turnstile token | Manual verification | N/A |
+| PoW nonces | Off-chain or on-chain submit | Yes |
+| On-chain tx hash | `recordOnChainSubmission()` | Yes (separate endpoint) |
+
+### Build & Deploy
+
+```bash
+npm run build  # Success
+git push       # Vercel auto-deploys
+```
+
+### Summary
+
+Two bugs fixed:
+1. ✅ On-chain submissions now properly record to Redis API (via PoW nonces)
+2. ✅ Turnstile verification restored for off-chain submissions
+
+The key insight: During on-chain mode, we already have valid PoW nonces (the blockchain verified them). By passing those same nonces to the API, it can verify PoW and bypass Turnstile - no need for separate human verification since the blockchain submission is proof of legitimate activity.
