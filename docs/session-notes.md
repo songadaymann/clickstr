@@ -55,8 +55,8 @@ Deployed v2 contracts to Sepolia with all fixes.
 
 - Designed dual-layer reward system (on-chain + off-chain)
 - Created server APIs for mann.cool:
-  - `/api/stupid-clicker` - Click tracking, stats, leaderboard
-  - `/api/stupid-clicker-eligible` - NFT eligibility
+  - `/api/clickstr` - Click tracking, stats, leaderboard
+  - `/api/clickstr-eligible` - NFT eligibility
 - Defined milestone/achievement system
 - Designed signature-based NFT claiming (not Chainlink)
 - Added Cloudflare Turnstile for bot protection
@@ -89,7 +89,7 @@ Deployed v2 contracts to Sepolia with all fixes.
 - Added `initialDifficulty` constructor param for season continuity
 - Scaled `TARGET_CLICKS_PER_EPOCH` based on duration
 - Added epoch duration bounds (1 hour to 7 days)
-- Created StupidClickerNFT.sol (ERC721 with signatures)
+- Created ClickstrNFT.sol (ERC721 with signatures)
 - Created reference claim-signature API
 - Added claim modal to frontend
 - 35 NFT contract tests passing
@@ -243,7 +243,7 @@ Created `scripts/upload-nft-assets.js` which:
 
 ### NFT Contract Redeployed with IPFS Metadata
 
-Deployed new StupidClickerNFT with IPFS baseURI:
+Deployed new ClickstrNFT with IPFS baseURI:
 - Address: `0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3`
 - Signer: `0xf55E4fac663ad8db80284620F97D95391ab002EF`
 - Owner: `0xAd9fDaD276AB1A430fD03177A07350CD7C61E897`
@@ -252,9 +252,9 @@ Deployed new StupidClickerNFT with IPFS baseURI:
 
 ### Admin Reset Endpoint
 
-Created `/api/stupid-clicker-admin-reset` on mann.cool for testing:
+Created `/api/clickstr-admin-reset` on mann.cool for testing:
 - Resets off-chain Redis data (clicks, milestones, achievements, streaks)
-- Protected by `STUPID_CLICKER_ADMIN_SECRET` env var
+- Protected by `CLICKSTR_ADMIN_SECRET` env var
 - Can reset single address or ALL data
 - NEVER use in production once game is live!
 
@@ -270,7 +270,7 @@ Deployed new season for testing:
 | Season Length | 24 hours |
 
 **Contracts (v4):**
-- StupidClicker: `0x6dD800B88FEecbE7DaBb109884298590E5BbBf20`
+- Clickstr: `0x6dD800B88FEecbE7DaBb109884298590E5BbBf20`
 - MockClickToken: `0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA`
 - NFT Contract: `0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3`
 
@@ -290,7 +290,7 @@ Deployed new season for testing:
 
 Deployed v1.0.2 to Goldsky pointing to new contract:
 ```
-https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/stupid-clicker-sepolia/1.0.2/gn
+https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.2/gn
 ```
 
 ### Files Updated
@@ -500,3 +500,801 @@ Fixed intermittent bug where confetti wouldn't appear on first milestone celebra
 
 ### Files Changed
 - `public/index.html` - Z-index fixes, confetti race condition fixes
+
+## Session: February 2, 2026 - Security Audit & Threat Mitigation
+
+### Comprehensive Security Assessment
+
+Conducted thorough security audit of entire system (contracts, API, frontend) focusing on cheating and theft vectors.
+
+### Threat Analysis Summary
+
+| Threat | Severity | Status |
+|--------|----------|--------|
+| Server private key compromise | CRITICAL | Mitigated (env var, rotatable) |
+| Global milestone race condition | HIGH | **FIXED** |
+| API DoS via spam | MEDIUM | **FIXED** |
+| Bot automation | MEDIUM | Partially mitigated (Turnstile) |
+| GPU mining advantage | MEDIUM | By design (PoW is permissionless) |
+| Front-running global milestones | MEDIUM | Open (inherent MEV risk) |
+| Signature replay | LOW | Already mitigated in contract |
+| Token pool drainage | LOW | Already protected in contract |
+
+### Security Fixes Implemented
+
+#### 1. Rate Limiting on Claim Signature API
+
+**File:** `mann-dot-cool/api/clickstr-claim-signature.js`
+
+Added sliding window rate limiting:
+- 10 requests per minute per address
+- Returns HTTP 429 with `X-RateLimit-Remaining` and `X-RateLimit-Reset` headers
+- Uses Redis with TTL for distributed rate limiting
+
+```javascript
+const RATE_LIMIT_WINDOW = 60; // seconds
+const RATE_LIMIT_MAX_REQUESTS = 10;
+```
+
+#### 2. Atomic Locks for Global 1/1 Milestone Claims
+
+**File:** `mann-dot-cool/api/clickstr-claim-signature.js`
+
+Prevents race condition where two users could both get signatures for the same global 1/1 NFT:
+
+- Uses Redis `SETNX` for atomic lock acquisition
+- 30-second TTL prevents deadlocks if claim fails
+- Returns 409 Conflict if another claim is in progress
+- Lock released on confirmation or auto-expires
+
+```javascript
+const GLOBAL_LOCK_KEY = (tier) => `clickstr:global-lock:${tier}`;
+const GLOBAL_LOCK_TTL = 30; // seconds
+```
+
+#### 3. Claim Confirmation Webhook
+
+**API:** `POST /api/clickstr-claim-signature` with `action: 'confirm'`
+
+New endpoint to sync Redis state after successful on-chain claim:
+- Called by frontend after NFT mint transaction confirms
+- Updates `nft-claimed` set to prevent duplicate signature requests
+- For global milestones, also updates global registry and releases lock
+- Accepts optional `txHash` for audit trail
+
+**Frontend:** `public/index.html`
+
+Added confirmation call after successful mint:
+```javascript
+await fetch('https://mann.cool/api/clickstr-claim-signature', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    address: userAddress,
+    tier: serverTier,
+    action: 'confirm',
+    txHash: receipt.hash
+  })
+});
+```
+
+Non-blocking - if confirmation fails, on-chain state is still authoritative.
+
+### Remaining Considerations
+
+#### Alchemy API Key Exposure
+
+The Alchemy RPC key is exposed in the frontend HTML. Options discussed:
+
+| Option | Recommendation |
+|--------|----------------|
+| Public RPC | Good for testnet, less reliable |
+| Domain allowlist | Configure in Alchemy dashboard for mainnet |
+| RPC proxy | More infrastructure, hides key completely |
+| Vite refactor | Best long-term: env vars + code organization |
+
+**Decision:** Defer to Vite refactor when ready for mainnet. The 5000+ line index.html would benefit from modularization anyway.
+
+#### Front-Running Global Milestones
+
+MEV bots could theoretically front-run global milestone transactions. This is an inherent blockchain risk. Mitigation options:
+- Commit-reveal scheme (complex, worse UX)
+- Private mempool submission (costs money)
+- Accept as known risk (current approach)
+
+### Files Changed
+- `mann-dot-cool/api/clickstr-claim-signature.js` - Rate limiting, atomic locks, confirm endpoint
+- `public/index.html` - Claim confirmation call after NFT mint
+
+## Session: February 2, 2026 (Later) - TypeScript Refactoring
+
+### Monolithic index.html Refactored to TypeScript
+
+Refactored the 4,922-line `public/index.html` into a modern Vite + TypeScript project at `src-ts/`. The original file contained ~2,443 lines of CSS and ~2,130 lines of JavaScript embedded inline.
+
+### New Project Structure
+
+```
+src-ts/
+├── index.html              # Clean HTML template
+├── vite.config.ts          # Vite configuration
+├── tsconfig.json           # TypeScript strict mode
+├── src/
+│   ├── main.ts             # Application entry (~740 lines)
+│   ├── types/              # TypeScript interfaces
+│   │   ├── game.ts         # GameStats, MiningState, ConnectionState
+│   │   ├── nft.ts          # MilestoneInfo, CollectionSlot, ClaimState
+│   │   ├── api.ts          # API response types
+│   │   ├── contracts.ts    # Contract ABIs (typed)
+│   │   └── effects.ts      # Particle effect types
+│   ├── config/             # Configuration modules
+│   │   ├── network.ts      # Sepolia/Mainnet configs
+│   │   ├── milestones.ts   # 55 milestone definitions
+│   │   └── collection.ts   # 95 collection slots
+│   ├── state/              # Reactive state management
+│   │   ├── GameState.ts    # Central state with event subscriptions
+│   │   └── persistence.ts  # localStorage helpers
+│   ├── services/           # Business logic
+│   │   ├── api.ts          # Server API + subgraph queries
+│   │   ├── wallet.ts       # MetaMask/WalletConnect
+│   │   ├── contracts.ts    # Smart contract interactions
+│   │   └── mining.ts       # PoW mining with WebWorkers
+│   ├── effects/            # Visual effects
+│   │   ├── particles.ts    # 16 cursor particle effects
+│   │   ├── confetti.ts     # Canvas confetti animation
+│   │   ├── cursor.ts       # Custom cursor management
+│   │   ├── disco.ts        # Disco overlay effect
+│   │   ├── sounds.ts       # Audio preloading
+│   │   └── celebrations.ts # Combined celebration effects
+│   ├── styles/             # CSS organization
+│   │   ├── main.css        # Import aggregator
+│   │   ├── variables.css   # CSS custom properties
+│   │   ├── base.css        # Reset, fonts, cursor
+│   │   ├── effects.css     # Particle animations
+│   │   ├── layout.css      # Game container, bars
+│   │   ├── arcade.css      # DSEG7 displays
+│   │   ├── buttons.css     # Arcade button styles
+│   │   ├── panels.css      # Leaderboard, NFT panels
+│   │   ├── modals.css      # All modal dialogs
+│   │   ├── mobile-menu.css # Hamburger menu
+│   │   └── responsive.css  # Media queries
+│   ├── utils/              # Utility functions
+│   │   └── dom.ts          # DOM helpers
+│   └── workers/
+│       └── miningWorker.ts # WebWorker for PoW mining
+└── public/                 # Static assets
+    ├── button-up.jpg
+    ├── button-down.jpg
+    ├── cursors/            # All cursor PNGs
+    ├── sounds/             # Audio files
+    ├── Fonts/              # SevenSegment font
+    └── one-of-ones/        # Legendary NFT images
+```
+
+### Build Output
+
+```
+dist/index.html                 13.33 kB │ gzip:   3.49 kB
+dist/assets/main-BI_MbiDr.css   43.59 kB │ gzip:   7.26 kB
+dist/assets/main-Bf1vFmIm.js   317.68 kB │ gzip: 104.46 kB
+```
+
+### Key Architectural Decisions
+
+1. **Event-Based State Management**: `GameState` class with pub/sub pattern replaces global variables
+2. **Modular Services**: Wallet, API, contracts, mining all separated
+3. **Type Safety**: Full TypeScript strict mode with explicit interfaces
+4. **CSS Custom Properties**: Theme colors, spacing, z-index as variables
+5. **Path Aliases**: `@/` prefix for clean imports
+
+### Files Created
+- `src-ts/` - Entire new TypeScript project (~50 files)
+- Static assets copied from `public/` to `src-ts/public/`
+
+### Next Steps Documented in todo.md
+
+## Session: February 2, 2026 (Continued) - TypeScript Bug Fixes & Off-Chain Click Tracking
+
+### Testing the TypeScript Refactor
+
+Began manual testing of the new TypeScript build. Several issues were discovered and fixed.
+
+### Bug Fix: Buffer Polyfill for Ethers.js
+
+**Problem:** Console error `Cannot access "buffer.Buffer" in client code` - ethers.js v5 uses Node's `Buffer` internally, which isn't available in browsers.
+
+**Initial Attempt (Failed):** Added manual polyfill at top of `main.ts`:
+```typescript
+import { Buffer } from 'buffer';
+window.Buffer = Buffer;
+```
+This didn't work because JavaScript hoists all imports - ethers.js loaded before the polyfill was applied.
+
+**Solution:** Installed `vite-plugin-node-polyfills` and configured in `vite.config.ts`:
+```typescript
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
+
+plugins: [
+  nodePolyfills({
+    include: ['buffer'],
+    globals: { Buffer: true, global: true },
+  }),
+],
+```
+
+### Bug Fix: Mining Callback Not Firing
+
+**Problem:** Button stayed pressed after mining completed - clicks never registered.
+
+**Root Cause:** In `mining.ts`, `terminateMining()` was called which sets `onNonceFound = null` BEFORE the callback was invoked.
+
+**Fix:** Save callback reference before terminating:
+```typescript
+miningWorker.onmessage = (e) => {
+  if (e.data.type === 'FOUND') {
+    // Save callback reference before terminateMining clears it
+    const callback = onNonceFound;
+    terminateMining();
+    gameState.setMiningComplete();
+    if (callback) callback(nonce);
+  }
+};
+```
+
+### Environment Variables for RPC URLs
+
+Updated `src-ts/src/config/network.ts` to use Vite environment variables instead of hardcoded API keys:
+
+```typescript
+rpcUrl: import.meta.env.VITE_SEPOLIA_RPC_URL || '',
+// ...
+walletConnectProjectId: import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID || '',
+```
+
+Required `.env` variables:
+- `VITE_SEPOLIA_RPC_URL`
+- `VITE_ETH_MAINNET_RPC_URL`
+- `VITE_WALLET_CONNECT_PROJECT_ID`
+
+### Feature: Off-Chain Click Tracking (Between Seasons)
+
+Implemented ability to submit clicks to the API even when no game is running, enabling NFT milestone progress between seasons.
+
+#### GameState: Track Game Active Status
+
+Added `isGameActive` boolean to `GameState`:
+```typescript
+private _isGameActive = false;
+
+get isGameActive(): boolean { return this._isGameActive; }
+setGameActive(active: boolean): void { ... }
+```
+
+Updated `refreshGameData()` in contracts service to check:
+```typescript
+const now = Math.floor(Date.now() / 1000);
+const isActive = gameStats.started && !gameStats.ended && now < gameStats.gameEndTime;
+gameState.setGameActive(isActive);
+```
+
+#### Split Submit Flow
+
+Refactored `handleSubmit()` into two paths:
+
+**When game is active:**
+```typescript
+async function handleOnChainSubmit(nonces) {
+  // 1. Submit to blockchain
+  // 2. Wait for confirmation
+  // 3. Record to API
+  // 4. Track on-chain submission
+}
+```
+
+**When game is inactive:**
+```typescript
+async function handleOffChainSubmit(nonces) {
+  // 1. Send nonces to API as proof-of-work
+  // 2. API validates nonces server-side
+  // 3. Clicks count toward NFT milestones
+}
+```
+
+#### API: Proof-of-Work Nonce Verification
+
+Updated `mann-dot-cool/api/clickstr.js` to validate nonces server-side:
+
+**New imports:**
+```javascript
+import { keccak256, encodePacked } from 'viem';
+```
+
+**New constants:**
+```javascript
+const POW_CHAIN_ID = 11155111; // Sepolia
+const POW_DIFFICULTY_TARGET = BigInt('0x7fff...'); // Max difficulty
+```
+
+**Nonce verification function:**
+```javascript
+function verifyNonce(address, nonceStr, epoch = 0) {
+  const packed = encodePacked(
+    ['address', 'uint256', 'uint256', 'uint256'],
+    [address, nonce, BigInt(epoch), BigInt(POW_CHAIN_ID)]
+  );
+  const hash = keccak256(packed);
+  return BigInt(hash) < POW_DIFFICULTY_TARGET;
+}
+```
+
+**POST handler changes:**
+- If `nonces` array provided, verify each as proof-of-work
+- Valid nonces bypass Turnstile (PoW is proof of work)
+- Only count valid nonces as clicks
+- Response includes `verifiedByPoW: true/false`
+
+#### Frontend Changes
+
+**Submit button visibility:** Shows when user has 50+ clicks (regardless of game status)
+
+**API service:** `recordClicksToServer()` now accepts optional nonces array:
+```typescript
+export async function recordClicksToServer(
+  address: string,
+  clicks: number,
+  turnstileToken?: string | null,
+  nonces?: string[]  // NEW: PoW validation
+)
+```
+
+#### Server Stats for Total Clicks
+
+Updated `GameState.setServerStats()` to use server's `totalClicks` for the "Your Total Clicks" display:
+```typescript
+if (stats.totalClicks !== undefined) {
+  this._allTimeClicks = stats.totalClicks;
+}
+```
+
+This ensures frontend clicks (even between seasons) are reflected in the UI for NFT milestone tracking.
+
+### Files Changed
+
+**Frontend (`src-ts/`):**
+- `vite.config.ts` - Buffer polyfill plugin
+- `src/config/network.ts` - Environment variables for RPC
+- `src/services/mining.ts` - Callback race condition fix
+- `src/services/api.ts` - Nonces parameter for PoW validation
+- `src/state/GameState.ts` - `isGameActive` flag, server stats for total clicks
+- `src/main.ts` - Split submit flow (on-chain vs off-chain)
+
+**API (`mann-dot-cool/api/`):**
+- `clickstr.js` - Nonce verification with viem's keccak256
+
+### Summary
+
+The TypeScript refactor is now fully functional:
+- ✅ Wallet connection works
+- ✅ Mining finds valid nonces
+- ✅ Button state updates correctly
+- ✅ Environment variables for sensitive config
+- ✅ Off-chain submissions work when game is inactive
+- ✅ Server-side PoW verification prevents spoofing
+
+## Session: February 2, 2026 (Evening) - Off-Chain Mining Fix & NFT Panel Restoration
+
+### Bug Fix: Off-Chain Mining Epoch/Difficulty Mismatch
+
+**Problem:** 403 error when submitting clicks during off-chain mode (no active game).
+
+**Root Cause:** Mismatch between frontend miner and server verification:
+- Miner was using `gameState.currentEpoch` (e.g., 12) and contract difficulty
+- Server was verifying with `epoch || 0` and max difficulty target
+
+Since epoch is part of the packed hash data, the hashes didn't match and all nonces failed verification.
+
+**Fix:** In `src-ts/src/services/mining.ts`, when game is inactive:
+- Use epoch 0 (matches server)
+- Use max difficulty target (fast mining, no competition anyway)
+
+```typescript
+const MAX_DIFFICULTY_TARGET = BigInt('0x7fff...');
+
+const isGameActive = gameState.isGameActive;
+const miningEpoch = isGameActive ? gameState.currentEpoch : 0;
+const miningDifficulty = isGameActive ? gameState.difficultyTarget : MAX_DIFFICULTY_TARGET;
+```
+
+**Rationale:** Between seasons, players are just clicking for NFT milestones - no token competition, so no reason for hard difficulty.
+
+### Feature: NFT Panel & Collection Modal Restored
+
+The TypeScript refactor was missing several NFT-related features from the original monolithic HTML. Re-implemented:
+
+#### NFT Panel Rendering
+
+Added `renderNftPanel(stats)` function that:
+- Collects unlocked milestones and achievements from server stats
+- Checks on-chain claim status for each via `checkNftClaimed()`
+- Tracks claimed NFTs in `claimedOnChain: Set<number>`
+- Sorts unclaimed first, then by tier
+- Renders clickable list items with cursor/1/1 images
+- Click opens claim modal
+
+#### Collection Modal
+
+Added `showCollectionModal()` with:
+- `renderTrophySection()` - Shows owned global 1/1s with arcade game art
+- `renderCollectionGrid()` - All 95 collection slots, locked or unlocked
+- Click handler to equip cursor on owned items
+
+#### Claim Modal Handlers
+
+Added `handleClaimNft()` flow:
+1. Get signature from server via `getClaimSignature()`
+2. Call contract `claimNft(tier, signature)`
+3. Confirm with server via `confirmClaim()`
+4. Update `claimedOnChain` set
+5. Refresh NFT panel
+
+#### Cursor System Integration
+
+Connected collection grid to actual cursor effects:
+- Import `applyCursor`, `resetCursor`, `getEquippedCursorName` from effects
+- Clicking a cursor in collection calls `applyCursor()` (not just localStorage)
+- `applyCursor()` updates cursor image, shows element, sets particle effects
+- Reset button calls `resetCursor()`
+
+### Redis Data Reset
+
+Discovered discrepancy: `globalClicks` (1043) vs user `totalClicks` (147) when user was the only player. Extra clicks were from development/testing.
+
+Reset all Redis data for fresh start:
+- `clickstr:clicks:{address}` - User stats hash
+- `clickstr:milestones:{address}` - Unlocked milestones set
+- `clickstr:achievements:{address}` - Unlocked achievements set
+- `clickstr:streak:{address}` - Streak data hash
+- `clickstr:leaderboard` - Sorted set entry
+- `clickstr:global-clicks` - Reset to 0
+- `clickstr:global-milestones` - Global 1/1 winners
+
+### Files Changed
+
+**Frontend (`src-ts/src/`):**
+- `main.ts` - NFT panel rendering, collection modal, claim handlers, cursor integration
+- `services/mining.ts` - Off-chain epoch 0 / max difficulty fix
+
+### Imports Added to main.ts
+
+```typescript
+// From config
+import { MILESTONE_ID_TO_TIER, COLLECTION_SLOTS, GLOBAL_ONE_OF_ONE_TIERS } from './config/index.ts';
+
+// From services
+import { checkNftClaimed, claimNft, getClaimSignature, confirmClaim } from './services/index.ts';
+
+// From effects
+import { applyCursor, resetCursor, getEquippedCursorName } from './effects/index.ts';
+```
+
+### New State Variables
+
+```typescript
+let claimedOnChain: Set<number> = new Set();
+let serverStats: ServerStatsResponse | null = null;
+```
+
+### Build Output
+
+```
+dist/assets/main-Ct2C6s4g.js   355.16 kB │ gzip: 114.47 kB
+```
+
+## Session: February 2, 2026 (Night) - Global Stats Panel & Leaderboard Overhaul
+
+### New Feature: Global Activity Panel
+
+Added a new panel in the bottom-right corner showing real-time global activity:
+
+**Display Elements:**
+- **All-Time Clicks** - Total frontend clicks across all games (from Redis API)
+- **Clicking Now** - Split into "X humans" (green) and "Y bots" (cyan)
+
+**Implementation:**
+- Humans tracked via heartbeat system (30-second interval while connected)
+- Bots detected by querying subgraph for unique addresses with recent on-chain submissions
+- Updates every 30 seconds
+
+### Heartbeat System for Active Users
+
+**Frontend (`src-ts/src/main.ts`):**
+- `startHeartbeat()` - Sends POST to API every 30 seconds when wallet connected
+- `stopHeartbeat()` - Clears interval on disconnect
+
+**API (`mann-dot-cool/api/clickstr.js`):**
+- Added sorted set `clickstr:active-users` (score = timestamp)
+- POST handler: `{ address, heartbeat: true }` adds user to set
+- GET handler: `?activeUsers=true` counts users with score within 60-second window
+
+**Optimized for Redis reads:**
+- Originally used SCAN to find heartbeat keys → caused ~1M reads
+- Refactored to use sorted set with ZCOUNT (O(log N) operation)
+- Cleanup via ZREMRANGEBYSCORE on heartbeat POST (not on query)
+
+### Game Status Indicator
+
+Added "Game" status box to left info panel:
+- Shows "ACTIVE" (green glow) when game is running
+- Shows "INACTIVE" (red glow, dimmed) when no game
+- Epoch and Pool show "0 / 0" and "0" when inactive
+- Help tooltip (?) explains: "When a game is active, every click earns $CLICKSTR tokens. When there's no game, you can still click to earn NFT rewards."
+
+### Leaderboard Toggle: Global vs Current Game
+
+**New Architecture:**
+- **Global Leaderboard** = All-time frontend clicks from Redis (humans across all games)
+- **Per-Game Leaderboard** = On-chain clicks from that game's subgraph only
+
+**New Config (`src-ts/src/config/games.ts`):**
+```typescript
+export interface GameConfig {
+  id: string;
+  name: string;
+  subgraphUrl: string;
+  contractAddress: string;
+  startDate?: string;
+  endDate?: string | null;
+  isActive: boolean;
+  isBeta: boolean;
+}
+
+export const GAMES: GameConfig[] = [
+  {
+    id: 'beta-1',
+    name: 'Beta Game 1',
+    subgraphUrl: 'https://api.goldsky.com/.../clickstr-sepolia/1.0.2/gn',
+    contractAddress: '0x6dD800B88FEecbE7DaBb109884298590E5BbBf20',
+    isActive: true,
+    isBeta: true,
+  },
+];
+```
+
+**UI Changes:**
+- Leaderboard panel header now has toggle buttons: "Global" | "Beta Game 1"
+- Global mode shows frontend clicks (all humans)
+- Game mode shows on-chain clicks (from current game's subgraph)
+
+**API Functions Added (`src-ts/src/services/api.ts`):**
+- `fetchGlobalLeaderboard(limit)` - Redis API only
+- `fetchGameLeaderboard(subgraphUrl, limit)` - Subgraph query with name lookup from Redis
+
+### Panel Layout Adjustments
+
+Moved panels to accommodate new Global Activity section:
+- Leaderboard: `top: 50% - 220px` (was 180px)
+- NFT Panel: `top: 50% + 140px` (was 220px)
+- Global Activity: `bottom: 30px; right: 30px`
+- Left Info Panel: `bottom: 30px` (was 100px) to align with Global Activity
+- Game status box added at top of left info panel
+
+### Files Changed
+
+**Frontend (`src-ts/`):**
+- `index.html` - Global Activity panel, leaderboard toggle buttons, game status box
+- `src/main.ts` - Heartbeat system, global stats updates, leaderboard mode toggle
+- `src/config/games.ts` - NEW: Games/seasons configuration
+- `src/config/index.ts` - Export games config
+- `src/services/api.ts` - `fetchGlobalLeaderboard()`, `fetchGameLeaderboard()`, `sendHeartbeat()`, `fetchActiveUsers()`, `fetchRecentBotActivity()`
+- `src/services/index.ts` - Export new API functions
+- `src/types/api.ts` - `ActiveUsersResponse`, `HeartbeatResponse` types
+- `src/types/index.ts` - Export new types
+- `src/styles/layout.css` - Game status styles, help tooltip, left panel positioning
+- `src/styles/panels.css` - Leaderboard toggle buttons, Global Activity panel styles
+- `src/styles/responsive.css` - Hide Global Activity panel on mobile
+
+**API (`mann-dot-cool/api/`):**
+- `clickstr.js` - Heartbeat POST handler, active users GET handler, sorted set for efficient counting
+
+## Session: February 2, 2026 (Late Night) - Rankings Modal Tabs & Total Clicks Fix
+
+### Feature: Rankings Modal with Game Tabs
+
+Updated the "See All Rankings" modal to support tabs for Global and each game:
+
+**UI Changes:**
+- Added `.rankings-tabs` container below the modal header
+- Tab buttons: "Global" + one for each game from `GAMES` config
+- Tabs are dynamically rendered based on `getAllGames()`
+- Clicking a tab loads rankings from the appropriate data source
+
+**New Functions in `main.ts`:**
+- `showRankingsModal()` - Renders tabs and loads initial data
+- `renderRankingsTabs()` - Dynamically generates tab buttons from games config
+- `setRankingsTab(tabId)` - Handles tab switching and updates active state
+- `loadRankingsForTab(tabId)` - Fetches data (global from Redis, game from subgraph)
+- `renderRankingsList(data)` - Renders the leaderboard entries with icons/indicators
+
+**Data Sources:**
+- **Global tab**: `fetchGlobalLeaderboard(50)` - All-time frontend clicks from Redis API
+- **Game tabs**: `fetchGameLeaderboard(subgraphUrl, 50)` - On-chain clicks from that game's subgraph
+
+**Styling (`panels.css`):**
+```css
+.rankings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-red-950);
+}
+
+.rankings-tab {
+  background: transparent;
+  border: 1px solid var(--color-red-800);
+  padding: 8px 14px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.rankings-tab.active {
+  background: var(--color-red-950);
+  border-color: var(--color-red-600);
+  text-shadow: var(--glow-red-sm);
+}
+```
+
+### Bug Fix: "Your Total Clicks" Data Source
+
+**Problem:** "Your Total Clicks" display was sometimes showing on-chain value (807) instead of API value (0 after reset).
+
+**Root Cause:** Two different functions were setting `allTimeClicks`:
+1. `setServerStats()` - from API (correct)
+2. `setUserStats()` called by `refreshUserStats()` - from contract (incorrect)
+
+The `refreshUserStats()` function was called after `setServerStats()`, overwriting the API value with the contract value.
+
+**Fix:**
+1. Added new `setTotalEarned(earned)` method in `GameState` that only updates token earnings
+2. Modified `refreshUserStats()` in `contracts.ts` to use `setTotalEarned()` instead of `setUserStats()`
+3. Now `allTimeClicks` is ONLY set from `setServerStats()` (API data)
+
+**GameState change:**
+```typescript
+/** Update only total earned (from contract) - doesn't touch allTimeClicks */
+setTotalEarned(earned: number): void {
+  this._totalEarned = earned;
+  this.emit('statsChanged');
+}
+```
+
+**contracts.ts change:**
+```typescript
+export async function refreshUserStats(): Promise<void> {
+  // ...
+  const earned = parseFloat(ethers.utils.formatEther(stats.totalEarned.toString()));
+  // Only update earned tokens from contract - allTimeClicks comes from API
+  gameState.setTotalEarned(earned);
+}
+```
+
+### Files Changed
+
+**Frontend (`src-ts/`):**
+- `index.html` - Added `.rankings-tabs` container to rankings modal
+- `src/main.ts` - Added rankings modal tab functions, new state variables
+- `src/config/index.ts` - Added `getAllGames` export (already existed in games.ts)
+- `src/state/gameState.ts` - Added `setTotalEarned()` method
+- `src/services/contracts.ts` - Changed to use `setTotalEarned()` instead of `setUserStats()`
+- `src/styles/panels.css` - Added `.rankings-tabs` and `.rankings-tab` styles
+
+### Build Output
+
+```
+dist/assets/main-Bw6W7-MR.js   358.92 kB │ gzip: 115.51 kB
+```
+
+### Summary
+
+Both remaining TODOs from the previous session are now complete:
+- ✅ Rankings modal shows tabs for Global + each past game
+- ✅ "Your Total Clicks" consistently reads from API only
+
+## Session: February 2, 2026 (Afternoon) - Project Rename: StupidClicker → Clickstr
+
+### Complete Project Rename
+
+Renamed all instances of "StupidClicker" to "Clickstr" across both repositories (game repo and mann-dot-cool API).
+
+### Scope of Changes
+
+| Category | Count |
+|----------|-------|
+| `StupidClicker` (PascalCase) | ~139 occurrences |
+| `stupid-clicker` (kebab-case) | ~132 occurrences |
+| `STUPID_CLICKER` (SCREAMING_SNAKE) | ~16 occurrences |
+| Files renamed | 10 files |
+| **Total text replacements** | ~287 |
+
+### Files Renamed
+
+**Game Repo:**
+- `contracts/StupidClicker.sol` → `Clickstr.sol`
+- `contracts/StupidClickerNFT.sol` → `ClickstrNFT.sol`
+- `test/StupidClicker.test.js` → `Clickstr.test.js`
+- `test/StupidClickerNFT.test.js` → `ClickstrNFT.test.js`
+- `subgraph/abis/StupidClicker.json` → `Clickstr.json`
+- `frontend/StupidClicker.jsx` → `Clickstr.jsx`
+
+**Mann-dot-cool:**
+- `api/stupid-clicker.js` → `clickstr.js`
+- `api/stupid-clicker-claim-signature.js` → `clickstr-claim-signature.js`
+- `api/stupid-clicker-eligible.js` → `clickstr-eligible.js`
+- `api/stupid-clicker-admin-reset.js` → `clickstr-admin-reset.js`
+
+### Rename Script
+
+Created `scripts/rename-to-clickstr.sh` that:
+1. Renames files in both repos
+2. Replaces text content (PascalCase, kebab-case, SCREAMING_SNAKE)
+3. Cleans up build artifacts (artifacts/, cache/, subgraph/generated/, subgraph/build/)
+
+### Subgraph Migration
+
+**Old subgraphs (deleted):**
+- `stupid-clicker-sepolia/1.0.0`
+- `stupid-clicker-sepolia/1.0.1`
+- `stupid-clicker-sepolia/1.0.2`
+
+**New subgraph:**
+- Name: `clickstr-sepolia/1.0.0`
+- URL: `https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.0/gn`
+- Status: Healthy, 100% synced
+
+### Redis Key Migration
+
+Redis keys updated from `stupid-clicker:*` prefix to `clickstr:*`:
+- `clickstr:clicks:{address}`
+- `clickstr:leaderboard`
+- `clickstr:milestones:{address}`
+- `clickstr:achievements:{address}`
+- `clickstr:global-clicks`
+- `clickstr:global-milestones`
+- `clickstr:active-users`
+- etc.
+
+Old `stupid-clicker:*` keys left orphaned (harmless, can be deleted from Upstash console).
+
+### Vercel Environment Variable
+
+Renamed: `STUPID_CLICKER_ADMIN_SECRET` → `CLICKSTR_ADMIN_SECRET`
+
+### API Endpoints
+
+New endpoints (after mann-dot-cool deployment):
+- `https://mann.cool/api/clickstr`
+- `https://mann.cool/api/clickstr-claim-signature`
+- `https://mann.cool/api/clickstr-eligible`
+- `https://mann.cool/api/clickstr-admin-reset`
+
+### Verification
+
+| Check | Status |
+|-------|--------|
+| Contracts compile | ✅ 32 Solidity files |
+| All tests pass | ✅ 78 tests |
+| TypeScript builds | ✅ 358KB JS bundle |
+| Subgraph codegen | ✅ |
+| Subgraph deployed | ✅ |
+| No remaining "StupidClicker" references | ✅ |
+
+### Files Updated with New Subgraph URL
+
+- `src-ts/src/config/network.ts`
+- `src-ts/src/config/games.ts`
+- `public/index.html`
+- `docs/README.md`
+- `docs/technical-architecture.md`
+- `docs/contract-reference.md`
+- `docs/deployment-status.md`

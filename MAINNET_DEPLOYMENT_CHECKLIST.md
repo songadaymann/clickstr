@@ -1,4 +1,4 @@
-# Stupid Clicker - Mainnet Deployment Checklist
+# Clickstr - Mainnet Deployment Checklist
 
 **Status:** NOT READY (See DEPLOYMENT_READINESS_REPORT.md for full analysis)
 
@@ -46,11 +46,11 @@
   - Save TURNSTILE_SITE_KEY (public)
   - Save TURNSTILE_SECRET_KEY (private)
 - [ ] Implement API endpoints
-  - POST /api/stupid-clicker (click tracking + Turnstile)
-  - GET /api/stupid-clicker?address=0x... (user stats)
-  - POST /api/stupid-clicker/claim-signature (NFT signing)
-  - GET /api/stupid-clicker/nft/[tokenId] (metadata)
-  - GET /api/stupid-clicker/config (system config)
+  - POST /api/clickstr (click tracking + Turnstile)
+  - GET /api/clickstr?address=0x... (user stats)
+  - POST /api/clickstr/claim-signature (NFT signing)
+  - GET /api/clickstr/nft/[tokenId] (metadata)
+  - GET /api/clickstr/config (system config)
 - [ ] Test API endpoints locally
   - curl tests for each endpoint
   - Error handling
@@ -62,7 +62,7 @@
   - KV_REST_API_URL
   - KV_REST_API_TOKEN
   - TURNSTILE_SECRET_KEY
-  - STUPID_CLICKER_ADMIN_SECRET
+  - CLICKSTR_ADMIN_SECRET
 
 ### Frontend Setup
 - [ ] Create frontend build configuration
@@ -212,13 +212,13 @@
   - Monitor deployment
   - Verify on Etherscan
   - Save deployment receipt
-- [ ] Deploy StupidClicker contract
+- [ ] Deploy Clickstr contract
   - Verify constructor args
   - Check initial difficulty
   - Monitor deployment
   - Verify on Etherscan
   - Save deployment receipt
-- [ ] Deploy StupidClickerNFT contract
+- [ ] Deploy ClickstrNFT contract
   - Set signer address
   - Set base URI
   - Verify on Etherscan
@@ -328,7 +328,7 @@ NFT_CONTRACT_ADDRESS=0x...
 KV_REST_API_URL=...
 KV_REST_API_TOKEN=...
 TURNSTILE_SECRET_KEY=...
-STUPID_CLICKER_ADMIN_SECRET=...
+CLICKSTR_ADMIN_SECRET=...
 ```
 
 ### rollback-plan.md

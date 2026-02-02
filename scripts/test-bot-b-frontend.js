@@ -118,7 +118,7 @@ async function launchBrowser() {
 
   page.on("request", request => {
     // Log API requests
-    if (request.url().includes("/api/stupid-clicker")) {
+    if (request.url().includes("/api/clickstr")) {
       stats.apiRequestsAttempted++;
       log(`API Request: ${request.method()} ${request.url()}`, "info");
     }
@@ -127,7 +127,7 @@ async function launchBrowser() {
 
   page.on("response", async response => {
     // Monitor API responses
-    if (response.url().includes("/api/stupid-clicker")) {
+    if (response.url().includes("/api/clickstr")) {
       const status = response.status();
       log(`API Response: ${status} ${response.url()}`, status === 200 ? "success" : "warning");
 

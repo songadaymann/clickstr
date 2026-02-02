@@ -3,17 +3,17 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum
-    name: StupidClicker
+    name: Clickstr
     # =========================================================================
     # IMPORTANT: Update this for each new season deployment!
-    # Current: Sepolia 24-hour test deployment (Jan 30-31, 2026) - v4
+    # Current: Sepolia 24-hour test deployment (Feb 2-3, 2026) - v5
     # =========================================================================
     network: sepolia
     source:
-      address: "0x6dD800B88FEecbE7DaBb109884298590E5BbBf20"
-      abi: StupidClicker
+      address: "0xA16d45e4D186B9678020720BD1e743872a6e9bA0"
+      abi: Clickstr
       # Start block should be the block the contract was deployed
-      startBlock: 10157487
+      startBlock: 10177493
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -24,8 +24,8 @@ dataSources:
         - Epoch
         - GlobalStats
       abis:
-        - name: StupidClicker
-          file: ./abis/StupidClicker.json
+        - name: Clickstr
+          file: ./abis/Clickstr.json
       eventHandlers:
         - event: GameStarted(uint256,uint256,uint256)
           handler: handleGameStarted

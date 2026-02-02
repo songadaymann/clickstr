@@ -1,8 +1,22 @@
-# Stupid Clicker Documentation
+# Clickstr Documentation
 
 A proof-of-work "clicker" game on Ethereum where clicking a button mines valid hashes. Every click distributes tokens AND burns tokens (50/50 split).
 
 **Tagline:** "Click the button. Get tokens. Burn tokens."
+
+## Frontend
+
+The frontend is a **TypeScript + Vite** project located in `src-ts/`:
+
+```bash
+cd src-ts
+npm install
+npm run dev      # Development server
+npm run build    # Production build
+npm run test     # Run tests
+```
+
+Build output: ~317KB JS, ~43KB CSS (gzipped: ~104KB JS, ~7KB CSS)
 
 ## Documentation Index
 
@@ -12,19 +26,20 @@ A proof-of-work "clicker" game on Ethereum where clicking a button mines valid h
 | [game-mechanics.md](./game-mechanics.md) | Core gameplay rules, PoW, anti-cheat | ~3KB |
 | [technical-architecture.md](./technical-architecture.md) | Contracts, frontend, APIs, subgraph | ~5KB |
 | [milestones-and-nfts.md](./milestones-and-nfts.md) | Achievement system, NFT tiers, cosmetics | ~7KB |
+| [security.md](./security.md) | Threat analysis, mitigations, audit status | ~6KB |
 | [deployment-status.md](./deployment-status.md) | Current deployments, addresses, config | ~3KB |
 | [contract-reference.md](./contract-reference.md) | How to query contract state | ~3KB |
-| [todo.md](./todo.md) | Remaining tasks before mainnet | ~3KB |
-| [session-notes.md](./session-notes.md) | Development history by session | ~5KB |
+| [todo.md](./todo.md) | Remaining tasks before mainnet | ~5KB |
+| [session-notes.md](./session-notes.md) | Development history by session | ~20KB |
 
 ## Quick Links
 
 **Test Game (Sepolia v4 - 24hr test):**
-- StupidClicker: `0x6dD800B88FEecbE7DaBb109884298590E5BbBf20`
+- Clickstr: `0x6dD800B88FEecbE7DaBb109884298590E5BbBf20`
 - NFT Contract: `0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3`
 - Token: `0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA`
 
-**Subgraph:** [Goldsky v1.0.2](https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/stupid-clicker-sepolia/1.0.2/gn)
+**Subgraph:** [Goldsky v1.0.0](https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.0/gn)
 
 **NFT Metadata:** `ipfs://QmfZqEdzeEm61d3uSeFxBc1HasR3KC6rMsiRnxkvzM3Ywx/clickstr-metadata/`
 

@@ -1,6 +1,6 @@
-# Stupid Clicker Subgraph
+# Clickstr Subgraph
 
-Goldsky-hosted subgraph for indexing on-chain click activity from the StupidClicker contract.
+Goldsky-hosted subgraph for indexing on-chain click activity from the Clickstr contract.
 
 ## Overview
 
@@ -29,12 +29,12 @@ This subgraph tracks:
 
 ```bash
 cd subgraph
-goldsky subgraph deploy stupid-clicker-sepolia/1.0.0 --path .
+goldsky subgraph deploy clickstr-sepolia/1.0.0 --path .
 ```
 
 For mainnet (update `subgraph.yaml` first!):
 ```bash
-goldsky subgraph deploy stupid-clicker-mainnet/1.0.0 --path .
+goldsky subgraph deploy clickstr-mainnet/1.0.0 --path .
 ```
 
 ## Updating for New Seasons
@@ -46,7 +46,7 @@ goldsky subgraph deploy stupid-clicker-mainnet/1.0.0 --path .
 3. Change `network` if switching between sepolia/mainnet
 4. Redeploy with a new version:
    ```bash
-   goldsky subgraph deploy stupid-clicker-sepolia/1.1.0 --path .
+   goldsky subgraph deploy clickstr-sepolia/1.1.0 --path .
    ```
 
 ## Example Queries
@@ -111,7 +111,7 @@ goldsky subgraph deploy stupid-clicker-mainnet/1.0.0 --path .
 
 After deployment, your endpoint will be:
 ```
-https://api.goldsky.com/api/public/<project-id>/subgraphs/stupid-clicker-sepolia/1.0.0/gn
+https://api.goldsky.com/api/public/<project-id>/subgraphs/clickstr-sepolia/1.0.0/gn
 ```
 
 Check the Goldsky dashboard for the exact URL.
@@ -125,6 +125,6 @@ subgraph/
 ├── src/
 │   └── mapping.ts      # Event handlers
 ├── abis/
-│   └── StupidClicker.json
+│   └── Clickstr.json
 └── README.md
 ```

@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
  * @title MockClickToken
- * @notice Mock ERC20 token for testing StupidClicker
+ * @notice Mock ERC20 token for testing Clickstr
  */
 contract MockClickToken is ERC20 {
     constructor(uint256 initialSupply) ERC20("Click Token", "CLICK") {

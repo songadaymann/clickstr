@@ -6,16 +6,16 @@
 - [x] Get production Turnstile keys from Cloudflare dashboard
 - [x] Update `CONFIG.turnstileSiteKey` in frontend (`0x4AAAAAACV0UOMmCeG_g2Jr`)
 - [x] Add `TURNSTILE_SECRET_KEY` to Vercel env (mann.cool)
-- [ ] Create fresh NFT signer wallet for mainnet
-- [ ] Add `NFT_SIGNER_PRIVATE_KEY` to Vercel env
+- [x] NFT signer wallet ready (`0xf55E4fac663ad8db80284620F97D95391ab002EF`)
+- [x] Add `NFT_SIGNER_PRIVATE_KEY` to Vercel env
 
 ### Deployment
 - [ ] Deploy $CLICK token via TokenWorks (fix metadata)
-- [ ] Deploy StupidClicker contract to mainnet
-- [ ] Deploy StupidClickerNFT contract to mainnet
+- [ ] Deploy Clickstr contract to mainnet
+- [ ] Deploy ClickstrNFT contract to mainnet
 - [ ] Verify contracts on Etherscan
 - [ ] Update frontend `NETWORK = 'mainnet'`
-- [ ] Deploy mainnet subgraph: `goldsky subgraph deploy stupid-clicker-mainnet/1.0.0`
+- [ ] Deploy mainnet subgraph: `goldsky subgraph deploy clickstr-mainnet/1.0.0`
 
 ### Testing
 - [ ] Test full flow: Connect wallet → click → verify → submit → see achievements
@@ -78,6 +78,8 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 - [x] Unified red/black arcade theme for all modals
 - [x] Multiple wallet options (MetaMask, Rainbow, Rabby, Coinbase, WalletConnect)
 - [x] Fixed WalletConnect v2 provider loading
+- [x] Rankings modal with tabs for Global + each past game
+- [x] "Your Total Clicks" reads consistently from API only
 
 ### Remaining
 - [ ] Show streak counter in header
@@ -89,7 +91,7 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 
 ## API Enhancements
 
-- [ ] Create NFT metadata API endpoint (`/api/stupid-clicker/nft/[tokenId]`)
+- [ ] Create NFT metadata API endpoint (`/api/clickstr/nft/[tokenId]`)
 - [ ] Add streak tracking display to stats endpoint
 
 ---
@@ -102,6 +104,74 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
   - Multi-threaded (uses all CPU cores)
   - Simple setup (just needs PRIVATE_KEY in .env)
   - Clear messaging that scripts don't earn NFTs
+
+---
+
+---
+
+## TypeScript Migration (src-ts/)
+
+The frontend has been refactored from a single 4,922-line `index.html` to a modular TypeScript project.
+
+### Completed
+- [x] Vite project scaffolding with TypeScript
+- [x] tsconfig.json with strict mode and path aliases
+- [x] Vitest configuration
+- [x] Type definitions for all modules (game, nft, api, contracts, effects)
+- [x] Config modules (network, milestones, collection)
+- [x] GameState class with event-based subscriptions
+- [x] localStorage persistence helpers
+- [x] Services (api, wallet, contracts, mining)
+- [x] Effects (particles, confetti, cursor, disco, sounds, celebrations)
+- [x] CSS split into 11 modular files
+- [x] HTML template with all UI elements
+- [x] Build passes with no TypeScript errors
+
+### Next Steps
+
+1. **Write Unit Tests** (Priority: Medium)
+   - [ ] Test `GameState` subscription and state updates
+   - [ ] Test `persistence.ts` localStorage functions
+   - [ ] Test `milestones.ts` helper functions
+   - [ ] Test `api.ts` mergeLeaderboards logic
+   - [ ] Mock tests for wallet/contract interactions
+
+2. **Production Build Configuration** (Priority: High)
+   - [ ] Configure environment variables for network switching
+   - [ ] Set up `.env.production` and `.env.development`
+   - [ ] Add Alchemy API key to env vars (not hardcoded)
+   - [ ] Configure asset optimization (image compression)
+   - [ ] Set up source maps for debugging
+
+3. **Deploy TypeScript Version** (Priority: High)
+   - [ ] Test full flow locally with `npm run dev`
+   - [ ] Build and test production bundle
+   - [ ] Deploy to Vercel from `src-ts/` directory
+   - [ ] Verify all features work in production
+
+4. **Code Quality** (Priority: Low)
+   - [ ] Add ESLint rules
+   - [ ] Add Prettier configuration
+   - [ ] Consider splitting main.ts further (UI updates, event handlers)
+   - [ ] Add JSDoc comments to public APIs
+
+### Running the TypeScript Project
+
+```bash
+cd src-ts
+
+# Development
+npm run dev
+
+# Build
+npm run build
+
+# Test
+npm run test
+
+# Preview production build
+npm run preview
+```
 
 ---
 

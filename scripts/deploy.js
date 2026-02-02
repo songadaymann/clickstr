@@ -3,7 +3,7 @@ const hre = require("hardhat");
 async function main() {
   const [deployer] = await hre.ethers.getSigners();
   
-  console.log("Deploying StupidClicker with account:", deployer.address);
+  console.log("Deploying Clickstr with account:", deployer.address);
   console.log("Account balance:", (await hre.ethers.provider.getBalance(deployer.address)).toString());
   
   // Get the $CLICK token address from environment or command line
@@ -18,15 +18,15 @@ async function main() {
   
   console.log("$CLICK token address:", clickTokenAddress);
   
-  // Deploy StupidClicker
-  const StupidClicker = await hre.ethers.getContractFactory("StupidClicker");
-  const stupidClicker = await StupidClicker.deploy(clickTokenAddress);
+  // Deploy Clickstr
+  const Clickstr = await hre.ethers.getContractFactory("Clickstr");
+  const stupidClicker = await Clickstr.deploy(clickTokenAddress);
   
   await stupidClicker.waitForDeployment();
   
   const contractAddress = await stupidClicker.getAddress();
   
-  console.log("\n✅ StupidClicker deployed to:", contractAddress);
+  console.log("\n✅ Clickstr deployed to:", contractAddress);
   console.log("\n📋 Next steps:");
   console.log("1. Approve the contract to spend your $CLICK tokens:");
   console.log(`   clickToken.approve("${contractAddress}", 100000000 * 10**18)`);

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clickstr</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <!-- External scripts loaded via CDN for now - can be bundled later -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script>window.process = { env: {} };</script>
+  <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.2/dist/index.umd.js"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+  <!-- Custom cursor element -->
+  <div id="custom-cursor"><img src="" alt=""></div>
+  <!-- Particle effects container for cursor trails -->
+  <div id="cursor-particles"></div>
+
+  <div id="game">
+    <img id="button-img" src="/button-up.jpg" alt="Click me!">
+
+    <!-- Circular click zone - centered on button -->
+    <div id="button-click-zone"></div>
+
+    <!-- UI Overlay - appears on hover -->
+    <div id="ui-overlay">
+      <!-- Top bar: Stats + Connect -->
+      <div id="top-bar">
+        <div id="stats">
+          <div class="stat">
+            <span class="stat-label">Clicks</span>
+            <span class="stat-value" id="valid-clicks">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Earned</span>
+            <span class="stat-value cyan" id="earned">0</span>
+          </div>
+        </div>
+        <button id="connect-btn" class="arcade-btn">Connect Wallet</button>
+      </div>
+
+      <!-- Left side info -->
+      <div id="center-info">
+        <div class="info-box">
+          <div class="info-label-with-help">
+            <span>Game</span>
+            <div class="info-help-icon">
+              ?
+              <div class="info-help-tooltip">
+                When a game is active, every click earns $CLICKSTR tokens.<br><br>
+                When there's no game, you can still click to earn NFT rewards and climb the leaderboard.
+              </div>
+            </div>
+          </div>
+          <div class="info-value">
+            <span class="game-status" id="game-status">--</span>
+          </div>
+        </div>
+        <div class="info-box">
+          <div class="info-label">Epoch</div>
+          <div class="info-value" id="epoch-info">- / -</div>
+        </div>
+        <div class="info-box">
+          <div class="info-label">Pool</div>
+          <div class="info-value" id="pool-info">-</div>
+        </div>
+      </div>
+
+      <!-- Left side: NFT Panel -->
+      <div id="nft-panel">
+        <div class="nft-header">
+          <span class="nft-title">Mint Rewards</span>
+          <span class="nft-count" id="nft-claimable-count">0</span>
+        </div>
+        <ul class="nft-list" id="nft-list">
+          <li class="nft-empty">Connect wallet to see rewards</li>
+        </ul>
+        <div class="nft-footer">
+          <button class="see-collection-btn" id="see-collection-btn">See Collection</button>
+        </div>
+      </div>
+
+      <!-- Right side: Leaderboard -->
+      <div id="leaderboard-panel">
+        <div class="leaderboard-header">
+          <span class="leaderboard-title">Leaderboard</span>
+          <div class="leaderboard-toggle">
+            <button class="leaderboard-toggle-btn active" id="leaderboard-toggle-global">Global</button>
+            <button class="leaderboard-toggle-btn" id="leaderboard-toggle-game">
+              <span id="leaderboard-game-name">Beta Game 1</span>
+            </button>
+          </div>
+        </div>
+        <ul class="leaderboard-list" id="leaderboard-list">
+          <li class="leaderboard-loading">Loading...</li>
+        </ul>
+        <div class="leaderboard-you" id="leaderboard-you" style="display: none;">
+          <div class="leaderboard-you-label">Your Rank</div>
+          <div class="leaderboard-item is-you">
+            <span class="leaderboard-rank" id="your-rank">-</span>
+            <span class="leaderboard-name is-you" id="your-name">You</span>
+            <span class="leaderboard-clicks" id="your-clicks">0</span>
+          </div>
+        </div>
+        <button class="see-rankings-btn" id="see-rankings-btn">See All Rankings</button>
+      </div>
+
+      <!-- Bottom right: Global Stats -->
+      <div id="global-stats-panel">
+        <div class="global-stats-header">
+          <span class="global-stats-title">Global Activity</span>
+        </div>
+        <div class="global-stats-content">
+          <div class="global-stat-row">
+            <span class="global-stat-label">All-Time Clicks</span>
+            <span class="global-stat-value" id="global-total-clicks">0</span>
+          </div>
+          <div class="global-stat-divider"></div>
+          <div class="global-stat-row">
+            <span class="global-stat-label">Clicking Now</span>
+            <div class="global-stat-active">
+              <span class="active-count humans" id="active-humans">0</span>
+              <span class="active-label">humans</span>
+              <span class="active-count bots" id="active-bots">0</span>
+              <span class="active-label">bots</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom bar: Status only (submit moved outside overlay) -->
+      <div id="bottom-bar">
+        <span id="status">Connect wallet to start clicking</span>
+      </div>
+    </div>
+
+    <!-- Submit container - OUTSIDE ui-overlay so it doesn't fade -->
+    <div id="submit-container">
+      <button id="submit-btn" disabled>Submit (0)</button>
+      <div class="submit-help">
+        <span>Batch 50-500 clicks per tx</span>
+        <div class="submit-help-icon">
+          ?
+          <div class="submit-help-tooltip">
+            Min: 50 clicks per transaction<br>
+            Max: 500 clicks per transaction<br>
+            Gas is paid on submit
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Click counter (always visible when triggered) -->
+    <div id="click-counter">0</div>
+
+    <!-- Mining indicator -->
+    <div id="mining-indicator">Mining...</div>
+
+    <!-- ARCADE DISPLAYS -->
+    <!-- Top center: Current session clicks -->
+    <div id="current-clicks-display">
+      <div class="arcade-label">Session Clicks</div>
+      <div class="arcade-display" id="arcade-current">0</div>
+    </div>
+
+    <!-- Bottom center: All-time stats -->
+    <div id="alltime-stats-display">
+      <div class="alltime-stat">
+        <div class="arcade-label">Your Total Clicks</div>
+        <div class="arcade-display" id="arcade-alltime">0</div>
+      </div>
+      <div class="alltime-stat">
+        <div class="arcade-label">Your Total Earned</div>
+        <div class="arcade-display" id="arcade-earned">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wallet Modal -->
+  <div id="wallet-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">Connect Wallet</div>
+      <button class="wallet-option" id="connect-metamask">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask">
+        <span>MetaMask</span>
+      </button>
+      <button class="wallet-option" id="connect-rainbow">
+        <img src="https://avatars.githubusercontent.com/u/48327834?s=200&v=4" alt="Rainbow">
+        <span>Rainbow</span>
+      </button>
+      <button class="wallet-option" id="connect-rabby">
+        <img src="https://rabby.io/assets/images/logo.svg" alt="Rabby">
+        <span>Rabby</span>
+      </button>
+      <button class="wallet-option" id="connect-coinbase">
+        <img src="https://avatars.githubusercontent.com/u/18060234?s=200&v=4" alt="Coinbase">
+        <span>Coinbase</span>
+      </button>
+      <button class="wallet-option" id="connect-walletconnect">
+        <img src="https://avatars.githubusercontent.com/u/37784886?s=200&v=4" alt="WalletConnect">
+        <span>Other Wallets</span>
+      </button>
+      <button class="modal-close" id="modal-close">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Turnstile Modal -->
+  <div id="turnstile-modal" class="modal">
+    <div class="turnstile-content">
+      <div class="turnstile-title">Human Verification</div>
+      <div class="turnstile-subtitle">Please verify you're human to continue</div>
+      <div id="turnstile-widget"></div>
+    </div>
+  </div>
+
+  <!-- Achievement Toast -->
+  <div id="achievement-toast">
+    <div class="achievement-name" id="achievement-name"></div>
+    <div id="achievement-desc"></div>
+  </div>
+
+  <!-- NFT Claim Modal -->
+  <div id="claim-modal" class="modal">
+    <div class="claim-modal-content">
+      <div class="claim-modal-title">Achievement Unlocked!</div>
+      <div class="claim-modal-subtitle">You've earned an NFT</div>
+      <div class="claim-nft-preview" id="claim-nft-preview"></div>
+      <div class="claim-tier-name" id="claim-tier-name"></div>
+      <div class="claim-tier-desc" id="claim-tier-desc"></div>
+      <button class="claim-btn" id="claim-nft-btn">Mint NFT</button>
+      <button class="claim-later-btn" id="claim-later-btn">Claim Later</button>
+      <div class="claim-gas-note">You'll pay a small gas fee to mint</div>
+    </div>
+  </div>
+
+  <!-- Confetti Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Disco Light Overlay -->
+  <div id="disco-overlay"></div>
+
+  <!-- Collection Modal -->
+  <div id="collection-modal" class="modal">
+    <div class="collection-modal-content">
+      <div class="collection-header">
+        <span class="collection-title">Your Collection</span>
+        <button class="collection-close-btn" id="collection-close-btn">X</button>
+      </div>
+      <!-- Trophy Section for 1/1 Global Milestones -->
+      <div class="trophy-section" id="trophy-section">
+        <div class="trophy-title">LEGENDARY 1/1s</div>
+        <div class="trophy-grid" id="trophy-grid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+      <div class="collection-subtitle">Click a cursor to equip it</div>
+      <div class="collection-grid" id="collection-grid">
+        <!-- Populated by JS -->
+      </div>
+      <div class="collection-footer">
+        <div class="equipped-cursor">
+          <span class="equipped-label">Equipped:</span>
+          <span class="equipped-cursor-name" id="equipped-cursor-name">Default</span>
+          <button class="reset-cursor-btn" id="reset-cursor-btn">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rankings Modal -->
+  <div id="rankings-modal" class="modal">
+    <div class="rankings-modal-content">
+      <div class="rankings-header">
+        <span class="rankings-title">Rankings</span>
+        <button class="rankings-close-btn" id="rankings-close-btn">X</button>
+      </div>
+      <div class="rankings-tabs" id="rankings-tabs">
+        <button class="rankings-tab active" data-tab="global">Global</button>
+        <!-- Game tabs will be populated by JS -->
+      </div>
+      <div class="rankings-list-container">
+        <ul class="rankings-list" id="rankings-list">
+          <li class="rankings-loading">Loading...</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Button (fixed position, hidden on mobile) -->
+  <button id="help-btn">?</button>
+
+  <!-- Mobile Hamburger Menu Button -->
+  <button id="mobile-menu-btn">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
+  <!-- Mobile Menu Backdrop -->
+  <div id="mobile-menu-backdrop"></div>
+
+  <!-- Mobile Menu -->
+  <div id="mobile-menu">
+    <div class="mobile-menu-item" id="mobile-menu-rewards">
+      <span class="mobile-menu-item-icon">*</span>
+      <span>Mint Rewards</span>
+    </div>
+    <div class="mobile-menu-item" id="mobile-menu-leaderboard">
+      <span class="mobile-menu-item-icon">#</span>
+      <span>Leaderboard</span>
+    </div>
+    <div class="mobile-menu-item" id="mobile-menu-about">
+      <span class="mobile-menu-item-icon">?</span>
+      <span>How to Play</span>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div id="help-modal" class="modal">
+    <div class="help-modal-content">
+      <div class="help-header">
+        <span class="help-title">How to Play</span>
+        <button class="help-close-btn" id="help-close-btn">X</button>
+      </div>
+
+      <div class="help-section">
+        <div class="help-section-title">The Basics</div>
+        <p class="help-text">
+          Click the button to mine <strong>$CLICK</strong>. Each click does real cryptographic work (proof-of-work) to earn tokens.
+        </p>
+      </div>
+
+      <div class="help-divider"></div>
+
+      <div class="help-section">
+        <div class="help-section-title">How It Works</div>
+        <ul class="help-list">
+          <li>Connect your wallet</li>
+          <li>Click the button</li>
+          <li>Once you've clicked 50 and up to 500 times, submit a transaction</li>
+          <li>You pay gas to claim your $CLICK tokens</li>
+        </ul>
+      </div>
+
+      <div class="help-divider"></div>
+
+      <div class="help-section">
+        <div class="help-section-title">The 50/50 Burn</div>
+        <p class="help-text">
+          Every token earned also <strong>burns</strong> a token. If you earn 100 $CLICK, another 100 is burned forever. More clicking = scarcer token.
+        </p>
+      </div>
+
+      <div class="help-divider"></div>
+
+      <div class="help-section">
+        <div class="help-section-title">Seasons & Epochs</div>
+        <p class="help-text">
+          The game runs in <strong>seasons</strong> divided into <strong>epochs</strong> (24 hours). Each epoch, 2% of the remaining pool is distributed. Top clicker each epoch gets a 10% bonus.
+        </p>
+      </div>
+
+      <div class="help-divider"></div>
+
+      <div class="help-section">
+        <div class="help-section-title">NFT Rewards</div>
+        <p class="help-text">
+          Hit click milestones to unlock collectible NFTs and custom cursors. Check your <strong>Mint Rewards</strong> panel and <strong>Collection</strong> to see what you've earned.
+        </p>
+      </div>
+
+      <div class="help-divider"></div>
+
+      <div class="help-section">
+        <div class="help-section-title">Scripts Welcome</div>
+        <p class="help-text">
+          You can also click directly via the smart contract using our <strong>bot script</strong> (or your own custom one). But only frontend clicks count toward NFT rewards and milestones. Scripts earn $CLICK, humans earn $CLICK + collectibles.
+        </p>
+      </div>
+
+      <div class="help-divider"></div>
+
+      <div class="help-section">
+        <div class="help-section-title">Between Seasons</div>
+        <p class="help-text">
+          Even without an active season, your frontend clicks are still tracked and count toward <strong>NFT milestones</strong>. You just won't earn $CLICK until the next season starts.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Main TypeScript entry point -->
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

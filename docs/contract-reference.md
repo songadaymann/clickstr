@@ -1,6 +1,6 @@
 # Contract Reference
 
-How to query the StupidClicker contract state.
+How to query the Clickstr contract state.
 
 > **Note:** `ethers.js` can have issues with function selector encoding. `cast` from Foundry is more reliable for quick queries.
 
@@ -117,9 +117,9 @@ When current difficulty equals MAX EASY, it means the death spiral prevention ki
 }
 ```
 
-**Endpoint (Sepolia v1.0.1):**
+**Endpoint (Sepolia v1.0.0):**
 ```
-https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/stupid-clicker-sepolia/1.0.1/gn
+https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.0/gn
 ```
 
 ## Common Issues

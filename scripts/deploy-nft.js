@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 /**
- * Deploy StupidClickerNFT contract
+ * Deploy ClickstrNFT contract
  *
  * Environment variables:
  *   NFT_SIGNER_ADDRESS - Address that will sign claim messages (server wallet)
@@ -23,7 +23,7 @@ async function main() {
     baseURI = ipfsConfig.baseURI;
     console.log("Loaded baseURI from nft-ipfs-config.json");
   }
-  baseURI = baseURI || "https://mann.cool/api/stupid-clicker/nft/";
+  baseURI = baseURI || "https://mann.cool/api/clickstr/nft/";
 
   if (!signerAddress) {
     console.error("ERROR: NFT_SIGNER_ADDRESS environment variable is required");
@@ -44,12 +44,12 @@ async function main() {
   console.log("Balance:", hre.ethers.formatEther(balance), "ETH");
 
   // Deploy NFT contract
-  console.log("\n1. Deploying StupidClickerNFT...");
-  const StupidClickerNFT = await hre.ethers.getContractFactory("StupidClickerNFT");
-  const nftContract = await StupidClickerNFT.deploy(signerAddress, baseURI);
+  console.log("\n1. Deploying ClickstrNFT...");
+  const ClickstrNFT = await hre.ethers.getContractFactory("ClickstrNFT");
+  const nftContract = await ClickstrNFT.deploy(signerAddress, baseURI);
   await nftContract.waitForDeployment();
   const nftAddress = await nftContract.getAddress();
-  console.log("   StupidClickerNFT deployed to:", nftAddress);
+  console.log("   ClickstrNFT deployed to:", nftAddress);
 
   // Verify deployment
   console.log("\n2. Verifying deployment...");
@@ -68,7 +68,7 @@ async function main() {
     network: networkName,
     chainId: Number(network.chainId),
     contract: {
-      name: "StupidClickerNFT",
+      name: "ClickstrNFT",
       address: nftAddress,
       signer: signerAddress,
       baseURI: baseURI

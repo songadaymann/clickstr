@@ -3,7 +3,7 @@ import {
   GameStarted,
   Clicked,
   EpochFinalized,
-} from "../generated/StupidClicker/StupidClicker";
+} from "../generated/Clickstr/Clickstr";
 import { User, ClickSubmission, Epoch, GlobalStats } from "../generated/schema";
 
 // Helper to get or create global stats

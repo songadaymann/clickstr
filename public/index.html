@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stupid Clicker</title>
+  <title>Clickstr</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -2803,9 +2803,9 @@
         chainId: 11155111,
         chainName: 'Sepolia',
         rpcUrl: 'https://eth-sepolia.g.alchemy.com/v2/lY4FnFecvRH4ns5zx4tRWH3MAy6IUNi9',
-        contractAddress: '0x6dD800B88FEecbE7DaBb109884298590E5BbBf20',  // StupidClicker (v4 - 24hr test)
+        contractAddress: '0x6dD800B88FEecbE7DaBb109884298590E5BbBf20',  // Clickstr (v4 - 24hr test)
         tokenAddress: '0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA',     // MockClickToken (v4)
-        nftContractAddress: '0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3', // StupidClickerNFT (IPFS metadata)
+        nftContractAddress: '0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3', // ClickstrNFT (IPFS metadata)
         // Production Turnstile key for clickstr.fun (same for sepolia testing on live domain)
         turnstileSiteKey: '0x4AAAAAACV0UOMmCeG_g2Jr',
       },
@@ -2813,7 +2813,7 @@
         chainId: 1,
         chainName: 'Ethereum',
         rpcUrl: 'https://eth-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY', // TODO: Add mainnet RPC
-        contractAddress: '0x...', // TODO: Deploy and add mainnet StupidClicker address
+        contractAddress: '0x...', // TODO: Deploy and add mainnet Clickstr address
         tokenAddress: '0x...',    // TODO: Deploy $CLICK via TokenWorks and add address
         nftContractAddress: '0x...', // TODO: Deploy and add mainnet NFT address
         // Production Turnstile key for clickstr.fun
@@ -2826,8 +2826,8 @@
       minBatchSize: 50,
       maxBatchSize: 500,
       walletConnectProjectId: '0cfe5ae6ddbf271b5829f52573da812b',
-      apiUrl: 'https://mann.cool/api/stupid-clicker',
-      subgraphUrl: 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/stupid-clicker-sepolia/1.0.2/gn',
+      apiUrl: 'https://mann.cool/api/clickstr',
+      subgraphUrl: 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.0/gn',
     };
 
     const NFT_CONTRACT_ABI = [
@@ -4390,8 +4390,8 @@
         claimNftBtn.classList.add('claiming');
 
         // Get signature from server
-        // API is at /api/stupid-clicker-claim-signature (Vercel serverless function naming)
-        const response = await fetch('https://mann.cool/api/stupid-clicker-claim-signature', {
+        // API is at /api/clickstr-claim-signature (Vercel serverless function naming)
+        const response = await fetch('https://mann.cool/api/clickstr-claim-signature', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ address: userAddress, tier: tier })
@@ -4415,10 +4415,27 @@
         const tx = await nftContract.claim(serverTier, signature);
 
         claimNftBtn.textContent = 'Minting...';
-        await tx.wait();
+        const receipt = await tx.wait();
 
         claimNftBtn.textContent = 'Minted!';
         showAchievementToast('NFT Minted!', `${MILESTONE_INFO[tier]?.name || id} is now in your wallet`);
+
+        // Confirm the claim with the server (updates Redis to prevent double-claims)
+        try {
+          await fetch('https://mann.cool/api/clickstr-claim-signature', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              address: userAddress,
+              tier: serverTier,
+              action: 'confirm',
+              txHash: receipt.hash
+            })
+          });
+        } catch (confirmError) {
+          // Non-critical - the on-chain claim succeeded, server sync is best-effort
+          console.warn('Failed to confirm claim with server:', confirmError);
+        }
 
         // Mark as claimed and refresh NFT panel
         claimedOnChain.add(tier);

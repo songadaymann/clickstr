@@ -9,7 +9,7 @@
     "poolAmount": "2000000",
     "seasonLengthDays": 2,
     "targetClicksPerEpoch": 83333,
-    "nftBaseUri": "https://mann.cool/api/stupid-clicker/nft/"
+    "nftBaseUri": "https://mann.cool/api/clickstr/nft/"
   },
   "contracts": {
     "clickToken": "0xe068de6E3A830BB09b5dcdBB0cD0F631FDC23f28",

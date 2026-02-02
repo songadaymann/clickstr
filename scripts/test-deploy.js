@@ -7,8 +7,8 @@ const path = require("path");
  *
  * Deploys:
  *   1. MockClickToken (2M tokens)
- *   2. StupidClickerNFT (achievement NFTs)
- *   3. StupidClicker (game contract with 2-hour epochs)
+ *   2. ClickstrNFT (achievement NFTs)
+ *   3. Clickstr (game contract with 2-hour epochs)
  *
  * Configuration:
  *   - 24 epochs × 2 hours = 48 hours (2 days)
@@ -24,7 +24,7 @@ async function main() {
     totalEpochs: 24,              // 24 epochs
     epochDuration: 7200,          // 2 hours (7200 seconds)
     poolAmount: "2000000",        // 2M tokens
-    nftBaseUri: "https://mann.cool/api/stupid-clicker/nft/",
+    nftBaseUri: "https://mann.cool/api/clickstr/nft/",
   };
 
   // Calculate derived values
@@ -67,31 +67,31 @@ async function main() {
 
   console.log("   ✅ MockClickToken deployed to:", clickTokenAddress);
 
-  // ============ Step 2: Deploy StupidClickerNFT ============
+  // ============ Step 2: Deploy ClickstrNFT ============
   console.log("\n" + "─".repeat(60));
-  console.log("Step 2/4: Deploying StupidClickerNFT...");
+  console.log("Step 2/4: Deploying ClickstrNFT...");
 
   // Use deployer as signer for testing (in production, use a dedicated signer wallet)
   const nftSigner = deployer.address;
 
-  const StupidClickerNFT = await hre.ethers.getContractFactory("StupidClickerNFT");
-  const nftContract = await StupidClickerNFT.deploy(nftSigner, CONFIG.nftBaseUri);
+  const ClickstrNFT = await hre.ethers.getContractFactory("ClickstrNFT");
+  const nftContract = await ClickstrNFT.deploy(nftSigner, CONFIG.nftBaseUri);
   await nftContract.waitForDeployment();
   const nftContractAddress = await nftContract.getAddress();
 
-  console.log("   ✅ StupidClickerNFT deployed to:", nftContractAddress);
+  console.log("   ✅ ClickstrNFT deployed to:", nftContractAddress);
   console.log("   NFT Signer:", nftSigner);
   console.log("   ⚠️  For testing, deployer is the signer. Export private key for API.");
 
-  // ============ Step 3: Deploy StupidClicker ============
+  // ============ Step 3: Deploy Clickstr ============
   console.log("\n" + "─".repeat(60));
-  console.log("Step 3/4: Deploying StupidClicker...");
+  console.log("Step 3/4: Deploying Clickstr...");
 
   // Default difficulty: type(uint256).max / 1000
   const DEFAULT_DIFFICULTY = (2n ** 256n - 1n) / 1000n;
 
-  const StupidClicker = await hre.ethers.getContractFactory("StupidClicker");
-  const stupidClicker = await StupidClicker.deploy(
+  const Clickstr = await hre.ethers.getContractFactory("Clickstr");
+  const stupidClicker = await Clickstr.deploy(
     clickTokenAddress,
     CONFIG.totalEpochs,
     CONFIG.epochDuration,
@@ -101,7 +101,7 @@ async function main() {
   await stupidClicker.waitForDeployment();
   const stupidClickerAddress = await stupidClicker.getAddress();
 
-  console.log("   ✅ StupidClicker deployed to:", stupidClickerAddress);
+  console.log("   ✅ Clickstr deployed to:", stupidClickerAddress);
 
   // ============ Step 4: Start the Game ============
   console.log("\n" + "─".repeat(60));
@@ -129,8 +129,8 @@ async function main() {
 
   console.log("\n📜 Contract Addresses:");
   console.log("   ├─ MockClickToken:    ", clickTokenAddress);
-  console.log("   ├─ StupidClickerNFT:  ", nftContractAddress);
-  console.log("   └─ StupidClicker:     ", stupidClickerAddress);
+  console.log("   ├─ ClickstrNFT:  ", nftContractAddress);
+  console.log("   └─ Clickstr:     ", stupidClickerAddress);
 
   console.log("\n⏰ Game Timeline:");
   console.log("   ├─ Start:", startTime.toISOString());
@@ -202,7 +202,7 @@ async function main() {
   console.log(`   chainId: 11155111`);
 
   console.log("\n4. Update API environment:");
-  console.log(`   STUPID_CLICKER_ADDRESS=${stupidClickerAddress}`);
+  console.log(`   CLICKSTR_ADDRESS=${stupidClickerAddress}`);
   console.log(`   NFT_CONTRACT_ADDRESS=${nftContractAddress}`);
   console.log(`   NFT_SIGNER_PRIVATE_KEY=<deployer private key for testing>`);
 

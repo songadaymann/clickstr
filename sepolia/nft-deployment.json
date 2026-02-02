@@ -2,12 +2,12 @@
   "network": "sepolia",
   "chainId": 11155111,
   "contract": {
-    "name": "StupidClickerNFT",
-    "address": "0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3",
+    "name": "ClickstrNFT",
+    "address": "0x39B41525ba423FcAbE23564ecCCdEa66e7D59551",
     "signer": "0xf55E4fac663ad8db80284620F97D95391ab002EF",
     "baseURI": "ipfs://QmfZqEdzeEm61d3uSeFxBc1HasR3KC6rMsiRnxkvzM3Ywx/clickstr-metadata/"
   },
   "deployer": "0xAd9fDaD276AB1A430fD03177A07350CD7C61E897",
-  "deployedAt": "2026-01-30T18:37:39.973Z",
-  "blockNumber": 10157149
+  "deployedAt": "2026-02-02T18:06:49.157Z",
+  "blockNumber": 10177487
 }

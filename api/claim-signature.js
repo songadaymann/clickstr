@@ -1,12 +1,12 @@
 /**
- * API Endpoint: POST /api/stupid-clicker/claim-signature
+ * API Endpoint: POST /api/clickstr/claim-signature
  *
  * Reference implementation for mann.cool API
  * Generates signatures for NFT milestone claims
  *
  * Environment variables needed:
  *   NFT_SIGNER_PRIVATE_KEY - Private key of the signing wallet
- *   NFT_CONTRACT_ADDRESS   - Address of StupidClickerNFT contract
+ *   NFT_CONTRACT_ADDRESS   - Address of ClickstrNFT contract
  *   KV_REST_API_URL        - Upstash Redis URL
  *   KV_REST_API_TOKEN      - Upstash Redis token
  *
@@ -224,14 +224,14 @@ async function checkEligibility(address, tier) {
   }
 
   // Check if already claimed on-chain (stored in Redis after successful claim)
-  const claimedKey = `stupid-clicker:nft-claimed:${address.toLowerCase()}:${tier}`;
+  const claimedKey = `clickstr:nft-claimed:${address.toLowerCase()}:${tier}`;
   const alreadyClaimed = await kv.get(claimedKey);
   if (alreadyClaimed) {
     return { eligible: false, reason: "Already claimed" };
   }
 
   // Get user stats from Redis
-  const statsKey = `stupid-clicker:clicks:${address.toLowerCase()}`;
+  const statsKey = `clickstr:clicks:${address.toLowerCase()}`;
   const stats = await kv.hgetall(statsKey);
 
   if (!stats && tier < 200) {
@@ -259,7 +259,7 @@ async function checkEligibility(address, tier) {
       // Check epoch milestones
       const epoch = EPOCH_MILESTONES[tier];
       if (epoch) {
-        const epochKey = `stupid-clicker:epoch-participant:${epoch}:${address.toLowerCase()}`;
+        const epochKey = `clickstr:epoch-participant:${epoch}:${address.toLowerCase()}`;
         const participated = await kv.get(epochKey);
         if (participated) {
           return { eligible: true, tier };
@@ -284,14 +284,14 @@ async function checkEligibility(address, tier) {
     }
 
     // Check if this global milestone was already claimed by anyone
-    const globalClaimedKey = `stupid-clicker:global-milestone:${tier}`;
+    const globalClaimedKey = `clickstr:global-milestone:${tier}`;
     const globalClaimed = await kv.get(globalClaimedKey);
     if (globalClaimed) {
       return { eligible: false, reason: `Global milestone already claimed by ${globalClaimed}` };
     }
 
     // Check if user triggered this global click number
-    const globalTriggerKey = `stupid-clicker:global-trigger:${globalClickNum}`;
+    const globalTriggerKey = `clickstr:global-trigger:${globalClickNum}`;
     const triggeredBy = await kv.get(globalTriggerKey);
     if (triggeredBy?.toLowerCase() === address.toLowerCase()) {
       return { eligible: true, tier };
@@ -307,7 +307,7 @@ async function checkEligibility(address, tier) {
     }
 
     // Check if user passed this personal click number
-    const hiddenKey = `stupid-clicker:hidden:${address.toLowerCase()}:${hiddenClickNum}`;
+    const hiddenKey = `clickstr:hidden:${address.toLowerCase()}:${hiddenClickNum}`;
     const achieved = await kv.get(hiddenKey);
     if (achieved) {
       return { eligible: true, tier };
@@ -398,7 +398,7 @@ export default async function handler(req, res) {
 
 /**
  * Get all claimable tiers for a user
- * POST /api/stupid-clicker/claim-signature/available
+ * POST /api/clickstr/claim-signature/available
  */
 export async function getAvailableClaims(address) {
   const available = [];
@@ -455,12 +455,12 @@ export async function getAvailableClaims(address) {
  * 3. Manual admin call
  */
 export async function markClaimed(address, tier) {
-  const claimedKey = `stupid-clicker:nft-claimed:${address.toLowerCase()}:${tier}`;
+  const claimedKey = `clickstr:nft-claimed:${address.toLowerCase()}:${tier}`;
   await kv.set(claimedKey, Date.now());
 
   // For global milestones, also mark globally
   if (tier >= 200 && tier < 500) {
-    const globalClaimedKey = `stupid-clicker:global-milestone:${tier}`;
+    const globalClaimedKey = `clickstr:global-milestone:${tier}`;
     await kv.set(globalClaimedKey, address.toLowerCase());
   }
 }

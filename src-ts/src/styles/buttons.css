@@ -1,0 +1,191 @@
+/**
+ * Button styles - Arcade-style buttons
+ */
+
+/* Base arcade button style */
+.arcade-btn {
+  font-family: var(--font-label);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border: 2px solid;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.arcade-btn:active {
+  transform: scale(0.98);
+  box-shadow: var(--shadow-inset) !important;
+}
+
+/* Connect button */
+#connect-btn {
+  background: linear-gradient(to bottom, var(--color-red-950), var(--color-red-975));
+  border-color: var(--color-red-600);
+  color: var(--color-red-400);
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5), var(--glow-red-lg);
+  text-shadow: var(--glow-red-md);
+}
+
+#connect-btn:hover {
+  background: linear-gradient(to bottom, var(--color-red-900), var(--color-red-950));
+  border-color: var(--color-red-500);
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 0, 0, 0.5);
+}
+
+#connect-btn.connected {
+  background: linear-gradient(to bottom, var(--color-red-975), var(--color-red-990));
+  border-color: var(--color-red-700);
+  color: var(--color-red-400);
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 0, 0, 0.2);
+  text-shadow: 0 0 6px rgba(255, 0, 0, 0.6);
+}
+
+#connect-btn.wrong-network {
+  background: linear-gradient(to bottom, var(--color-red-900), var(--color-red-950));
+  border-color: var(--color-red-400);
+  color: var(--color-red-400);
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5), 0 0 25px rgba(255, 0, 0, 0.6);
+  animation: pulse-warning 1s infinite;
+}
+
+@keyframes pulse-warning {
+  0%, 100% { box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5), 0 0 25px rgba(255, 0, 0, 0.6); }
+  50% { box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5), 0 0 35px rgba(255, 0, 0, 0.9); }
+}
+
+/* Submit button */
+#submit-btn {
+  background: linear-gradient(to bottom, var(--color-red-975), var(--color-red-990));
+  border: 2px solid var(--color-red-700);
+  color: var(--color-red-400);
+  padding: 14px 28px;
+  cursor: pointer;
+  font-family: var(--font-label);
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  text-shadow: var(--glow-red-md);
+  box-shadow:
+    var(--shadow-inset),
+    var(--glow-red-lg);
+  position: relative;
+}
+
+#submit-btn:hover:not(:disabled) {
+  background: linear-gradient(to bottom, var(--color-red-950), var(--color-red-975));
+  border-color: var(--color-red-600);
+  text-shadow: 0 0 15px rgba(255, 0, 0, 1);
+  box-shadow:
+    var(--shadow-inset),
+    0 0 30px rgba(255, 0, 0, 0.5);
+}
+
+#submit-btn:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.95);
+}
+
+#submit-btn:disabled {
+  background: linear-gradient(to bottom, #111111, #0a0a0a);
+  border-color: #333333;
+  color: #444444;
+  cursor: not-allowed;
+  text-shadow: none;
+  box-shadow: var(--shadow-inset);
+}
+
+/* Help button */
+#help-btn {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(to bottom, var(--color-red-950), var(--color-red-dark));
+  border: 3px solid var(--color-red-700);
+  color: var(--color-red-400);
+  font-family: var(--font-pixel);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-ui);
+  box-shadow: var(--glow-red-sm), inset 0 0 8px rgba(0, 0, 0, 0.5);
+  transition: all var(--transition-fast);
+  pointer-events: auto;
+}
+
+#help-btn:hover {
+  background: linear-gradient(to bottom, var(--color-red-900), var(--color-red-975));
+  border-color: var(--color-red-400);
+  box-shadow: var(--glow-red-lg), inset 0 0 8px rgba(0, 0, 0, 0.5);
+  text-shadow: var(--glow-red-md);
+}
+
+/* See rankings button */
+.see-rankings-btn {
+  width: 100%;
+  margin-top: var(--spacing-md);
+  padding: 10px;
+  background: linear-gradient(to bottom, var(--color-red-975), var(--color-red-990));
+  border: 1px solid var(--color-red-900);
+  color: var(--color-red-400);
+  font-family: var(--font-label);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  text-shadow: var(--glow-red-sm);
+  transition: all var(--transition-fast);
+}
+
+.see-rankings-btn:hover {
+  background: linear-gradient(to bottom, var(--color-red-950), var(--color-red-975));
+  border-color: var(--color-red-700);
+  text-shadow: var(--glow-red-md);
+}
+
+/* See collection button */
+.see-collection-btn {
+  font-family: var(--font-label);
+  font-size: 14px;
+  color: var(--color-red-400);
+  background: transparent;
+  border: 1px solid var(--color-red-400);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  cursor: pointer;
+  text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
+  transition: all var(--transition-fast);
+}
+
+.see-collection-btn:hover {
+  background: rgba(255, 0, 0, 0.1);
+  box-shadow: var(--glow-red-lg);
+}
+
+/* Reset cursor button */
+.reset-cursor-btn {
+  background: transparent;
+  border: 1px solid var(--color-red-700);
+  color: var(--color-red-300);
+  font-family: var(--font-label);
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  margin-left: 15px;
+  transition: all var(--transition-fast);
+}
+
+.reset-cursor-btn:hover {
+  background: var(--color-red-950);
+  border-color: var(--color-red-400);
+  color: var(--color-red-400);
+}

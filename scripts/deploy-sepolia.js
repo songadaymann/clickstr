@@ -69,10 +69,10 @@ async function main() {
   const clickTokenAddress = await clickToken.getAddress();
   console.log("   MockClickToken deployed to:", clickTokenAddress);
 
-  // Deploy StupidClicker with season params
-  console.log("\n2. Deploying StupidClicker...");
-  const StupidClicker = await hre.ethers.getContractFactory("StupidClicker");
-  const stupidClicker = await StupidClicker.deploy(
+  // Deploy Clickstr with season params
+  console.log("\n2. Deploying Clickstr...");
+  const Clickstr = await hre.ethers.getContractFactory("Clickstr");
+  const stupidClicker = await Clickstr.deploy(
     clickTokenAddress,
     totalEpochs,
     epochDuration,
@@ -81,7 +81,7 @@ async function main() {
   );
   await stupidClicker.waitForDeployment();
   const stupidClickerAddress = await stupidClicker.getAddress();
-  console.log("   StupidClicker deployed to:", stupidClickerAddress);
+  console.log("   Clickstr deployed to:", stupidClickerAddress);
 
   // Set up NFT bonuses if NFT contract is provided
   let tierBonuses = [];
@@ -165,7 +165,7 @@ async function main() {
   console.log("=".repeat(60));
   console.log("\nContract Addresses:");
   console.log("  MockClickToken:", clickTokenAddress);
-  console.log("  StupidClicker: ", stupidClickerAddress);
+  console.log("  Clickstr: ", stupidClickerAddress);
   console.log("\nVerification commands:");
   console.log(`  npx hardhat verify --network sepolia ${clickTokenAddress} "${poolAmountWei}"`);
   console.log(`  npx hardhat verify --network sepolia ${stupidClickerAddress} ${clickTokenAddress} ${totalEpochs} ${epochDuration} "${initialDifficulty}" ${nftContractAddress}`);

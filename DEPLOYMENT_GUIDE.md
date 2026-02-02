@@ -1,4 +1,4 @@
-# Stupid Clicker - Deployment Guide
+# Clickstr - Deployment Guide
 
 Checklists for deploying seasons and the NFT contract.
 
@@ -169,7 +169,7 @@ The deploy script prints verification commands. Run them:
 # Verify MockClickToken (testnet only)
 npx hardhat verify --network sepolia <CLICK_TOKEN_ADDRESS> "<POOL_AMOUNT_WEI>"
 
-# Verify StupidClicker
+# Verify Clickstr
 npx hardhat verify --network sepolia <CLICKER_ADDRESS> <CLICK_TOKEN> <EPOCHS> <DURATION> "<DIFFICULTY>"
 ```
 
@@ -222,10 +222,10 @@ goldsky login
    cd subgraph
 
    # Sepolia
-   goldsky subgraph deploy stupid-clicker-sepolia/1.0.0 --path .
+   goldsky subgraph deploy clickstr-sepolia/1.0.0 --path .
 
    # Mainnet
-   goldsky subgraph deploy stupid-clicker-mainnet/1.0.0 --path .
+   goldsky subgraph deploy clickstr-mainnet/1.0.0 --path .
    ```
 
 3. Note the GraphQL endpoint URL from the output (needed if querying from frontend)
@@ -410,16 +410,16 @@ cast wallet new
 
 The base URI points to your NFT metadata endpoint. Format:
 ```
-https://mann.cool/api/stupid-clicker/nft/
+https://mann.cool/api/clickstr/nft/
 ```
 
-Token URIs will be: `{baseURI}{tier}` → `https://mann.cool/api/stupid-clicker/nft/4`
+Token URIs will be: `{baseURI}{tier}` → `https://mann.cool/api/clickstr/nft/4`
 
 You'll need to create this metadata endpoint that returns JSON like:
 ```json
 {
   "name": "Dedicated",
-  "description": "Reached 1,000 clicks in Stupid Clicker",
+  "description": "Reached 1,000 clicks in Clickstr",
   "image": "ipfs://...",
   "attributes": [
     { "trait_type": "Tier", "value": 4 },
@@ -438,12 +438,12 @@ You'll need to create this metadata endpoint that returns JSON like:
 ```bash
 # Sepolia
 NFT_SIGNER_ADDRESS=0x1234... \
-NFT_BASE_URI="https://mann.cool/api/stupid-clicker/nft/" \
+NFT_BASE_URI="https://mann.cool/api/clickstr/nft/" \
 npx hardhat run scripts/deploy-nft.js --network sepolia
 
 # Mainnet (when ready)
 NFT_SIGNER_ADDRESS=0x1234... \
-NFT_BASE_URI="https://mann.cool/api/stupid-clicker/nft/" \
+NFT_BASE_URI="https://mann.cool/api/clickstr/nft/" \
 npx hardhat run scripts/deploy-nft.js --network mainnet
 ```
 
@@ -473,7 +473,7 @@ NFT_CONTRACT_ADDRESS=0x...        # Deployed contract address
 
 ### 5. Implement API Endpoint
 
-Create `/api/stupid-clicker/claim-signature` endpoint. Reference implementation in `api/claim-signature.js`.
+Create `/api/clickstr/claim-signature` endpoint. Reference implementation in `api/claim-signature.js`.
 
 Key logic:
 ```javascript
@@ -513,15 +513,15 @@ Batch claiming is limited to 20 NFTs per transaction to prevent gas issues.
 
 ### 6. Create Metadata Endpoint
 
-Create `/api/stupid-clicker/nft/[tokenId]` that returns ERC1155 metadata JSON.
+Create `/api/clickstr/nft/[tokenId]` that returns ERC1155 metadata JSON.
 
 Reference implementation in `api/nft-metadata.js`. The response format:
 ```json
 {
   "name": "Dedicated",
   "description": "1,000 clicks. You're officially dedicated to the cause.",
-  "image": "https://mann.cool/stupid-clicker/nft/images/4.png",
-  "external_url": "https://mann.cool/stupid-clicker/nft/4",
+  "image": "https://mann.cool/clickstr/nft/images/4.png",
+  "external_url": "https://mann.cool/clickstr/nft/4",
   "attributes": [
     { "trait_type": "Category", "value": "personal" },
     { "trait_type": "Rarity", "value": "uncommon" },

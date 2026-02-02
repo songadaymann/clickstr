@@ -18,7 +18,7 @@ require("dotenv").config();
 const CONFIG = {
   rpcUrl: process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org",
   refreshIntervalMs: 10000, // Update every 10 seconds
-  apiUrl: process.env.API_URL || "https://mann.cool/api/stupid-clicker"
+  apiUrl: process.env.API_URL || "https://mann.cool/api/clickstr"
 };
 
 // ============ Contract ABIs ============

@@ -6,7 +6,7 @@
 
 ## Overview
 
-Stupid Clicker is a proof-of-work clicking game built on Ethereum mainnet. Every click mines a valid hash, and when you submit your clicks to the blockchain:
+Clickstr is a proof-of-work clicking game built on Ethereum mainnet. Every click mines a valid hash, and when you submit your clicks to the blockchain:
 
 - **50% of tokens go to you**
 - **50% of tokens are burned forever**
@@ -18,7 +18,7 @@ The more you play, the scarcer $CLICK becomes.
 | Allocation | Amount | Purpose |
 |------------|--------|---------|
 | Recursive Strategy Pool | 890,000,000 | TokenWorks flywheel (8% burn on trades) |
-| Stupid Clicker Pool | 100,000,000 | Mining rewards (50% distributed, 50% burned) |
+| Clickstr Pool | 100,000,000 | Mining rewards (50% distributed, 50% burned) |
 | Creator | 10,000,000 | Aligned incentives |
 | **Total Supply** | **1,000,000,000** → **950,000,000** after game |
 
@@ -137,7 +137,7 @@ npm run deploy:mainnet
 ## Contract Architecture
 
 ```
-StupidClicker.sol
+Clickstr.sol
 ├── submitClicks(nonces[])     // Submit batch of valid proofs
 ├── finalizeEpoch(epoch)       // End epoch, pay winner + finalizer
 ├── getCurrentEpochInfo()      // Epoch stats
@@ -155,7 +155,7 @@ The frontend is a React component using:
 - **viem** for contract interactions
 
 Key files:
-- `frontend/StupidClicker.jsx` - Main UI component
+- `frontend/Clickstr.jsx` - Main UI component
 - `frontend/miner.worker.js` - Background mining worker
 
 ## The Flywheel
@@ -185,7 +185,7 @@ A: Sure! But difficulty adjusts. More hashpower = harder puzzles = same emission
 **Q: What happens after 90 days?**
 A: Game ends. Remaining pool is burned. The token continues as a pure TokenWorks recursive strategy.
 
-**Q: Why is it called Stupid Clicker?**
+**Q: Why is it called Clickstr?**
 A: Because it is.
 
 ## License

@@ -1,10 +1,10 @@
 {
-  "name": "stupid-clicker-subgraph",
+  "name": "clickstr-subgraph",
   "version": "1.0.0",
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "goldsky subgraph deploy stupid-clicker-sepolia/1.0.0 --path ."
+    "deploy": "goldsky subgraph deploy clickstr-sepolia/1.0.0 --path ."
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "^0.71.0",

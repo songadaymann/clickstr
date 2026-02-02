@@ -2,26 +2,26 @@
 
 ## Current Test Deployment (Sepolia)
 
-**24-Hour Test Environment (v4)**
+**24-Hour Test Environment (v5) - Final Pre-Mainnet Test**
 
 | Parameter | Production | Test |
 |-----------|------------|------|
 | Total Epochs | 90 | 12 |
 | Epoch Duration | 24 hours | 2 hours |
-| Pool Size | 100M | 2M |
+| Pool Size | 100M | 1M |
 | Season Length | 90 days | 1 day |
 
 **Timeline:**
-- Start: 2026-01-30 19:46:48 UTC
-- End: 2026-01-31 19:46:48 UTC
+- Start: 2026-02-02 18:08:12 UTC
+- End: 2026-02-03 18:08:12 UTC
 
-### Test Contracts (v4 - Current)
+### Test Contracts (v5 - Current)
 
 | Contract | Address | Etherscan |
 |----------|---------|-----------|
-| MockClickToken | `0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA` | [View](https://sepolia.etherscan.io/address/0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA) |
-| StupidClickerNFT | `0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3` | [View](https://sepolia.etherscan.io/address/0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3) |
-| StupidClicker | `0x6dD800B88FEecbE7DaBb109884298590E5BbBf20` | [View](https://sepolia.etherscan.io/address/0x6dD800B88FEecbE7DaBb109884298590E5BbBf20) |
+| MockClickToken | `0x3706Dcde2dBA966F225E14d3F6c22eaF7A5724c4` | [View](https://sepolia.etherscan.io/address/0x3706Dcde2dBA966F225E14d3F6c22eaF7A5724c4) |
+| ClickstrNFT | `0x39B41525ba423FcAbE23564ecCCdEa66e7D59551` | [View](https://sepolia.etherscan.io/address/0x39B41525ba423FcAbE23564ecCCdEa66e7D59551) |
+| Clickstr | `0xA16d45e4D186B9678020720BD1e743872a6e9bA0` | [View](https://sepolia.etherscan.io/address/0xA16d45e4D186B9678020720BD1e743872a6e9bA0) |
 
 **NFT Contract Details:**
 - Signer: `0xf55E4fac663ad8db80284620F97D95391ab002EF`
@@ -37,28 +37,35 @@
 
 ### Previous Sepolia Deployments
 
+**v4 (24hr test Jan 30-31)**
+| Contract | Address |
+|----------|---------|
+| MockClickToken | `0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA` |
+| ClickstrNFT | `0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3` |
+| Clickstr | `0x6dD800B88FEecbE7DaBb109884298590E5BbBf20` |
+
 **v2 (With Security Fixes)**
 | Contract | Address |
 |----------|---------|
 | MockClickToken | `0xF493D552281ce8328308a04C8153568d3A8422aC` |
-| StupidClicker | `0xfA0C8a82DC76cA1dB2AD37e85b3DFD91e342F83C` |
+| Clickstr | `0xfA0C8a82DC76cA1dB2AD37e85b3DFD91e342F83C` |
 
 **v1 (Initial - Deprecated)**
 | Contract | Address |
 |----------|---------|
 | MockClickToken | `0xd8b4FD0d0B7F46576f4e249A125E13D98D8F6B4C` |
-| StupidClicker | `0x914CB6aCdcd77614C58A4097A5F710b7AB3C945A` |
+| Clickstr | `0x914CB6aCdcd77614C58A4097A5F710b7AB3C945A` |
 
 ---
 
 ## Subgraph Deployment
 
-**Goldsky Endpoint (Sepolia v1.0.1):**
+**Goldsky Endpoint (Sepolia v1.0.3):**
 ```
-https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/stupid-clicker-sepolia/1.0.1/gn
+https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.3/gn
 ```
 
-Points to test contract: `0x8ac0facc097ba05d70fa5A480F334A28B0802c7e`
+Points to v5 contract: `0xA16d45e4D186B9678020720BD1e743872a6e9bA0`
 
 ---
 
@@ -71,7 +78,7 @@ Points to test contract: `0x8ac0facc097ba05d70fa5A480F334A28B0802c7e`
 ### Required Steps
 1. Get production Turnstile keys from Cloudflare
 2. Deploy NFT contract from signer wallet (`0xf55E...`) so signer = owner
-3. Deploy StupidClicker and Token contracts
+3. Deploy Clickstr and Token contracts
 4. Update frontend `NETWORK = 'mainnet'`
 5. Update Vercel env vars:
    - `NFT_CONTRACT_ADDRESS` = new mainnet NFT address
@@ -82,19 +89,16 @@ Points to test contract: `0x8ac0facc097ba05d70fa5A480F334A28B0802c7e`
 
 ## Frontend Configuration
 
-Located in `public/index.html`:
+Located in `src-ts/src/config/network.ts`:
 
-```javascript
-const NETWORK = 'sepolia';  // Change to 'mainnet' for production
-
-const NETWORKS = {
+```typescript
+export const NETWORKS = {
   sepolia: {
     chainId: 11155111,
-    contractAddress: '0x6dD800B88FEecbE7DaBb109884298590E5BbBf20',  // StupidClicker v4
-    tokenAddress: '0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA',     // MockClickToken v4
-    nftContractAddress: '0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3', // IPFS metadata
-    turnstileSiteKey: '0x4AAAAAACV0UOMmCeG_g2Jr',  // Production key (works on clickstr.fun)
-    subgraphUrl: 'https://api.goldsky.com/.../stupid-clicker-sepolia/1.0.2/gn'
+    contractAddress: '0xA16d45e4D186B9678020720BD1e743872a6e9bA0',  // Clickstr v5
+    tokenAddress: '0x3706Dcde2dBA966F225E14d3F6c22eaF7A5724c4',     // MockClickToken v5
+    nftContractAddress: '0x39B41525ba423FcAbE23564ecCCdEa66e7D59551', // ClickstrNFT v5
+    turnstileSiteKey: '0x4AAAAAACV0UOMmCeG_g2Jr',
   },
   mainnet: {
     chainId: 1,
@@ -102,9 +106,11 @@ const NETWORKS = {
     tokenAddress: '0x...',      // TODO
     nftContractAddress: '0x...', // TODO
     turnstileSiteKey: '...',    // TODO: Production key
-    subgraphUrl: '...'          // TODO
   }
 };
+
+// Subgraph URL in buildConfig():
+subgraphUrl: 'https://api.goldsky.com/.../clickstr-sepolia/1.0.3/gn'
 ```
 
 ---
@@ -135,7 +141,7 @@ cd subgraph
 npm install
 npm run codegen
 npm run build
-goldsky subgraph deploy stupid-clicker-sepolia/1.0.1 --path .
+goldsky subgraph deploy clickstr-sepolia/1.0.1 --path .
 ```
 
 ---
@@ -167,6 +173,6 @@ KV_REST_API_URL=...
 KV_REST_API_TOKEN=...
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA  # Test
 NFT_SIGNER_PRIVATE_KEY=0x...  # Private key for 0xf55E4fac663ad8db80284620F97D95391ab002EF
-NFT_CONTRACT_ADDRESS=0x3cDC7937B051497E4a4C8046d90293E2f1B84ff3
-STUPID_CLICKER_ADMIN_SECRET=...  # For admin reset endpoint (testing only)
+NFT_CONTRACT_ADDRESS=0x39B41525ba423FcAbE23564ecCCdEa66e7D59551  # v5
+CLICKSTR_ADMIN_SECRET=...  # For admin reset endpoint (testing only)
 ```

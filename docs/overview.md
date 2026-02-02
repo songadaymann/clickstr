@@ -1,4 +1,4 @@
-# Stupid Clicker - Overview
+# Clickstr - Overview
 
 ## Concept
 
@@ -13,7 +13,7 @@ A proof-of-work "clicker" game on Ethereum mainnet where clicking a button mines
 | Allocation | Amount | % | Purpose |
 |------------|--------|---|---------|
 | Recursive Strategy Pool | 890,000,000 | 89% | TokenWorks flywheel (8% burn on trades) |
-| Stupid Clicker Pool | 100,000,000 | 10% | Mining rewards via PoW clicking |
+| Clickstr Pool | 100,000,000 | 10% | Mining rewards via PoW clicking |
 | Creator | 10,000,000 | 1% | Aligned incentives |
 | **Total** | **1,000,000,000** | 100% | |
 

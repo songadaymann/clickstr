@@ -1,4 +1,4 @@
-# Stupid Clicker - Comprehensive 2-Day Test Plan
+# Clickstr - Comprehensive 2-Day Test Plan
 
 ## Overview
 
@@ -75,8 +75,8 @@ FRONTEND_URL=https://your-frontend.vercel.app npm run test:bot-b
 | Task | Details | Status |
 |------|---------|--------|
 | Deploy MockClickToken | Fresh token for this test | ☐ |
-| Deploy StupidClicker | 2-hour epochs, 24 total epochs (48 hours) | ☐ |
-| Deploy StupidClickerNFT | With test signer address | ☐ |
+| Deploy Clickstr | 2-hour epochs, 24 total epochs (48 hours) | ☐ |
+| Deploy ClickstrNFT | With test signer address | ☐ |
 | Verify all contracts on Etherscan | For transparency | ☐ |
 | Fund game with test tokens | 10M CLICK (smaller pool for faster testing) | ☐ |
 | Start the game | Call `startGame()` | ☐ |
@@ -108,15 +108,15 @@ npx hardhat run scripts/test-deploy.js --network sepolia
 
 | Task | Details | Status |
 |------|---------|--------|
-| Deploy /api/stupid-clicker | Click tracking endpoint | ☐ |
-| Deploy /api/stupid-clicker/claim-signature | NFT claim signing | ☐ |
+| Deploy /api/clickstr | Click tracking endpoint | ☐ |
+| Deploy /api/clickstr/claim-signature | NFT claim signing | ☐ |
 | Deploy /api/nft-metadata/{tokenId} | NFT metadata endpoint | ☐ |
 | Set environment variables | See below | ☐ |
 | Test all endpoints manually | Curl/Postman | ☐ |
 
 **Environment Variables Needed:**
 ```
-STUPID_CLICKER_ADMIN_SECRET=<generate>
+CLICKSTR_ADMIN_SECRET=<generate>
 NFT_SIGNER_PRIVATE_KEY=<generate test wallet>
 NFT_CONTRACT_ADDRESS=<after deployment>
 TURNSTILE_SECRET_KEY=<from Cloudflare>
@@ -151,7 +151,7 @@ TURNSTILE_SITE_KEY=<from Cloudflare>
 
 ## Phase 1: API Testing (Before Game Start)
 
-### 1.1 GET /api/stupid-clicker?address=0x...
+### 1.1 GET /api/clickstr?address=0x...
 
 | Test | Expected | Status |
 |------|----------|--------|
@@ -160,7 +160,7 @@ TURNSTILE_SITE_KEY=<from Cloudflare>
 | Invalid address format | 400 error | ☐ |
 | Missing address param | 400 error | ☐ |
 
-### 1.2 POST /api/stupid-clicker
+### 1.2 POST /api/clickstr
 
 | Test | Expected | Status |
 |------|----------|--------|
@@ -173,7 +173,7 @@ TURNSTILE_SITE_KEY=<from Cloudflare>
 | With invalid Turnstile token | 403 error | ☐ |
 | Milestone unlock at threshold | Returns newMilestones array | ☐ |
 
-### 1.3 GET /api/stupid-clicker?leaderboard=true
+### 1.3 GET /api/clickstr?leaderboard=true
 
 | Test | Expected | Status |
 |------|----------|--------|
@@ -181,7 +181,7 @@ TURNSTILE_SITE_KEY=<from Cloudflare>
 | After clicks recorded | Returns sorted leaderboard | ☐ |
 | Pagination (if implemented) | Works correctly | ☐ |
 
-### 1.4 GET /api/stupid-clicker?verification=true&address=0x...
+### 1.4 GET /api/clickstr?verification=true&address=0x...
 
 | Test | Expected | Status |
 |------|----------|--------|
@@ -190,7 +190,7 @@ TURNSTILE_SITE_KEY=<from Cloudflare>
 | After 500 clicks | Needs re-verification | ☐ |
 | After 1 hour | Session expired, needs verification | ☐ |
 
-### 1.5 POST /api/stupid-clicker/claim-signature
+### 1.5 POST /api/clickstr/claim-signature
 
 | Test | Expected | Status |
 |------|----------|--------|
@@ -205,7 +205,7 @@ TURNSTILE_SITE_KEY=<from Cloudflare>
 
 ## Phase 2: Contract Testing (Before Game Start)
 
-### 2.1 StupidClicker Contract
+### 2.1 Clickstr Contract
 
 | Test | Expected | Status |
 |------|----------|--------|
@@ -214,7 +214,7 @@ TURNSTILE_SITE_KEY=<from Cloudflare>
 | startGame with tokens | Game starts, epoch 1 begins | ☐ |
 | Difficulty target initial value | Reasonable starting difficulty | ☐ |
 
-### 2.2 StupidClickerNFT Contract
+### 2.2 ClickstrNFT Contract
 
 | Test | Expected | Status |
 |------|----------|--------|
@@ -242,13 +242,13 @@ TURNSTILE_SITE_KEY=<from Cloudflare>
 // This bot:
 // 1. Mines valid PoW nonces off-chain
 // 2. Batches them (50-500 proofs)
-// 3. Submits directly to StupidClicker.submitClicks()
+// 3. Submits directly to Clickstr.submitClicks()
 // 4. Never touches the frontend or APIs
 // 5. Runs 24/7 for the full test duration
 
 const BOT_CONFIG = {
   privateKey: process.env.BOT_A_PRIVATE_KEY,
-  contractAddress: '<StupidClicker address>',
+  contractAddress: '<Clickstr address>',
   rpcUrl: 'https://sepolia.infura.io/v3/...',
   batchSize: 100,           // Proofs per submission
   submitInterval: 60000,    // Submit every 60 seconds
@@ -523,8 +523,8 @@ All scripts are in the `scripts/` folder and can be run via npm:
 
 Deploys complete test environment to Sepolia:
 - MockClickToken (2M tokens)
-- StupidClickerNFT (achievement NFTs)
-- StupidClicker (game with 2-hour epochs)
+- ClickstrNFT (achievement NFTs)
+- Clickstr (game with 2-hour epochs)
 - Starts the game automatically
 
 ```bash
@@ -707,10 +707,10 @@ npm install
 ## File Structure
 
 ```
-stupid-clicker/
+clickstr/
 ├── contracts/
-│   ├── StupidClicker.sol       # Main game contract
-│   ├── StupidClickerNFT.sol    # Achievement NFTs (ERC1155)
+│   ├── Clickstr.sol       # Main game contract
+│   ├── ClickstrNFT.sol    # Achievement NFTs (ERC1155)
 │   └── MockClickToken.sol      # Test token
 ├── scripts/
 │   ├── test-deploy.js          # Deploy test environment

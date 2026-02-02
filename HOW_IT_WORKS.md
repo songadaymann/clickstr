@@ -1,4 +1,4 @@
-# How StupidClicker Works
+# How Clickstr Works
 
 A plain-English guide to understanding the game, even if you've never heard of blockchain, hashing, or smart contracts.
 
@@ -23,7 +23,7 @@ A plain-English guide to understanding the game, even if you've never heard of b
 
 ## The Big Picture
 
-StupidClicker is a 90-day game where you click a button to earn $CLICK tokens. But here's the twist:
+Clickstr is a 90-day game where you click a button to earn $CLICK tokens. But here's the twist:
 
 - **Every time you earn tokens, an equal amount is destroyed forever**
 - **The more people click, the harder it gets to earn**
@@ -35,7 +35,7 @@ Think of it like a gold rush, but the gold mine shrinks every time someone finds
 
 ## What Is a "Click"?
 
-When you click the button in StupidClicker, you're not just sending a simple "I clicked!" message. Your computer is actually doing work behind the scenes.
+When you click the button in Clickstr, you're not just sending a simple "I clicked!" message. Your computer is actually doing work behind the scenes.
 
 ### The Simple Explanation
 
@@ -67,7 +67,7 @@ The term comes from Bitcoin and other cryptocurrencies. The idea is simple: **yo
 
 It's like a teacher who wants proof you did your homework. Instead of trusting you, they give you a puzzle that takes time to solve. When you show the solution, they know you put in the effort.
 
-In StupidClicker:
+In Clickstr:
 - The "homework" is finding numbers that produce special hash results
 - The "proof" is the list of numbers (nonces) you submit
 - The "teacher" is the smart contract that verifies your work
@@ -78,7 +78,7 @@ This prevents cheating because there's no way to fake the work - you either did 
 
 ## Epochs: The Game's Daily Rhythm
 
-An **epoch** is just a fancy word for "a period of time." In StupidClicker, one epoch = one day (24 hours).
+An **epoch** is just a fancy word for "a period of time." In Clickstr, one epoch = one day (24 hours).
 
 ### The 90-Day Structure
 
@@ -142,7 +142,7 @@ But wait - you don't get all 200. Read on...
 
 ## The 50/50 Burn: Why Half Disappears
 
-Here's what makes StupidClicker "stupid" (in a clever way):
+Here's what makes Clickstr "stupid" (in a clever way):
 
 **Every token that would be given out is split 50/50:**
 - Half goes to you

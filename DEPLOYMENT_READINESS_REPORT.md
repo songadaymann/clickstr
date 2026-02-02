@@ -9,7 +9,7 @@
 
 ## EXECUTIVE SUMMARY
 
-The Stupid Clicker game is architecturally sound with excellent documentation, but there are **critical deployment blockers** that must be resolved before mainnet launch:
+The Clickstr game is architecturally sound with excellent documentation, but there are **critical deployment blockers** that must be resolved before mainnet launch:
 
 1. **CRITICAL SECRETS EXPOSED** in .env file (Alchemy keys, private keys)
 2. **Missing environment variable documentation** for mainnet deployment
@@ -27,7 +27,7 @@ The Stupid Clicker game is architecturally sound with excellent documentation, b
 ## 1.1 Exposed Secrets in .env File
 
 **SEVERITY: CRITICAL**  
-**File:** `/Users/jonathanmann/SongADAO Dropbox/Jonathan Mann/projects/games/stupid-clicker/.env`  
+**File:** `/Users/jonathanmann/SongADAO Dropbox/Jonathan Mann/projects/games/clickstr/.env`  
 **Lines:** 5, 8, 11-19, 27-28, 30-32, 44-45
 
 **Issue:** The `.env` file contains:
@@ -140,7 +140,7 @@ And there's no `.env.example` template for developers to know what keys they nee
 ## 2.2 Bonus Cap at 50% - Need Documentation
 
 **SEVERITY: MEDIUM (Design, not bug)**  
-**File:** `StupidClicker.sol` (lines 654-657)
+**File:** `Clickstr.sol` (lines 654-657)
 
 **Issue:** Maximum NFT bonus capped at 50% (5000 bps):
 ```solidity
@@ -162,7 +162,7 @@ if (bonusBps > 5000) {
 ## 2.3 Difficulty Can Hit Extreme Values
 
 **SEVERITY: MEDIUM (Design consideration)**  
-**File:** `StupidClicker.sol` (lines 531-537)
+**File:** `Clickstr.sol` (lines 531-537)
 
 **Code:**
 ```solidity
@@ -347,15 +347,15 @@ NFT_CONTRACT_ADDRESS=0x...
 KV_REST_API_URL=https://...
 KV_REST_API_TOKEN=...
 TURNSTILE_SECRET_KEY=...
-STUPID_CLICKER_ADMIN_SECRET=... (for admin endpoints)
+CLICKSTR_ADMIN_SECRET=... (for admin endpoints)
 ```
 
 ## Endpoints to Implement
-- POST /api/stupid-clicker (record clicks with Turnstile)
-- GET /api/stupid-clicker?address=0x... (user stats)
-- POST /api/stupid-clicker/claim-signature (NFT claim)
-- GET /api/stupid-clicker/nft/[tokenId] (metadata)
-- POST /api/stupid-clicker/admin (admin endpoints)
+- POST /api/clickstr (record clicks with Turnstile)
+- GET /api/clickstr?address=0x... (user stats)
+- POST /api/clickstr/claim-signature (NFT claim)
+- GET /api/clickstr/nft/[tokenId] (metadata)
+- POST /api/clickstr/admin (admin endpoints)
 
 ## Deployment Steps
 1. ...
@@ -376,7 +376,7 @@ STUPID_CLICKER_ADMIN_SECRET=... (for admin endpoints)
 
 **What's Needed:**
 ```javascript
-// In frontend StupidClicker.jsx:
+// In frontend Clickstr.jsx:
 // 1. Load Turnstile widget
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
@@ -385,7 +385,7 @@ STUPID_CLICKER_ADMIN_SECRET=... (for admin endpoints)
 
 // 3. Verify token before submission
 const token = window.turnstile.getResponse();
-const response = await fetch('/api/stupid-clicker', {
+const response = await fetch('/api/clickstr', {
   method: 'POST',
   body: JSON.stringify({ 
     address: userAddress,
@@ -491,7 +491,7 @@ const response = await fetch('/api/stupid-clicker', {
 ## 6.1 Leaderboard Ranking Not Fully Implemented
 
 **SEVERITY: MEDIUM**  
-**File:** `StupidClicker.sol` (lines 729-747)
+**File:** `Clickstr.sol` (lines 729-747)
 
 **Issue:**
 ```solidity
@@ -556,7 +556,7 @@ function emergencyPause() external onlyOwner {
 ## 7.1 Test Coverage Incomplete
 
 **SEVERITY: MEDIUM**  
-**File:** `test/StupidClicker.test.js` (100 lines examined)
+**File:** `test/Clickstr.test.js` (100 lines examined)
 
 **What's Tested:**
 - Basic deployment
@@ -639,7 +639,7 @@ k6 run load-test.js
 
 **Recommendation:** Add token metadata API endpoint:
 ```javascript
-GET /api/stupid-clicker/config
+GET /api/clickstr/config
 {
   "contractAddress": "0x...",
   "nftContractAddress": "0x...",
@@ -938,8 +938,8 @@ console.log(`[${timestamp}] Click submission: ${address}, ${clicks}, IP: ${ip}`)
 ## Phase 3: Deployment (deployment day)
 1. [ ] 00:00 UTC: Begin deployment
 2. [ ] Deploy MockClickToken (if using)
-3. [ ] Deploy StupidClicker
-4. [ ] Deploy StupidClickerNFT
+3. [ ] Deploy Clickstr
+4. [ ] Deploy ClickstrNFT
 5. [ ] Verify all on Etherscan
 6. [ ] Update frontend config
 7. [ ] Update API environment

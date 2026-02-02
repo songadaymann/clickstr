@@ -36,7 +36,7 @@ User on clickstr.fun
     │
     ├── 3. Turnstile returns token to frontend
     │
-    ├── 4. Frontend POSTs to mann.cool/api/stupid-clicker
+    ├── 4. Frontend POSTs to mann.cool/api/clickstr
     │      with { address, clicks, turnstileToken }
     │
     ▼
@@ -81,7 +81,7 @@ turnstileSiteKey: '0x4AAAAAACV0UOMmCeG_g2Jr'  // Production key
 
 ### Debug Logging Added
 
-Added to `mann.cool/api/stupid-clicker.js`:
+Added to `mann.cool/api/clickstr.js`:
 ```javascript
 const data = await response.json();
 console.log('Turnstile verification response:', JSON.stringify(data));

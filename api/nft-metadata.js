@@ -1,5 +1,5 @@
 /**
- * API Endpoint: GET /api/stupid-clicker/nft/:tokenId
+ * API Endpoint: GET /api/clickstr/nft/:tokenId
  *
  * Reference implementation for mann.cool API
  * Returns ERC1155 metadata JSON for a given token ID (tier)
@@ -7,7 +7,7 @@
  * ERC1155 metadata standard: https://eips.ethereum.org/EIPS/eip-1155#metadata
  *
  * The contract's uri() function returns: baseURI + tokenId
- * e.g., "https://mann.cool/api/stupid-clicker/nft/1"
+ * e.g., "https://mann.cool/api/clickstr/nft/1"
  *
  * Tier Ranges:
  *   1-99:    Personal click milestones (editions)
@@ -1169,7 +1169,7 @@ const TOKEN_METADATA = {
 };
 
 // Image URLs - replace with actual hosted images
-const IMAGE_BASE_URL = "https://mann.cool/stupid-clicker/nft/images";
+const IMAGE_BASE_URL = "https://mann.cool/clickstr/nft/images";
 
 /**
  * Build ERC1155 compliant metadata JSON
@@ -1213,7 +1213,7 @@ function buildMetadata(tokenId) {
     name: meta.name,
     description: meta.description,
     image: `${IMAGE_BASE_URL}/${tokenId}.png`,
-    external_url: `https://mann.cool/stupid-clicker/nft/${tokenId}`,
+    external_url: `https://mann.cool/clickstr/nft/${tokenId}`,
     attributes,
     // ERC1155 specific - properties is optional but useful
     properties: {
@@ -1228,8 +1228,8 @@ function buildMetadata(tokenId) {
 /**
  * Main handler
  *
- * Route: GET /api/stupid-clicker/nft/[tokenId]
- * or:    GET /api/stupid-clicker/nft/:tokenId
+ * Route: GET /api/clickstr/nft/[tokenId]
+ * or:    GET /api/clickstr/nft/:tokenId
  */
 export default async function handler(req, res) {
   if (req.method !== "GET") {
