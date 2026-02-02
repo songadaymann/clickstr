@@ -1298,3 +1298,182 @@ New endpoints (after mann-dot-cool deployment):
 - `docs/technical-architecture.md`
 - `docs/contract-reference.md`
 - `docs/deployment-status.md`
+
+---
+
+## Session: February 2, 2026 (Late Night) - V5 Final Test Deployment
+
+### Overview
+
+Deployed fresh v5 contracts to Sepolia for final pre-mainnet test. This is a complete deployment with new token, main contract, and NFT contract all wired together with NFT tier bonuses enabled.
+
+### Deployment Details
+
+**Game Parameters:**
+- Duration: 24 hours (Feb 2 18:08 UTC → Feb 3 18:08 UTC)
+- Epochs: 12 × 2 hours each
+- Pool: 1M CLICK tokens
+- NFT Bonuses: Enabled
+
+**Contract Addresses (v5):**
+| Contract | Address |
+|----------|---------|
+| MockClickToken | `0x3706Dcde2dBA966F225E14d3F6c22eaF7A5724c4` |
+| ClickstrNFT | `0x39B41525ba423FcAbE23564ecCCdEa66e7D59551` |
+| Clickstr | `0xA16d45e4D186B9678020720BD1e743872a6e9bA0` |
+
+**NFT Contract Details:**
+- Signer: `0xf55E4fac663ad8db80284620F97D95391ab002EF`
+- BaseURI: `ipfs://QmfZqEdzeEm61d3uSeFxBc1HasR3KC6rMsiRnxkvzM3Ywx/clickstr-metadata/`
+- Owner: `0xAd9fDaD276AB1A430fD03177A07350CD7C61E897`
+
+**NFT Tier Bonuses:**
+- Tier 4 (1K clicks): +2%
+- Tier 6 (10K clicks): +3%
+- Tier 8 (50K clicks): +5%
+- Tier 9 (100K clicks): +7%
+- Tier 11 (500K clicks): +10%
+- Max possible bonus: 27%
+
+**Subgraph:**
+- Version: `clickstr-sepolia/1.0.3`
+- URL: `https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.3/gn`
+- Start block: 10177493
+
+### Deployment Process
+
+1. **Deploy NFT Contract:**
+   ```bash
+   NFT_SIGNER_ADDRESS=0xf55E4fac663ad8db80284620F97D95391ab002EF \
+   npx hardhat run scripts/deploy-nft.js --network sepolia
+   ```
+
+2. **Deploy Game Contracts:**
+   ```bash
+   SEASON_EPOCHS=12 SEASON_DURATION=7200 SEASON_POOL=1000000 \
+   NFT_CONTRACT=0x39B41525ba423FcAbE23564ecCCdEa66e7D59551 \
+   npx hardhat run scripts/deploy-sepolia.js --network sepolia
+   ```
+
+3. **Update & Deploy Subgraph:**
+   - Updated `subgraph/subgraph.yaml` with new contract address and start block
+   - `npm run codegen && npm run build`
+   - `goldsky subgraph deploy clickstr-sepolia/1.0.3 --path .`
+
+4. **Update Frontend Config:**
+   - `src-ts/src/config/network.ts` - Contract addresses
+   - `src-ts/src/config/games.ts` - Added Beta Game 2, archived Beta Game 1
+
+5. **Update Vercel Environment:**
+   - mann.cool: `NFT_CONTRACT_ADDRESS=0x39B41525ba423FcAbE23564ecCCdEa66e7D59551`
+
+### Bug Fixes
+
+**Fix: .env RPC URL Variable**
+
+Hardhat was looking for `SEPOLIA_RPC_URL` but .env only had `VITE_SEPOLIA_RPC_URL`. Added both:
+```
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/...
+VITE_SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/...
+```
+
+VITE_ prefix is for frontend (Vite injects at build time), non-VITE for Hardhat/scripts.
+
+**Fix: Vite Output Directory**
+
+Build was outputting to `../dist` (repo root) but Vercel expected `dist` inside `src-ts/`. Changed `vite.config.ts`:
+```typescript
+outDir: 'dist',  // was '../dist'
+```
+
+**Fix: Pool Display "M" Showing as "n"**
+
+Seven-segment font (DSEG7) doesn't support uppercase letters. "M" was rendering as lowercase "n".
+
+Solution: Split the value and suffix into separate elements:
+- Number uses seven-segment font
+- Suffix (M, K) uses regular label font
+
+```html
+<span id="pool-info">1.00</span><span class="info-suffix" id="pool-suffix">M</span>
+```
+
+New utility function:
+```typescript
+export function formatTokensSplit(amount: number): { value: string; suffix: string }
+```
+
+**Fix: Help Icon Too Dim**
+
+Made the "?" help icon next to Game status more visible:
+- Increased size: 14px → 16px
+- Added glow effect: `box-shadow: 0 0 8px rgba(255, 0, 0, 0.4)`
+- Brighter border: `var(--color-red-400)`
+- Removed opacity reduction
+
+### Vercel Build Configuration
+
+For `clickstr.fun` Vercel project:
+- **Root Directory:** `src-ts` (not `./src-ts`)
+- **Build Command:** `npm run build`
+- **Output Directory:** `dist`
+
+Environment variables needed:
+- `VITE_SEPOLIA_RPC_URL`
+- `VITE_WALLET_CONNECT_PROJECT_ID`
+
+### Games Config Update
+
+Added Beta Game 2 and archived Beta Game 1:
+```typescript
+export const GAMES: GameConfig[] = [
+  {
+    id: 'beta-1',
+    name: 'Beta Game 1',
+    contractAddress: '0x6dD800B88FEecbE7DaBb109884298590E5BbBf20',
+    isActive: false,  // Archived
+    endDate: '2025-01-31',
+  },
+  {
+    id: 'beta-2',
+    name: 'Beta Game 2',
+    contractAddress: '0xA16d45e4D186B9678020720BD1e743872a6e9bA0',
+    isActive: true,
+    startDate: '2026-02-02',
+  },
+];
+```
+
+### Files Changed
+
+**Configuration:**
+- `.env` - Added `SEPOLIA_RPC_URL`, `ETH_MAINNET_RPC_URL`
+- `src-ts/vite.config.ts` - Fixed output directory
+- `src-ts/src/config/network.ts` - v5 contract addresses
+- `src-ts/src/config/games.ts` - Beta Game 2 entry
+- `subgraph/subgraph.yaml` - v5 contract address, start block
+
+**Frontend:**
+- `src-ts/index.html` - Split pool value/suffix elements
+- `src-ts/src/main.ts` - `formatTokensSplit` for pool display
+- `src-ts/src/utils/formatting.ts` - New `formatTokensSplit` function
+- `src-ts/src/utils/index.ts` - Export new function
+- `src-ts/src/styles/layout.css` - `.info-suffix` style, brighter help icon
+
+**Deployment Info:**
+- `sepolia/deployment.json` - v5 deployment details
+- `sepolia/nft-deployment.json` - v5 NFT contract
+
+**Documentation:**
+- `docs/deployment-status.md` - Updated to v5
+
+### Summary
+
+This is the final test deployment before mainnet. Everything is wired up:
+- ✅ New token contract (1M pool)
+- ✅ New game contract with NFT bonuses
+- ✅ New NFT contract with IPFS metadata
+- ✅ Subgraph indexing
+- ✅ Frontend pointing to new contracts
+- ✅ API configured with new NFT address
+- ✅ UI fixes (pool display, help icon)

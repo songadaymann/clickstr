@@ -8,8 +8,23 @@
 - [x] Add `TURNSTILE_SECRET_KEY` to Vercel env (mann.cool)
 - [x] NFT signer wallet ready (`0xf55E4fac663ad8db80284620F97D95391ab002EF`)
 - [x] Add `NFT_SIGNER_PRIVATE_KEY` to Vercel env
+- [x] Add `NFT_CONTRACT_ADDRESS` to Vercel env (mann.cool)
+- [x] Add `VITE_SEPOLIA_RPC_URL` to Vercel env (clickstr.fun)
+- [x] Add `VITE_WALLET_CONNECT_PROJECT_ID` to Vercel env (clickstr.fun)
+- [x] Fix .env to have both `SEPOLIA_RPC_URL` (Hardhat) and `VITE_SEPOLIA_RPC_URL` (frontend)
 
-### Deployment
+### Sepolia v5 Final Test (Feb 2-3, 2026) - DEPLOYED
+- [x] Deploy ClickstrNFT contract: `0x39B41525ba423FcAbE23564ecCCdEa66e7D59551`
+- [x] Deploy MockClickToken contract: `0x3706Dcde2dBA966F225E14d3F6c22eaF7A5724c4`
+- [x] Deploy Clickstr contract: `0xA16d45e4D186B9678020720BD1e743872a6e9bA0`
+- [x] Configure NFT tier bonuses (2%-10%)
+- [x] Deploy subgraph v1.0.3
+- [x] Update frontend config with v5 addresses
+- [x] Update games.ts with Beta Game 2
+- [x] Configure Vercel root directory (`src-ts`)
+- [x] Fix Vite output directory (`dist` not `../dist`)
+
+### Mainnet Deployment
 - [ ] Deploy $CLICK token via TokenWorks (fix metadata)
 - [ ] Deploy Clickstr contract to mainnet
 - [ ] Deploy ClickstrNFT contract to mainnet
@@ -17,12 +32,13 @@
 - [ ] Update frontend `NETWORK = 'mainnet'`
 - [ ] Deploy mainnet subgraph: `goldsky subgraph deploy clickstr-mainnet/1.0.0`
 
-### Testing
+### Testing (Sepolia v5)
 - [ ] Test full flow: Connect wallet → click → verify → submit → see achievements
-- [ ] Test epoch transitions
+- [ ] Test epoch transitions (12 × 2hr epochs)
 - [ ] Test difficulty adjustment after epochs
 - [ ] Test winner bonus distribution
 - [ ] Verify NFT claiming flow end-to-end
+- [ ] Test NFT tier bonuses apply correctly
 - [ ] Run `npm run test:bot-b` to verify Turnstile blocks automation
 
 ---
@@ -109,16 +125,16 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 
 ---
 
-## TypeScript Migration (src-ts/)
+## TypeScript Migration (src-ts/) - DEPLOYED
 
-The frontend has been refactored from a single 4,922-line `index.html` to a modular TypeScript project.
+The frontend has been refactored from a single 4,922-line `index.html` to a modular TypeScript project. Now live on clickstr.fun!
 
 ### Completed
 - [x] Vite project scaffolding with TypeScript
 - [x] tsconfig.json with strict mode and path aliases
 - [x] Vitest configuration
 - [x] Type definitions for all modules (game, nft, api, contracts, effects)
-- [x] Config modules (network, milestones, collection)
+- [x] Config modules (network, milestones, collection, games)
 - [x] GameState class with event-based subscriptions
 - [x] localStorage persistence helpers
 - [x] Services (api, wallet, contracts, mining)
@@ -126,8 +142,12 @@ The frontend has been refactored from a single 4,922-line `index.html` to a modu
 - [x] CSS split into 11 modular files
 - [x] HTML template with all UI elements
 - [x] Build passes with no TypeScript errors
+- [x] Deployed to Vercel (clickstr.fun)
+- [x] Environment variables configured (VITE_SEPOLIA_RPC_URL, VITE_WALLET_CONNECT_PROJECT_ID)
+- [x] Root directory set to `src-ts`
+- [x] Output directory fixed (`dist`)
 
-### Next Steps
+### Remaining
 
 1. **Write Unit Tests** (Priority: Medium)
    - [ ] Test `GameState` subscription and state updates
@@ -136,26 +156,24 @@ The frontend has been refactored from a single 4,922-line `index.html` to a modu
    - [ ] Test `api.ts` mergeLeaderboards logic
    - [ ] Mock tests for wallet/contract interactions
 
-2. **Production Build Configuration** (Priority: High)
-   - [ ] Configure environment variables for network switching
-   - [ ] Set up `.env.production` and `.env.development`
-   - [ ] Add Alchemy API key to env vars (not hardcoded)
-   - [ ] Configure asset optimization (image compression)
-   - [ ] Set up source maps for debugging
-
-3. **Deploy TypeScript Version** (Priority: High)
-   - [ ] Test full flow locally with `npm run dev`
-   - [ ] Build and test production bundle
-   - [ ] Deploy to Vercel from `src-ts/` directory
-   - [ ] Verify all features work in production
-
-4. **Code Quality** (Priority: Low)
+2. **Code Quality** (Priority: Low)
    - [ ] Add ESLint rules
    - [ ] Add Prettier configuration
    - [ ] Consider splitting main.ts further (UI updates, event handlers)
    - [ ] Add JSDoc comments to public APIs
 
-### Running the TypeScript Project
+### Vercel Configuration
+
+**clickstr.fun project:**
+- Root Directory: `src-ts`
+- Build Command: `npm run build`
+- Output Directory: `dist`
+
+**Environment Variables:**
+- `VITE_SEPOLIA_RPC_URL` - Alchemy Sepolia endpoint
+- `VITE_WALLET_CONNECT_PROJECT_ID` - WalletConnect v2 project ID
+
+### Running Locally
 
 ```bash
 cd src-ts
