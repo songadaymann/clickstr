@@ -92,8 +92,9 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 - [x] Mobile hamburger menu (Mint Rewards, Leaderboard, How to Play)
 - [x] Contextual submit button (appears above button at 50+ clicks)
 - [x] Unified red/black arcade theme for all modals
-- [x] Multiple wallet options (MetaMask, Rainbow, Rabby, Coinbase, WalletConnect)
+- [x] Multiple wallet options (MetaMask, Rainbow, Rabby, Coinbase)
 - [x] Fixed WalletConnect v2 provider loading
+- [x] Migrated to Reown AppKit for reliable mobile wallet connections
 - [x] Rankings modal with tabs for Global + each past game
 - [x] "Your Total Clicks" reads consistently from API only
 
@@ -171,7 +172,7 @@ The frontend has been refactored from a single 4,922-line `index.html` to a modu
 
 **Environment Variables:**
 - `VITE_SEPOLIA_RPC_URL` - Alchemy Sepolia endpoint
-- `VITE_WALLET_CONNECT_PROJECT_ID` - WalletConnect v2 project ID
+- `VITE_WALLET_CONNECT_PROJECT_ID` - Reown/WalletConnect project ID (from cloud.reown.com)
 
 ### Running Locally
 

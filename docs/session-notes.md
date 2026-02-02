@@ -1867,3 +1867,157 @@ Added a manual sync button for users to retroactively get missing achievements:
 3. **"Pass-through" vs "threshold" logic** - For achievements, checking `>= threshold` is safer than `crossed threshold this session`
 
 4. **Verify tier counts match** - Easy sanity check: `grep -c "tier:" file.js` should match CSV row count
+
+---
+
+## Session 23 - Mobile Wallet Fix & Reown AppKit Migration (Feb 2, 2026)
+
+### Problem: Mobile Wallet Connection Broken
+
+Users reported "WalletConnect failed to publish payload" error when trying to connect with Rainbow wallet on mobile. The old setup used raw `@walletconnect/ethereum-provider` v2.11.2 via UMD script, which had known issues with mobile deep linking.
+
+### Solution: Migrate to Reown AppKit
+
+Replaced the raw WalletConnect provider with **Reown AppKit** (formerly Web3Modal), which has proper mobile wallet support out of the box.
+
+#### Dependencies Added
+```bash
+npm install @reown/appkit @reown/appkit-adapter-ethers5
+```
+
+#### New File: `src/config/appkit.ts`
+
+```typescript
+import { createAppKit } from '@reown/appkit';
+import { Ethers5Adapter } from '@reown/appkit-adapter-ethers5';
+import { sepolia, mainnet } from '@reown/appkit/networks';
+
+// Featured wallet IDs (from WalletConnect Explorer)
+const FEATURED_WALLETS = [
+  'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96', // MetaMask
+  '1ae92b26df02f0abca6304df07debccd18262fdf5fe82daa81593582dac9a369', // Rainbow
+  '7674bb4e353bf52886768a3ddc2a4562ce2f4191c80831291218ebd90f5f5e26', // Rabby
+  'fd20dc426fb37566d803205b19bbc1d4096b248ac04548e3cfb6b3a38bd033aa', // Coinbase
+];
+
+export const appKit = createAppKit({
+  adapters: [new Ethers5Adapter()],
+  networks: [sepolia, mainnet],
+  metadata: {
+    name: 'Clickstr',
+    description: 'Proof-of-work clicker game on Ethereum',
+    url: window.location.origin,
+    icons: ['/favicon.png'],
+  },
+  projectId: CONFIG.walletConnectProjectId,
+  featuredWalletIds: FEATURED_WALLETS,
+  features: {
+    analytics: false,
+    email: false,
+    socials: false,
+  },
+  themeMode: 'dark',
+  themeVariables: {
+    '--w3m-accent': '#00ffff',
+    '--w3m-color-mix': '#0a0a1a',
+    '--w3m-border-radius-master': '2px',
+    '--w3m-font-family': '"Press Start 2P", monospace',
+  },
+});
+```
+
+#### Rewritten: `src/services/wallet.ts`
+
+Key changes:
+- Uses `appKit.subscribeAccount()` to listen for connection state changes
+- Uses `appKit.subscribeNetwork()` to detect chain switches
+- `openConnectModal()` calls `appKit.open()` to show the wallet modal
+- Provider/signer obtained from `appKit.getWalletProvider()`
+
+```typescript
+export function initWalletSubscriptions(): void {
+  appKit.subscribeAccount((accountState) => {
+    const { address, isConnected } = accountState;
+    const chainId = appKit.getChainId();
+
+    if (isConnected && address) {
+      if (chainId !== CONFIG.chainId) {
+        gameState.setWrongNetwork();
+        return;
+      }
+      const walletProvider = appKit.getWalletProvider();
+      provider = new ethers.providers.Web3Provider(walletProvider);
+      signer = provider.getSigner();
+      gameState.setConnected(address);
+    } else {
+      provider = null;
+      signer = null;
+      gameState.setDisconnected();
+    }
+  });
+}
+
+export async function openConnectModal(): Promise<void> {
+  gameState.setConnecting();
+  await appKit.open();
+}
+```
+
+#### Changes to `src/main.ts`
+
+- Added `initWalletSubscriptions()` call in `init()`
+- Replaced `showWalletModal()` calls with `openConnectModal()`
+- Removed custom wallet modal handling (`setupWalletModalListeners`)
+- Added connection state tracking in `handleStateChange()` to detect new connections
+
+```typescript
+let wasConnected = false;
+
+function handleStateChange(event: string): void {
+  switch (event) {
+    case 'connectionChanged':
+      updateConnectButton();
+      updateMobileWalletText();
+      // Detect new connection
+      if (gameState.isConnected && !wasConnected) {
+        wasConnected = true;
+        onConnected();
+      } else if (!gameState.isConnected) {
+        wasConnected = false;
+      }
+      break;
+    // ...
+  }
+}
+```
+
+#### Removed
+
+- WalletConnect UMD script from `index.html`
+- Custom wallet modal HTML (AppKit provides its own)
+- `setupWalletModalListeners()` function
+- `showWalletModal()` function
+- Individual wallet type handling (MetaMask, Rainbow, etc. now all go through AppKit)
+
+### Benefits of AppKit
+
+1. **Proper mobile deep linking** - Opens wallet apps correctly on mobile
+2. **Modern modal UI** - Built-in wallet selection with dark theme support
+3. **Better reliability** - Uses newer WalletConnect relay infrastructure
+4. **Simpler code** - One modal handles all wallets instead of custom per-wallet logic
+
+### Commits
+
+- `297675f` - Upgrade WalletConnect to v2.17.0 for better mobile support (initial attempt)
+- `d091e61` - Migrate to Reown AppKit for wallet connections
+- `ff369d0` - Set featured wallets to MetaMask, Rainbow, Rabby, Coinbase
+
+### Key Learnings
+
+1. **Raw WalletConnect provider is fragile on mobile** - The UMD bundle has issues with deep linking; use AppKit or RainbowKit instead
+
+2. **AppKit API differs from old WalletConnect** - Methods like `subscribeProvider` became `subscribeAccount`, `getIsConnected` became `getAccount().isConnected`
+
+3. **Connection state is async with AppKit** - The modal opens immediately, but connection happens later via subscription callbacks
+
+4. **TypeScript strictness** - AppKit's adapter types needed `as any` cast due to `exactOptionalPropertyTypes` conflicts

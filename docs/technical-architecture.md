@@ -93,7 +93,7 @@ Original single-file vanilla HTML/JS implementation (~4,922 lines). Kept for ref
 
 ### Key Features
 - Arcade cabinet aesthetic with DSEG7 seven-segment fonts
-- MetaMask/WalletConnect via ethers.js
+- Wallet connections via Reown AppKit (MetaMask, Rainbow, Rabby, Coinbase)
 - Inline WebWorker for keccak256 mining
 - Cloudflare Turnstile for bot protection
 - localStorage persistence for pending clicks
@@ -250,7 +250,7 @@ clickstr:human-session:{address} - Hash: verifiedAt, expiresAt, clicksSinceVerif
 ### Vite Frontend (src-ts/.env)
 - `VITE_SEPOLIA_RPC_URL` - Sepolia RPC (Alchemy)
 - `VITE_ETH_MAINNET_RPC_URL` - Mainnet RPC (Alchemy)
-- `VITE_WALLET_CONNECT_PROJECT_ID` - WalletConnect v2 project ID
+- `VITE_WALLET_CONNECT_PROJECT_ID` - Reown/WalletConnect project ID (get from cloud.reown.com)
 
 Note: Vite requires the `VITE_` prefix for client-side environment variables.
 
