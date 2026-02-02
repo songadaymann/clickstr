@@ -19,6 +19,7 @@ export {
   sendHeartbeat,
   fetchActiveUsers,
   fetchRecentBotActivity,
+  syncAchievements,
 } from './api.ts';
 
 // Wallet service

@@ -33,6 +33,7 @@ import {
   sendHeartbeat,
   fetchActiveUsers,
   fetchRecentBotActivity,
+  syncAchievements,
 } from './services/index.ts';
 
 // Import effects
@@ -433,6 +434,10 @@ function setupCollectionModalListeners(): void {
     if (e.target === collectionModal) hideModal(collectionModal);
   });
 
+  // Sync achievements button
+  const syncAchievementsBtn = getElementOrNull<HTMLButtonElement>('sync-achievements-btn');
+  syncAchievementsBtn?.addEventListener('click', handleSyncAchievements);
+
   resetCursorBtn?.addEventListener('click', () => {
     resetCursor();
     setText(equippedCursorName, 'Default');
@@ -750,6 +755,51 @@ function handleAchievements(data: {
       gameState.addToClaimQueue(...claimable);
       showClaimModal(first.milestoneId, first.tier);
     }, 2000);
+  }
+}
+
+/**
+ * Handle sync achievements button click
+ * Retroactively grants any missing achievements based on total clicks
+ */
+async function handleSyncAchievements(): Promise<void> {
+  if (!gameState.userAddress) {
+    showAchievementToast('Not Connected', 'Connect wallet first');
+    return;
+  }
+
+  const syncBtn = document.getElementById('sync-achievements-btn');
+  if (syncBtn?.classList.contains('syncing')) return; // Already syncing
+
+  syncBtn?.classList.add('syncing');
+
+  try {
+    const result = await syncAchievements(gameState.userAddress);
+
+    if (result.success) {
+      const totalNew = (result.newMilestones?.length || 0) + (result.newAchievements?.length || 0);
+
+      if (totalNew > 0) {
+        // Process any new achievements like normal
+        handleAchievements({
+          newMilestones: result.newMilestones || [],
+          newAchievements: result.newAchievements?.map(a => ({
+            ...a,
+            type: a.type as 'hidden' | 'global' | 'streak' | 'epoch' | 'personal',
+          })) || [],
+        });
+        showAchievementToast('Synced!', `Found ${totalNew} achievement${totalNew > 1 ? 's' : ''}`);
+      } else {
+        showAchievementToast('All Synced', 'No missing achievements');
+      }
+    } else {
+      showAchievementToast('Sync Failed', 'Try again later');
+    }
+  } catch (error) {
+    console.error('Sync error:', error);
+    showAchievementToast('Sync Error', 'Something went wrong');
+  } finally {
+    syncBtn?.classList.remove('syncing');
   }
 }
 

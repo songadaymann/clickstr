@@ -209,8 +209,43 @@
 }
 
 .nft-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
   margin-bottom: var(--spacing-lg);
   text-align: center;
+}
+
+.sync-btn {
+  background: transparent;
+  border: 1px solid var(--color-red-800);
+  border-radius: var(--radius-sm);
+  color: var(--color-red-400);
+  font-size: 14px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sync-btn:hover {
+  opacity: 1;
+  border-color: var(--color-red-600);
+  text-shadow: var(--glow-red-sm);
+}
+
+.sync-btn.syncing {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .nft-title {

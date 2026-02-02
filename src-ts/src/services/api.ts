@@ -461,3 +461,30 @@ export async function fetchRecentBotActivity(minutesAgo = 5): Promise<number> {
     return 0;
   }
 }
+
+/** Response from sync achievements endpoint */
+export interface SyncAchievementsResponse {
+  success: boolean;
+  address?: string;
+  totalClicks?: number;
+  newMilestones?: Array<{ id: string; name: string; tier: number }>;
+  newAchievements?: Array<{ id: string; name: string; tier: number; type: string }>;
+  message?: string;
+}
+
+/**
+ * Sync achievements - retroactively grant any missing achievements
+ * based on current total clicks (useful for achievements added after user played)
+ */
+export async function syncAchievements(address: string): Promise<SyncAchievementsResponse> {
+  try {
+    const response = await fetch(`${CONFIG.apiUrl}?address=${address}&syncAchievements=true`);
+    if (!response.ok) {
+      throw new Error('Failed to sync achievements');
+    }
+    return await response.json() as SyncAchievementsResponse;
+  } catch (error) {
+    console.error('Sync achievements error:', error);
+    return { success: false };
+  }
+}
