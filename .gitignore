@@ -61,3 +61,11 @@ progress.md
 subgraph/build/
 subgraph/generated/
 subgraph/node_modules/
+
+# Milestones source files (source of truth kept separately)
+milestones.csv
+milestones-v2.csv
+
+# NFT metadata and config (generated/managed separately)
+nft-metadata/
+nft-ipfs-config.json
