@@ -220,7 +220,7 @@
 
 .info-help-tooltip {
   position: absolute;
-  top: calc(100% + 8px);
+  bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
   background-color: #0a0a0a;
