@@ -31,18 +31,17 @@
   }
 }
 
-/* Tablets - adjust global stats panel */
+/* Tablets - adjust game status panel */
 @media (max-width: 1024px) {
-  #global-stats-panel {
-    min-width: 220px;
+  #game-status-panel {
+    min-width: 260px;
     left: 15px;
     bottom: 20px;
     padding: var(--spacing-md) var(--spacing-lg);
   }
 
-  #center-info {
-    bottom: 155px;
-    left: 15px;
+  .game-status-value {
+    font-size: 14px;
   }
 
   .global-stat-value {
@@ -59,8 +58,7 @@
   /* Hide side panels on mobile - focus on the button */
   #leaderboard-panel,
   #nft-panel,
-  #center-info,
-  #global-stats-panel {
+  #game-status-panel {
     display: none !important;
   }
 

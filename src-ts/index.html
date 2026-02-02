@@ -43,34 +43,7 @@
         <button id="connect-btn" class="arcade-btn">Connect Wallet</button>
       </div>
 
-      <!-- Left side info -->
-      <div id="center-info">
-        <div class="info-box">
-          <div class="info-label-with-help">
-            <span>Game</span>
-            <div class="info-help-icon">
-              ?
-              <div class="info-help-tooltip">
-                When a game is active, every click earns $CLICKSTR tokens.<br><br>
-                When there's no game, you can still click to earn NFT rewards and climb the leaderboard.
-              </div>
-            </div>
-          </div>
-          <div class="info-value">
-            <span class="game-status" id="game-status">--</span>
-          </div>
-        </div>
-        <div class="info-box">
-          <div class="info-label">Epoch</div>
-          <div class="info-value" id="epoch-info">- / -</div>
-        </div>
-        <div class="info-box">
-          <div class="info-label">Pool</div>
-          <div class="info-value"><span id="pool-info">-</span><span class="info-suffix" id="pool-suffix"></span></div>
-        </div>
-      </div>
-
-      <!-- Left side: NFT Panel -->
+      <!-- Right side: NFT Panel -->
       <div id="nft-panel">
         <div class="nft-header">
           <span class="nft-title">Mint Rewards</span>
@@ -109,11 +82,36 @@
         <button class="see-rankings-btn" id="see-rankings-btn">See All Rankings</button>
       </div>
 
-      <!-- Bottom right: Global Stats -->
-      <div id="global-stats-panel">
-        <div class="global-stats-header">
-          <span class="global-stats-title">Global Activity</span>
+      <!-- Bottom left: Game Status Panel (combined) -->
+      <div id="game-status-panel">
+        <!-- Game/Epoch/Pool header row -->
+        <div class="game-status-header">
+          <div class="game-status-item">
+            <div class="game-status-label">
+              <span>Game</span>
+              <div class="info-help-icon">
+                ?
+                <div class="info-help-tooltip">
+                  When a game is active, every click earns $CLICKSTR tokens.<br><br>
+                  When there's no game, you can still click to earn NFT rewards and climb the leaderboard.
+                </div>
+              </div>
+            </div>
+            <div class="game-status-value">
+              <span class="game-status" id="game-status">--</span>
+            </div>
+          </div>
+          <div class="game-status-item">
+            <div class="game-status-label">Epoch</div>
+            <div class="game-status-value" id="epoch-info">- / -</div>
+          </div>
+          <div class="game-status-item">
+            <div class="game-status-label">Pool</div>
+            <div class="game-status-value"><span id="pool-info">-</span><span class="info-suffix" id="pool-suffix"></span></div>
+          </div>
         </div>
+        <!-- Global activity section -->
+        <div class="global-stats-divider"></div>
         <div class="global-stats-content">
           <div class="global-stat-row">
             <span class="global-stat-label">All-Time Clicks</span>

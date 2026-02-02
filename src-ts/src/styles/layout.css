@@ -55,7 +55,9 @@
 #ui-overlay .clickable,
 #nft-panel,
 #nft-panel .nft-item,
-#leaderboard-panel {
+#leaderboard-panel,
+#game-status-panel,
+#game-status-panel .info-help-icon {
   pointer-events: auto;
 }
 
@@ -190,50 +192,7 @@
   visibility: visible;
 }
 
-/* Center info - epoch/pool - SIMPLE SEGMENT DISPLAY */
-/* Positioned horizontally above the global stats panel */
-#center-info {
-  position: absolute;
-  bottom: 175px;
-  left: 30px;
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-}
-
-.info-box {
-  background: var(--color-dark-overlay);
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-radius: var(--radius-md);
-  border: 2px solid var(--color-red-950);
-  box-shadow: var(--shadow-inset);
-}
-
-.info-label {
-  font-family: var(--font-label);
-  color: var(--color-red-400);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  margin-bottom: 4px;
-  text-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
-  opacity: 0.7;
-}
-
-.info-label-with-help {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-label);
-  color: var(--color-red-400);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  margin-bottom: 4px;
-  text-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
-  opacity: 0.7;
-}
-
+/* Info help icon (used in game status panel) */
 .info-help-icon {
   width: 16px;
   height: 16px;
@@ -261,17 +220,17 @@
 
 .info-help-tooltip {
   position: absolute;
-  top: 50%;
-  left: calc(100% + 12px);
-  transform: translateY(-50%);
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
   background-color: #0a0a0a;
   border: 2px solid var(--color-red-700);
   border-radius: var(--radius-md);
-  padding: 18px 20px;
-  font-size: 13px;
+  padding: 14px 16px;
+  font-size: 12px;
   font-family: var(--font-label);
   color: var(--color-red-400);
-  width: 240px;
+  width: 220px;
   white-space: normal;
   text-transform: none;
   letter-spacing: normal;
@@ -279,27 +238,11 @@
   transition: visibility var(--transition-fast);
   text-shadow: 0 0 4px rgba(255, 0, 0, 0.4);
   z-index: 300;
-  line-height: 1.7;
+  line-height: 1.6;
 }
 
 .info-help-icon:hover .info-help-tooltip {
   visibility: visible;
-}
-
-.info-value {
-  font-family: var(--font-display);
-  color: var(--color-red-400);
-  font-size: 20px;
-  text-shadow:
-    var(--glow-red-md),
-    var(--glow-red-lg);
-}
-
-.info-suffix {
-  font-family: var(--font-label);
-  font-size: 16px;
-  margin-left: 2px;
-  opacity: 0.9;
 }
 
 /* Game status indicator */
