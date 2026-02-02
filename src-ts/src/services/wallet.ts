@@ -115,13 +115,14 @@ export async function connectWithWalletConnect(preferredWalletId?: string): Prom
       return false;
     }
 
-    const qrModalOptions = preferredWalletId
+    // Build modal options - newer WC versions use different structure
+    const qrModalOptions: Record<string, unknown> = preferredWalletId
       ? {
-          explorerRecommendedWalletIds: [preferredWalletId],
-          explorerExcludedWalletIds: 'ALL',
+          featuredWalletIds: [preferredWalletId],
+          enableExplorer: false,
         }
       : {
-          explorerRecommendedWalletIds: [
+          featuredWalletIds: [
             WALLET_IDS.rainbow,
             WALLET_IDS.metamask,
             WALLET_IDS.ledger,
@@ -129,18 +130,19 @@ export async function connectWithWalletConnect(preferredWalletId?: string): Prom
             WALLET_IDS.rabby,
             WALLET_IDS.coinbase,
           ],
-          explorerExcludedWalletIds: 'ALL',
+          enableExplorer: true,
         };
 
     walletConnectProvider = await WCProvider.init({
       projectId: CONFIG.walletConnectProjectId,
-      chains: [CONFIG.chainId],
+      // v2.17+ uses optionalChains instead of chains for better compatibility
+      optionalChains: [CONFIG.chainId],
       showQrModal: true,
       metadata: {
         name: 'Clickstr',
         description: 'Proof-of-work clicker game',
         url: location.origin,
-        icons: [],
+        icons: [`${location.origin}/favicon.png`],
       },
       rpcMap: { [CONFIG.chainId]: CONFIG.rpcUrl },
       qrModalOptions,
