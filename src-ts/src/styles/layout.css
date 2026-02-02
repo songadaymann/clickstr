@@ -194,7 +194,7 @@
 /* Positioned horizontally above the global stats panel */
 #center-info {
   position: absolute;
-  bottom: 165px;
+  bottom: 175px;
   left: 30px;
   display: flex;
   flex-direction: row;
