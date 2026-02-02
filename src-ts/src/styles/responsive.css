@@ -74,7 +74,7 @@
   }
 
   #current-clicks-display .arcade-label {
-    font-size: 8px;
+    font-size: 10px;
   }
 
   #alltime-stats-display {
@@ -89,7 +89,7 @@
   }
 
   .alltime-stat .arcade-label {
-    font-size: 7px;
+    font-size: 9px;
   }
 
   /* Adjust top bar */
@@ -98,8 +98,8 @@
   }
 
   #connect-btn {
-    font-size: 8px;
-    padding: 10px 16px;
+    font-size: 11px;
+    padding: 12px 18px;
   }
 
   /* Adjust bottom bar */
@@ -108,7 +108,8 @@
   }
 
   #status {
-    font-size: 6px;
+    font-size: 9px;
+    max-width: 200px;
   }
 
   #submit-container {
@@ -177,7 +178,7 @@
   }
 
   #current-clicks-display .arcade-label {
-    font-size: 7px;
+    font-size: 9px;
     letter-spacing: 1px;
   }
 
@@ -194,13 +195,13 @@
   }
 
   .alltime-stat .arcade-label {
-    font-size: 6px;
+    font-size: 8px;
     letter-spacing: 1px;
   }
 
   #connect-btn {
-    font-size: 7px;
-    padding: 8px 12px;
+    font-size: 10px;
+    padding: 10px 14px;
   }
 
   #submit-container {
@@ -223,8 +224,8 @@
   }
 
   #status {
-    font-size: 5px;
-    max-width: 150px;
+    font-size: 8px;
+    max-width: 180px;
   }
 
   /* Modal adjustments */
@@ -292,8 +293,8 @@
   }
 
   #connect-btn {
-    font-size: 6px;
-    padding: 6px 10px;
+    font-size: 9px;
+    padding: 8px 12px;
   }
 
   #submit-container {
@@ -306,6 +307,10 @@
   }
 
   .submit-help {
+    font-size: 7px;
+  }
+
+  #status {
     font-size: 7px;
   }
 }

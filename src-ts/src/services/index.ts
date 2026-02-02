@@ -51,3 +51,12 @@ export {
 
 // Mining service
 export { startMining, terminateMining, isMining } from './mining.ts';
+
+// ENS service
+export {
+  lookupEns,
+  batchLookupEns,
+  getCachedEns,
+  hasCachedEns,
+  clearEnsCache,
+} from './ens.ts';

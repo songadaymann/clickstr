@@ -34,6 +34,8 @@ import {
   fetchActiveUsers,
   fetchRecentBotActivity,
   syncAchievements,
+  lookupEns,
+  getCachedEns,
 } from './services/index.ts';
 
 // Import effects
@@ -383,6 +385,8 @@ function setupMobileMenuListeners(): void {
     menuBtn?.classList.add('open');
     menu?.classList.add('open');
     backdrop?.classList.add('open');
+    // Update wallet text when menu opens
+    updateMobileWalletText();
   };
 
   const closeMenu = (): void => {
@@ -402,20 +406,43 @@ function setupMobileMenuListeners(): void {
   backdrop?.addEventListener('click', closeMenu);
 
   // Menu items
+  getElementOrNull('mobile-menu-wallet')?.addEventListener('click', () => {
+    closeMenu();
+    if (gameState.isConnected) {
+      handleDisconnect();
+    } else {
+      showWalletModal();
+    }
+  });
+
   getElementOrNull('mobile-menu-rewards')?.addEventListener('click', () => {
     closeMenu();
-    showModal(collectionModal);
+    showCollectionModal();
   });
 
   getElementOrNull('mobile-menu-leaderboard')?.addEventListener('click', () => {
     closeMenu();
-    showModal(rankingsModal);
+    showRankingsModal();
   });
 
   getElementOrNull('mobile-menu-about')?.addEventListener('click', () => {
     closeMenu();
     showModal(helpModal);
   });
+}
+
+/**
+ * Update mobile menu wallet text based on connection state
+ */
+function updateMobileWalletText(): void {
+  const walletText = getElementOrNull('mobile-menu-wallet-text');
+  if (!walletText) return;
+
+  if (gameState.isConnected && gameState.userAddress) {
+    setText(walletText, shortenAddress(gameState.userAddress));
+  } else {
+    setText(walletText, 'Connect Wallet');
+  }
 }
 
 /**
@@ -465,7 +492,7 @@ function setupClaimModalListeners(): void {
 }
 
 /**
- * Set up UI visibility based on mouse position
+ * Set up UI visibility based on mouse/touch position
  */
 function setupUIVisibility(): void {
   const uiOverlay = getElementOrNull('ui-overlay');
@@ -473,6 +500,16 @@ function setupUIVisibility(): void {
 
   const EDGE_MARGIN = 400;
 
+  // Check if touch device
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+  // On mobile, always show UI overlay (don't hide it)
+  if (isTouchDevice) {
+    removeClass(uiOverlay, 'hidden');
+    return;
+  }
+
+  // Desktop: show UI when near edges
   document.addEventListener('mousemove', (e) => {
     const nearEdge =
       e.clientX < EDGE_MARGIN ||
@@ -926,17 +963,21 @@ function renderLeaderboard(): void {
     .map((entry, index) => {
       const isYou = userAddrLower && entry.address?.toLowerCase() === userAddrLower;
       const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
+
+      // Priority: server name > cached ENS > shortened address
+      const cachedEns = getCachedEns(entry.address);
       const displayName =
         entry.name && entry.name !== 'Anonymous'
           ? entry.name
-          : shortenAddress(entry.address);
+          : cachedEns || shortenAddress(entry.address);
+
       const milestone = getHighestMilestone(entry.totalClicks);
       const iconHtml = milestone
         ? `<img src="cursors/${milestone.cursor}.png" class="leaderboard-cursor-icon" alt="${milestone.name}">`
         : `<span class="leaderboard-indicator">${entry.isHuman ? '🧑' : '🤖'}</span>`;
 
       return `
-        <li class="leaderboard-item ${isYou ? 'is-you' : ''}">
+        <li class="leaderboard-item ${isYou ? 'is-you' : ''}" data-address="${entry.address}">
           <span class="leaderboard-rank ${rankClass}">#${entry.rank}</span>
           ${iconHtml}
           <span class="leaderboard-name ${isYou ? 'is-you' : ''}">${displayName}${isYou ? ' (you)' : ''}</span>
@@ -947,6 +988,38 @@ function renderLeaderboard(): void {
     .join('');
 
   setHtml(leaderboardListEl, html);
+
+  // Kick off ENS resolution in background for addresses without cached ENS
+  resolveLeaderboardEns();
+}
+
+/**
+ * Resolve ENS names for leaderboard entries in the background
+ * Updates the DOM when names are resolved
+ */
+async function resolveLeaderboardEns(): Promise<void> {
+  const addressesToResolve = leaderboardData
+    .filter(entry => !entry.name && !getCachedEns(entry.address))
+    .map(entry => entry.address);
+
+  if (addressesToResolve.length === 0) return;
+
+  // Resolve all addresses in parallel
+  for (const address of addressesToResolve) {
+    lookupEns(address).then(ensName => {
+      if (ensName) {
+        // Update the DOM element with the ENS name
+        const item = leaderboardListEl.querySelector(`[data-address="${address}"]`);
+        if (item) {
+          const nameEl = item.querySelector('.leaderboard-name');
+          if (nameEl) {
+            const isYou = gameState.userAddress?.toLowerCase() === address.toLowerCase();
+            nameEl.textContent = ensName + (isYou ? ' (you)' : '');
+          }
+        }
+      }
+    });
+  }
 }
 
 function startLeaderboardUpdates(): void {
@@ -1250,17 +1323,21 @@ function renderRankingsList(data: MergedLeaderboardEntry[]): void {
     .map((entry, index) => {
       const isYou = userAddrLower && entry.address?.toLowerCase() === userAddrLower;
       const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
+
+      // Priority: server name > cached ENS > shortened address
+      const cachedEns = getCachedEns(entry.address);
       const displayName =
         entry.name && entry.name !== 'Anonymous'
           ? entry.name
-          : shortenAddress(entry.address);
+          : cachedEns || shortenAddress(entry.address);
+
       const milestone = getHighestMilestone(entry.totalClicks);
       const iconHtml = milestone
         ? `<img src="cursors/${milestone.cursor}.png" class="rankings-cursor-icon" alt="${milestone.name}">`
         : `<span class="rankings-indicator">${entry.isHuman ? '🧑' : '🤖'}</span>`;
 
       return `
-        <li class="rankings-item ${isYou ? 'is-you' : ''}">
+        <li class="rankings-item ${isYou ? 'is-you' : ''}" data-address="${entry.address}">
           <span class="rankings-rank ${rankClass}">#${entry.rank}</span>
           ${iconHtml}
           <span class="rankings-name ${isYou ? 'is-you' : ''}">${displayName}${isYou ? ' (you)' : ''}</span>
@@ -1271,6 +1348,37 @@ function renderRankingsList(data: MergedLeaderboardEntry[]): void {
     .join('');
 
   setHtml(rankingsListEl, html);
+
+  // Kick off ENS resolution in background
+  resolveRankingsEns(data);
+}
+
+/**
+ * Resolve ENS names for rankings entries in the background
+ */
+async function resolveRankingsEns(data: MergedLeaderboardEntry[]): Promise<void> {
+  const addressesToResolve = data
+    .filter(entry => !entry.name && !getCachedEns(entry.address))
+    .map(entry => entry.address);
+
+  if (addressesToResolve.length === 0) return;
+
+  // Resolve all addresses in parallel
+  for (const address of addressesToResolve) {
+    lookupEns(address).then(ensName => {
+      if (ensName) {
+        // Update the DOM element with the ENS name
+        const item = rankingsListEl.querySelector(`[data-address="${address}"]`);
+        if (item) {
+          const nameEl = item.querySelector('.rankings-name');
+          if (nameEl) {
+            const isYou = gameState.userAddress?.toLowerCase() === address.toLowerCase();
+            nameEl.textContent = ensName + (isYou ? ' (you)' : '');
+          }
+        }
+      }
+    });
+  }
 }
 
 // ============ NFT Panel & Collection ============

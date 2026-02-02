@@ -404,6 +404,16 @@
   color: var(--color-gold);
 }
 
+.help-link {
+  color: var(--color-cyan);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.help-link:hover {
+  text-shadow: 0 0 8px var(--color-cyan);
+}
+
 .help-list {
   list-style: none;
   padding: 0;
