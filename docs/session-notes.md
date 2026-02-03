@@ -2422,3 +2422,135 @@ Added copy button (⎘) to the left of "Buy $CLICKSTR":
 - `showTemporaryCursor(cursorId)` - Show cursor without saving to state
 - `clearTemporaryCursor()` - Restore user's actual cursor
 - Mouse handler checks for temp cursor
+
+---
+
+## Session - Mainnet NFT Deployment & Sepolia v6 Dry Run (Feb 3, 2026)
+
+This session focused on preparing for mainnet by deploying the NFT contract and running a full dry run on Sepolia that mimics the mainnet token distribution flow.
+
+### Mainnet NFT Contract Deployed
+
+Deployed `ClickstrNFT` to Ethereum mainnet:
+- **Address:** `0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849`
+- **Owner:** `0xf55E4fac663ad8db80284620F97D95391ab002EF`
+- **Signer:** `0xf55E4fac663ad8db80284620F97D95391ab002EF`
+- **Verified on Etherscan:** Yes
+
+Key insight: The NFT contract is independent from the game contract and token. It can be deployed ahead of time and will work with any future Clickstr deployment since it only requires valid signatures from the signer.
+
+### Sepolia v6 Dry Run - Mainnet Flow Simulation
+
+Created a two-phase deployment process that mimics how mainnet will work with TokenWorks:
+
+**Phase 1:** Deploy from NFT signer wallet
+- Deploy ClickstrNFT (signer = owner)
+- Deploy MockClickToken with 1B supply
+- Transfer 100M tokens to Safe Wallet
+
+**Phase 2:** Manual safe transfer, then deploy game
+- Transfer 3M tokens from Safe to Game Deployer (manual)
+- Deploy Clickstr contract from Game Deployer
+- Start game with 3M token pool
+
+**Contracts Deployed (Sepolia v6):**
+| Contract | Address |
+|----------|---------|
+| ClickstrNFT | `0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849` |
+| MockClickToken | `0x78A607EDE7C7b134F51E725e4bA73D7b269580fc` |
+| Clickstr | `0xf724ede44Bbb2Ccf46cec530c21B14885D441e02` |
+
+**Wallets Used:**
+- NFT Deployer (signer): `0xf55E4fac663ad8db80284620F97D95391ab002EF`
+- Safe Wallet: `0x4890c268170a51d7864d4F879E73AC24A0415810`
+- Game Deployer: `0x73468BD5fDD81b6e0c583bB5bb38534684c8DFe0`
+
+### Deployment Script Created
+
+Created `scripts/deploy-sepolia-dryrun.js` with two phases:
+```bash
+# Phase 1: Deploy NFT + token, transfer to safe
+PHASE=1 npx hardhat run scripts/deploy-sepolia-dryrun.js --network sepolia
+
+# Manual: Transfer 3M from safe to game deployer
+
+# Phase 2: Deploy game contract
+PHASE=2 TOKEN_ADDRESS=0x... NFT_ADDRESS=0x... npx hardhat run scripts/deploy-sepolia-dryrun.js --network sepolia
+```
+
+### Mainnet Deployment Guide
+
+Created comprehensive `docs/mainnet-deployment-guide.md` documenting:
+- Complete two-phase deployment flow
+- Environment variables and wallet setup
+- Subgraph deployment
+- Frontend and server updates
+- Full checklist for each phase
+- Troubleshooting section
+
+### Bug Fix: Bot Detection
+
+**Problem:** The "BOTS" counter in the "CLICKING NOW" display was showing all recent on-chain activity as bots, including humans who clicked via the frontend.
+
+**Root Cause:** `fetchRecentBotActivity()` counted ALL addresses with recent on-chain submissions, regardless of whether they used the frontend.
+
+**Fix:** Updated the function to cross-reference with the human leaderboard:
+1. Fetch recent on-chain submissions from subgraph
+2. Fetch human leaderboard from API
+3. Only count as "bot" if address has on-chain activity but is NOT in human leaderboard
+
+```typescript
+// Old: Counted all on-chain activity as bots
+const uniqueAddresses = new Set(submissions.map(s => s.user.id));
+return uniqueAddresses.size;
+
+// New: Only count addresses NOT in human leaderboard
+let botCount = 0;
+recentOnChainAddresses.forEach(addr => {
+  if (!humanAddresses.has(addr)) {
+    botCount++;
+  }
+});
+return botCount;
+```
+
+### NFT Tier Bonus System Verified
+
+Tested and confirmed the NFT tier bonus system is fully operational:
+
+**Configured Bonuses:**
+| Tier | Milestone | Bonus |
+|------|-----------|-------|
+| 4 | 1,000 clicks | +2% |
+| 6 | 10,000 clicks | +3% |
+| 8 | 50,000 clicks | +5% |
+| 9 | 100,000 clicks | +7% |
+| 11 | 500,000 clicks | +10% |
+
+**Test Results:**
+1. User reached 1,000 clicks
+2. User claimed tier 4 NFT via frontend
+3. `calculateBonus(user)` returned 200 (2%)
+4. Subsequent click submission emitted `BonusApplied` event:
+   - Base Reward: 20.11 CLICK
+   - Bonus Amount: +0.40 CLICK (exactly 2%)
+   - Total: 20.51 CLICK
+
+**Key Insight:** Bonuses only apply AFTER user claims the NFT. Reaching the milestone is not enough - must mint the achievement NFT.
+
+### Infrastructure Updates
+
+- Deployed subgraph v1.0.4 to Goldsky
+- Updated frontend config with new contract addresses
+- Reset API click counts via admin endpoint
+- Updated `docs/deployment-status.md` with mainnet addresses
+
+### Mainnet Status
+
+| Contract | Address | Status |
+|----------|---------|--------|
+| ClickstrNFT | `0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849` | ✅ Deployed |
+| $CLICK Token | `0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d` | ✅ Deployed (TokenWorks) |
+| Clickstr | TBD | ⏳ Waiting for TokenWorks allowlist |
+
+**Blocker:** TokenWorks requires allowlisting addresses before they can transfer tokens. This prevents unauthorized pools that avoid the burn fees. Waiting for them to allowlist the Clickstr contract address.
