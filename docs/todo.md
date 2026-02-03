@@ -124,8 +124,8 @@ Backend is DONE in mann.cool API (`api/clickstr.js` lines 829-852, 930-936):
 - [x] Return streak info in stats endpoint response
 - [x] Check and award streak achievements (tiers 101-103)
 
-**Frontend (remaining):**
-- [ ] Show streak counter somewhere in UI (API returns `streak.current` and `streak.longest`)
+**Frontend:**
+- [x] Show streak counter in UI (panel below NFT rewards on right side)
 - [ ] Display streak achievements in Mint Rewards panel when earned
 
 **Milestones:**

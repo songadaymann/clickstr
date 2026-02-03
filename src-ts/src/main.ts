@@ -133,6 +133,9 @@ let currentGame: GameConfig | undefined;
 let nftPanel: HTMLElement;
 let nftList: HTMLElement;
 let nftClaimableCount: HTMLElement;
+let streakPanel: HTMLElement;
+let streakCurrentEl: HTMLElement;
+let streakBestEl: HTMLElement;
 let collectionGrid: HTMLElement;
 let trophySection: HTMLElement;
 let trophyGrid: HTMLElement;
@@ -229,6 +232,11 @@ function cacheElements(): void {
   nftPanel = getElement('nft-panel');
   nftList = getElement('nft-list');
   nftClaimableCount = getElement('nft-claimable-count');
+
+  // Streak panel elements
+  streakPanel = getElement('streak-panel');
+  streakCurrentEl = getElement('streak-current');
+  streakBestEl = getElement('streak-best');
 
   // Collection modal elements
   collectionGrid = getElement('collection-grid');
@@ -632,11 +640,12 @@ async function onConnected(): Promise<void> {
   // Check verification status
   await checkVerificationStatus(gameState.userAddress!);
 
-  // Fetch server stats and render NFT panel
+  // Fetch server stats and render panels
   const stats = await fetchServerStats(gameState.userAddress!);
   if (stats) {
     serverStats = stats;
     gameState.setServerStats(stats);
+    updateStreakPanel(stats);
     await renderNftPanel(stats);
   }
 
@@ -655,6 +664,8 @@ async function handleDisconnect(): Promise<void> {
   isMiningClick = false;
   isPressed = false;
   buttonImg.src = 'button-up.jpg';
+  // Hide streak panel on disconnect
+  streakPanel.style.display = 'none';
 }
 
 // ============ Submit ============
@@ -730,12 +741,13 @@ async function handleOnChainSubmit(nonces: readonly bigint[]): Promise<void> {
   updateDisplays();
   updateSubmitButton();
 
-  // Refresh stats and NFT panel
+  // Refresh stats and panels
   await refreshUserStats();
   const stats = await fetchServerStats(gameState.userAddress!);
   if (stats) {
     serverStats = stats;
     gameState.setServerStats(stats);
+    updateStreakPanel(stats);
     await renderNftPanel(stats);
   }
 }
@@ -761,11 +773,12 @@ async function handleOffChainSubmit(nonces: readonly bigint[]): Promise<void> {
     updateDisplays();
     updateSubmitButton();
 
-    // Refresh stats from server and NFT panel
+    // Refresh stats from server and panels
     const stats = await fetchServerStats(gameState.userAddress!);
     if (stats) {
       serverStats = stats;
       gameState.setServerStats(stats);
+      updateStreakPanel(stats);
       await renderNftPanel(stats);
     }
   } else if (result.requiresVerification) {
@@ -1452,6 +1465,29 @@ async function resolveRankingsEns(data: MergedLeaderboardEntry[]): Promise<void>
         }
       }
     });
+  }
+}
+
+// ============ Streak Panel ============
+
+/**
+ * Update the streak panel with current streak data
+ */
+function updateStreakPanel(stats: ServerStatsResponse): void {
+  if (!stats.streak) {
+    streakPanel.style.display = 'none';
+    return;
+  }
+
+  const current = stats.streak.current || 0;
+  const longest = stats.streak.longest || 0;
+
+  setText(streakCurrentEl, String(current));
+  setText(streakBestEl, String(longest));
+
+  // Show panel if connected
+  if (gameState.isConnected) {
+    streakPanel.style.display = 'flex';
   }
 }
 

@@ -17,6 +17,11 @@ export interface ServerStatsResponse {
   achievements?: {
     unlocked: string[];
   };
+  streak?: {
+    current: number;
+    longest: number;
+    totalDays?: number;
+  };
   needsVerification?: boolean;
 }
 
