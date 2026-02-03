@@ -160,11 +160,11 @@ The frontend has been refactored from a single 4,922-line `index.html` to a modu
 
 ### Remaining
 
-1. **Write Unit Tests** (Priority: Medium)
-   - [ ] Test `GameState` subscription and state updates
-   - [ ] Test `persistence.ts` localStorage functions
-   - [ ] Test `milestones.ts` helper functions
-   - [ ] Test `api.ts` mergeLeaderboards logic
+1. **Write Unit Tests** (Priority: Medium) - DONE (102 tests)
+   - [x] Test `GameState` subscription and state updates (39 tests)
+   - [x] Test `persistence.ts` localStorage functions (15 tests)
+   - [x] Test `milestones.ts` helper functions (34 tests)
+   - [x] Test `api.ts` mergeLeaderboards logic (14 tests)
    - [ ] Mock tests for wallet/contract interactions
 
 2. **Code Quality** (Priority: Low)
