@@ -55,6 +55,8 @@ import {
   applyCursor,
   resetCursor,
   getEquippedCursorName,
+  showTemporaryCursor,
+  clearTemporaryCursor,
 } from './effects/index.ts';
 
 // Import utilities
@@ -105,6 +107,7 @@ let leaderboardPanel: HTMLElement;
 let leaderboardListEl: HTMLElement;
 // walletModal removed - AppKit handles wallet modal
 let helpModal: HTMLElement;
+let welcomeModal: HTMLElement;
 let claimModal: HTMLElement;
 let collectionModal: HTMLElement;
 let rankingsModal: HTMLElement;
@@ -221,6 +224,7 @@ function cacheElements(): void {
   leaderboardListEl = getElement('leaderboard-list');
   // walletModal removed - AppKit handles wallet modal
   helpModal = getElement('help-modal');
+  welcomeModal = getElement('welcome-modal');
   turnstileModal = getElement('turnstile-modal');
   claimModal = getElement('claim-modal');
   collectionModal = getElement('collection-modal');
@@ -336,8 +340,14 @@ function setupEventListeners(): void {
   // Submit button
   submitBtn.addEventListener('click', handleSubmit);
 
+  // Copy address button
+  setupCopyAddressButton();
+
   // Help modal
   setupHelpModalListeners();
+
+  // Welcome modal (first visit)
+  setupWelcomeModalListeners();
 
   // Mobile menu
   setupMobileMenuListeners();
@@ -361,6 +371,41 @@ function setupEventListeners(): void {
 
 // Wallet modal setup removed - AppKit provides its own modal UI
 
+/** Token contract address for copying */
+const TOKEN_ADDRESS = '0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d';
+
+/**
+ * Set up copy address button(s)
+ */
+function setupCopyAddressButton(): void {
+  const copyBtn = getElementOrNull('copy-address-btn');
+  const mobileCopyBtn = getElementOrNull('mobile-menu-copy');
+
+  const handleCopy = async (btn: HTMLElement) => {
+    try {
+      await navigator.clipboard.writeText(TOKEN_ADDRESS);
+
+      // Visual feedback
+      btn.classList.add('copied');
+      btn.innerHTML = '&#x2713;'; // Checkmark
+
+      // Show toast
+      showAchievementToast('Copied!', 'Token address copied to clipboard');
+
+      // Reset after 2 seconds
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = '&#x2398;'; // Back to copy icon
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  copyBtn?.addEventListener('click', () => handleCopy(copyBtn));
+  mobileCopyBtn?.addEventListener('click', () => handleCopy(mobileCopyBtn));
+}
+
 /**
  * Set up help modal event listeners
  */
@@ -373,6 +418,53 @@ function setupHelpModalListeners(): void {
   helpModal?.addEventListener('click', (e) => {
     if (e.target === helpModal) hideModal(helpModal);
   });
+}
+
+/** Cursor to show during welcome modal - a fun teaser */
+const WELCOME_CURSOR = 'gold-sparkle';
+
+/**
+ * Set up welcome modal (first visit) event listeners
+ */
+function setupWelcomeModalListeners(): void {
+  const welcomeBtn = getElementOrNull('welcome-btn');
+
+  welcomeBtn?.addEventListener('click', () => {
+    hideWelcomeModal();
+  });
+
+  // Also close on backdrop click
+  welcomeModal?.addEventListener('click', (e) => {
+    if (e.target === welcomeModal) {
+      hideWelcomeModal();
+    }
+  });
+
+  // Show on first visit
+  checkFirstVisit();
+}
+
+/**
+ * Hide welcome modal and restore default cursor
+ */
+function hideWelcomeModal(): void {
+  hideModal(welcomeModal);
+  clearTemporaryCursor();
+  localStorage.setItem('clickstr-welcome-seen', 'true');
+}
+
+/**
+ * Check if this is the user's first visit and show welcome modal
+ */
+function checkFirstVisit(): void {
+  const hasSeenWelcome = localStorage.getItem('clickstr-welcome-seen');
+  if (!hasSeenWelcome) {
+    // Small delay to let the page load first
+    setTimeout(() => {
+      showTemporaryCursor(WELCOME_CURSOR);
+      showModal(welcomeModal);
+    }, 500);
+  }
 }
 
 /**

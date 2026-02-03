@@ -16,6 +16,9 @@ let mouseMoveHandler: ((e: MouseEvent) => void) | null = null;
 /** Whether we're on a touch device (mobile) */
 let isTouchDevice = false;
 
+/** Temporary cursor ID (for previews like welcome modal) */
+let temporaryCursor: string | null = null;
+
 /**
  * Check if the device is a touch device (mobile/tablet)
  */
@@ -49,7 +52,9 @@ export function initCursor(element: HTMLElement): void {
 
   // Set up mouse tracking (desktop only)
   mouseMoveHandler = (e: MouseEvent) => {
-    if (cursorElement && gameState.equippedCursor !== 'default') {
+    // Track cursor if we have an equipped cursor OR a temporary cursor
+    const hasActiveCursor = gameState.equippedCursor !== 'default' || temporaryCursor;
+    if (cursorElement && hasActiveCursor) {
       cursorElement.style.left = e.clientX + 'px';
       cursorElement.style.top = e.clientY + 'px';
 
@@ -136,6 +141,63 @@ export function equipCursor(
 
   if (showToast) {
     showToast('Cursor Equipped!', `Now using: ${getEquippedCursorName()}`);
+  }
+}
+
+/**
+ * Temporarily show a cursor without saving to state
+ * Used for previews like the welcome modal
+ */
+export function showTemporaryCursor(cursorId: string): void {
+  // On mobile/touch devices, don't show custom cursor visuals
+  if (isTouchDevice) return;
+
+  if (cursorId && cursorId !== 'default') {
+    temporaryCursor = cursorId;
+
+    if (cursorImg) {
+      cursorImg.src = `cursors/${cursorId}.png`;
+    }
+    if (cursorElement) {
+      cursorElement.style.display = 'block';
+    }
+    document.body.classList.add('custom-cursor-active');
+
+    // Set particle effect for the temp cursor
+    setParticleEffect(cursorId);
+  }
+}
+
+/**
+ * Clear temporary cursor and restore saved cursor (or default)
+ */
+export function clearTemporaryCursor(): void {
+  // On mobile/touch devices, nothing to do
+  if (isTouchDevice) return;
+
+  // Clear temporary cursor tracking
+  temporaryCursor = null;
+
+  // Clear particles
+  clearParticles();
+  setParticleEffect(null);
+
+  // Restore the user's actual equipped cursor
+  const savedCursor = gameState.equippedCursor;
+  if (savedCursor && savedCursor !== 'default') {
+    if (cursorImg) {
+      cursorImg.src = `cursors/${savedCursor}.png`;
+    }
+    if (cursorElement) {
+      cursorElement.style.display = 'block';
+    }
+    document.body.classList.add('custom-cursor-active');
+    setParticleEffect(savedCursor);
+  } else {
+    if (cursorElement) {
+      cursorElement.style.display = 'none';
+    }
+    document.body.classList.remove('custom-cursor-active');
   }
 }
 

@@ -104,7 +104,10 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 - [x] Show estimated reward per click
 - [x] Leaderboard improvements (Humans/On-Chain tabs, matrix view in rankings modal)
 - [x] NFT panel improvements (green MINT button, no grey-out)
-- [ ] Add simple 3 sentence explanation on first visit
+- [x] Add welcome modal on first visit (6-point explanation)
+- [x] Temporary cursor preview during welcome modal
+- [x] "Buy $CLICKSTR" button linking to TokenStrategy
+- [x] Copy token address button
 - [x] Sound effects for achievements
 - [x] Confetti animation for legendary unlocks
 - [ ] Error handling improvements

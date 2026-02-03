@@ -108,6 +108,65 @@
   text-align: center;
 }
 
+/* Buy $CLICKSTR item - gold theme */
+.mobile-menu-buy {
+  background: linear-gradient(to bottom, #3d3000, #2a2000);
+  border-color: #c9a000;
+  color: #ffd700;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
+  text-decoration: none;
+}
+
+.mobile-menu-buy:hover,
+.mobile-menu-buy:active {
+  background: linear-gradient(to bottom, #4a3a00, #3d3000);
+  border-color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+.mobile-menu-buy .mobile-menu-item-icon {
+  color: #ffd700;
+}
+
+/* Mobile menu row - for items with adjacent buttons */
+.mobile-menu-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.mobile-menu-row .mobile-menu-item {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* Mobile copy button */
+.mobile-menu-copy {
+  background: linear-gradient(to bottom, #3d3000, #2a2000);
+  border: 2px solid #c9a000;
+  border-radius: var(--radius-md);
+  color: #ffd700;
+  font-size: 18px;
+  padding: 0 var(--spacing-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
+}
+
+.mobile-menu-copy:hover,
+.mobile-menu-copy:active {
+  background: linear-gradient(to bottom, #4a3a00, #3d3000);
+  border-color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+.mobile-menu-copy.copied {
+  background: linear-gradient(to bottom, #1a3d00, #0f2a00);
+  border-color: #00c900;
+  color: #00ff00;
+  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);
+}
+
 /* Mobile menu backdrop */
 #mobile-menu-backdrop {
   display: none;

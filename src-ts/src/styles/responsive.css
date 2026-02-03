@@ -62,6 +62,11 @@
     display: none !important;
   }
 
+  /* Hide top right buttons on mobile (use hamburger menu instead) */
+  #top-right-btns {
+    display: none !important;
+  }
+
   /* Trophy section - make smaller on mobile */
   .trophy-section {
     margin-bottom: var(--spacing-lg);

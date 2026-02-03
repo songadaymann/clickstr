@@ -28,6 +28,8 @@ export {
   resetCursor,
   getEquippedCursorName,
   equipCursor,
+  showTemporaryCursor,
+  clearTemporaryCursor,
   destroyCursor,
 } from './cursor.ts';
 

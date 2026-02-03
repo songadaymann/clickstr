@@ -2348,3 +2348,77 @@ Added console logging for achievement celebration debugging:
 - `e6661ca` - Increase line-height for DSEG7 digit 6 descender
 - `4f0c55f` - Add debug logging for achievement celebrations
 - `55a6eeb` - Fix button freezing when mining worker errors or hangs
+
+## Session 25 - Welcome Modal & Buy Button (Feb 3, 2026)
+
+### Welcome Modal (First Visit)
+
+Added a welcome modal that appears on first visit to explain the game:
+
+1. Connect your wallet
+2. Click the button to earn $clickstr
+3. Clicking also burns $clickstr at the same time
+4. Your computer is doing real proof-of-work behind the scenes
+5. Earn NFT rewards when you hit clicking milestones
+6. Have fun
+
+**Features:**
+- Uses 7-segment display font for title with red glow
+- Stores `clickstr-welcome-seen` in localStorage to only show once
+- Dismisses on "Got it!" button or backdrop click
+- Mobile responsive
+
+### Temporary Cursor Preview
+
+When the welcome modal opens, users get a preview of the custom cursor system:
+- Shows `gold-sparkle` cursor while modal is open
+- Cursor follows mouse position
+- Reverts to default cursor when modal closes
+- Gives new users a "taste of what's to come"
+
+**Implementation:**
+- Added `temporaryCursor` tracking variable in cursor.ts
+- New functions: `showTemporaryCursor()` and `clearTemporaryCursor()`
+- Mouse move handler checks for temp cursor OR equipped cursor
+
+### Buy $CLICKSTR Button
+
+Added "Buy $CLICKSTR" button in gold theme next to Connect Wallet:
+- Links to TokenStrategy: `https://www.tokenstrategy.com/strategies/0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d`
+- Opens in new tab
+- Gold gradient background with gold glow
+- Also added to mobile hamburger menu
+
+### Copy Token Address Button
+
+Added copy button (⎘) to the left of "Buy $CLICKSTR":
+- No border/frame - minimal floating icon
+- Copies `0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d` to clipboard
+- Turns green with checkmark (✓) on success
+- Shows toast notification "Copied! Token address copied to clipboard"
+- Also added to mobile menu next to Buy button
+
+### Files Changed
+
+**HTML (`index.html`):**
+- Added `#top-right-btns` container with copy, buy, and connect buttons
+- Added `#welcome-modal` with 6-point list
+- Added copy button to mobile menu row
+
+**CSS:**
+- `modals.css` - Welcome modal styles with 7-segment title font and glow
+- `buttons.css` - Buy button (gold), copy button (minimal), container styles
+- `mobile-menu.css` - Gold buy item, copy button, row layout
+- `responsive.css` - Hide top-right-btns on mobile (use hamburger instead)
+
+**TypeScript (`main.ts`):**
+- `setupWelcomeModalListeners()` - Modal open/close with localStorage
+- `checkFirstVisit()` - Show modal on first visit with temp cursor
+- `setupCopyAddressButton()` - Copy to clipboard with visual feedback
+- Import `showTemporaryCursor` and `clearTemporaryCursor`
+
+**Effects (`cursor.ts`):**
+- Added `temporaryCursor` state variable
+- `showTemporaryCursor(cursorId)` - Show cursor without saving to state
+- `clearTemporaryCursor()` - Restore user's actual cursor
+- Mouse handler checks for temp cursor

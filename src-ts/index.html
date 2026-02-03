@@ -26,8 +26,12 @@
     <!-- Circular click zone - centered on button -->
     <div id="button-click-zone"></div>
 
-    <!-- Connect button - fixed position top right -->
-    <button id="connect-btn" class="arcade-btn">Connect Wallet</button>
+    <!-- Top right buttons -->
+    <div id="top-right-btns">
+      <button id="copy-address-btn" title="Copy token address">&#x2398;</button>
+      <a href="https://www.tokenstrategy.com/strategies/0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d" target="_blank" rel="noopener" id="buy-btn" class="arcade-btn">Buy $CLICKSTR</a>
+      <button id="connect-btn" class="arcade-btn">Connect Wallet</button>
+    </div>
 
     <!-- UI Overlay - appears on hover -->
     <div id="ui-overlay">
@@ -340,6 +344,13 @@
       <span class="mobile-menu-item-icon">@</span>
       <span id="mobile-menu-wallet-text">Connect Wallet</span>
     </div>
+    <div class="mobile-menu-row">
+      <a href="https://www.tokenstrategy.com/strategies/0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d" target="_blank" rel="noopener" class="mobile-menu-item mobile-menu-buy" id="mobile-menu-buy">
+        <span class="mobile-menu-item-icon">$</span>
+        <span>Buy $CLICKSTR</span>
+      </a>
+      <button class="mobile-menu-copy" id="mobile-menu-copy" title="Copy token address">&#x2398;</button>
+    </div>
     <div class="mobile-menu-item" id="mobile-menu-rewards">
       <span class="mobile-menu-item-icon">*</span>
       <span>Mint Rewards</span>
@@ -351,6 +362,22 @@
     <div class="mobile-menu-item" id="mobile-menu-about">
       <span class="mobile-menu-item-icon">?</span>
       <span>How to Play</span>
+    </div>
+  </div>
+
+  <!-- Welcome Modal (first visit) -->
+  <div id="welcome-modal" class="modal">
+    <div class="welcome-modal-content">
+      <div class="welcome-title">Welcome to Clickstr</div>
+      <ol class="welcome-list">
+        <li>Connect your wallet</li>
+        <li>Click the button to earn <span class="highlight">$clickstr</span></li>
+        <li>Clicking also burns <span class="highlight">$clickstr</span> at the same time</li>
+        <li>Your computer is doing real proof-of-work behind the scenes</li>
+        <li>Earn NFT rewards when you hit clicking milestones</li>
+        <li>Have fun</li>
+      </ol>
+      <button class="welcome-btn" id="welcome-btn">Got it!</button>
     </div>
   </div>
 
