@@ -555,6 +555,9 @@ function setupUIVisibility(): void {
 
 // ============ Button Mechanics ============
 
+/** Safety timeout for mining - prevents button from freezing if worker hangs */
+let miningTimeout: ReturnType<typeof setTimeout> | null = null;
+
 function pressDown(): void {
   if (isPressed || isMiningClick) return;
   isPressed = true;
@@ -564,6 +567,15 @@ function pressDown(): void {
   if (gameState.isConnected) {
     isMiningClick = true;
     startMining(onClickMined);
+
+    // Safety timeout: if mining takes more than 10 seconds, something is wrong
+    miningTimeout = setTimeout(() => {
+      if (isMiningClick) {
+        console.warn('[Mining] Timeout - resetting button state');
+        terminateMining();
+        onClickMined(0n); // Reset UI without adding click
+      }
+    }, 10000);
   }
 }
 
@@ -576,14 +588,23 @@ function pressUp(): void {
 }
 
 function onClickMined(nonce: bigint): void {
+  // Clear safety timeout
+  if (miningTimeout) {
+    clearTimeout(miningTimeout);
+    miningTimeout = null;
+  }
+
   isMiningClick = false;
   isPressed = false;
   buttonImg.src = 'button-up.jpg';
   playButtonUp();
 
-  gameState.addClick(nonce);
-  updateDisplays();
-  updateSubmitButton();
+  // Only add valid clicks (nonce 0 indicates mining error)
+  if (nonce !== 0n) {
+    gameState.addClick(nonce);
+    updateDisplays();
+    updateSubmitButton();
+  }
 }
 
 // ============ Connection ============

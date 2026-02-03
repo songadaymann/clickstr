@@ -135,8 +135,15 @@ export function startMining(onFound: (nonce: bigint) => void): void {
 
   miningWorker.onerror = (error) => {
     console.error('[Mining] Worker error:', error);
+    // Save callback reference before terminateMining clears it
+    const callback = onNonceFound;
     terminateMining();
     gameState.setMiningComplete();
+    // Call callback with a fallback nonce to unstick the UI
+    // The nonce won't be valid but at least the button won't freeze
+    if (callback) {
+      callback(BigInt(0));
+    }
   };
 
   // When game is inactive (between seasons):
