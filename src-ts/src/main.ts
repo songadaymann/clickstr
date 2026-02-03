@@ -145,6 +145,7 @@ let streakStat: HTMLElement;
 let streakCurrentEl: HTMLElement;
 let collectionGrid: HTMLElement;
 let trophySection: HTMLElement;
+let trophyTitle: HTMLElement;
 let trophyGrid: HTMLElement;
 let equippedCursorName: HTMLElement;
 let claimNftBtn: HTMLButtonElement;
@@ -244,6 +245,7 @@ function cacheElements(): void {
   // Collection modal elements
   collectionGrid = getElement('collection-grid');
   trophySection = getElement('trophy-section');
+  trophyTitle = getElement('trophy-title');
   trophyGrid = getElement('trophy-grid');
   equippedCursorName = getElement('equipped-cursor-name');
 
@@ -660,13 +662,18 @@ function setupUIVisibility(): void {
 let miningTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function pressDown(): void {
-  if (isPressed || isMiningClick) return;
+  if (isPressed || isMiningClick) {
+    console.log(`[Button] pressDown BLOCKED - isPressed=${isPressed}, isMiningClick=${isMiningClick}`);
+    return;
+  }
+  console.log('[Button] pressDown - setting isPressed=true, showing down image');
   isPressed = true;
   buttonImg.src = 'button-down.jpg';
   playButtonDown();
 
   if (gameState.isConnected) {
     isMiningClick = true;
+    console.log('[Button] Starting mining...');
     startMining(onClickMined);
 
     // Safety timeout: if mining takes more than 10 seconds, something is wrong
@@ -681,14 +688,18 @@ function pressDown(): void {
 }
 
 function pressUp(): void {
+  console.log(`[Button] pressUp called - isConnected=${gameState.isConnected}, isPressed=${isPressed}`);
   if (!gameState.isConnected && isPressed) {
     isPressed = false;
     buttonImg.src = 'button-up.jpg';
     playButtonUp();
+    console.log('[Button] pressUp - reset button (not connected)');
   }
 }
 
 function onClickMined(nonce: bigint): void {
+  console.log(`[Button] onClickMined called - nonce=${nonce}, isMiningClick=${isMiningClick}, isPressed=${isPressed}`);
+
   // Clear safety timeout
   if (miningTimeout) {
     clearTimeout(miningTimeout);
@@ -699,6 +710,7 @@ function onClickMined(nonce: bigint): void {
   isPressed = false;
   buttonImg.src = 'button-up.jpg';
   playButtonUp();
+  console.log('[Button] onClickMined - reset state, showing up image');
 
   // Only add valid clicks (nonce 0 indicates mining error)
   if (nonce !== 0n) {
@@ -1831,6 +1843,10 @@ async function renderNftPanel(stats: ServerStatsResponse): Promise<void> {
  */
 function renderTrophySection(): void {
   const ownedTrophies = GLOBAL_ONE_OF_ONE_TIERS.filter(t => claimedOnChain.has(t.tier));
+  const totalTrophies = GLOBAL_ONE_OF_ONE_TIERS.length;
+
+  // Update the title with owned/total count
+  setText(trophyTitle, `LEGENDARY ${ownedTrophies.length}/${totalTrophies}`);
 
   if (ownedTrophies.length === 0) {
     addClass(trophySection, 'empty');
@@ -1847,7 +1863,7 @@ function renderTrophySection(): void {
     div.innerHTML = `
       <img src="one-of-ones/${trophy.tier}.png" class="trophy-img" alt="${trophy.name}">
       <span class="trophy-name">${trophy.name}</span>
-      <span class="trophy-click-num">Click #${trophy.globalClick.toLocaleString()}</span>
+      <span class="trophy-click-num">CLICK ${trophy.globalClick.toLocaleString()}</span>
     `;
 
     // Click to view larger
@@ -1855,7 +1871,7 @@ function renderTrophySection(): void {
       showImageLightbox(
         `one-of-ones/${trophy.tier}.png`,
         trophy.name,
-        `Click #${trophy.globalClick.toLocaleString()}`
+        `CLICK ${trophy.globalClick.toLocaleString()}`
       );
     });
 
@@ -1908,7 +1924,7 @@ function renderCollectionGrid(): void {
         div.style.cursor = 'pointer';
         // Find the global click number from GLOBAL_ONE_OF_ONE_TIERS
         const globalInfo = GLOBAL_ONE_OF_ONE_TIERS.find(g => g.tier === slot.tier);
-        const clickNumText = globalInfo ? `Click #${globalInfo.globalClick.toLocaleString()}` : '';
+        const clickNumText = globalInfo ? `CLICK ${globalInfo.globalClick.toLocaleString()}` : '';
         div.addEventListener('click', () => {
           showImageLightbox(
             `one-of-ones/${slot.tier}.png`,

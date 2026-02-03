@@ -92,8 +92,11 @@ const MAX_DIFFICULTY_TARGET = BigInt('0x7fffffffffffffffffffffffffffffffffffffff
  * @param onFound Callback when valid nonce is found
  */
 export function startMining(onFound: (nonce: bigint) => void): void {
+  console.log('[Mining] startMining called');
+
   if (!gameState.isConnected || !gameState.userAddress) {
     console.error('[Mining] Cannot start: not connected');
+    onFound(0n); // Call callback to unstick button
     return;
   }
 
@@ -103,15 +106,19 @@ export function startMining(onFound: (nonce: bigint) => void): void {
 
   if (isGameActive && gameState.difficultyTarget === 0n) {
     console.error('[Mining] Cannot start: difficulty is 0');
+    onFound(0n); // Call callback to unstick button
     return;
   }
 
   if (miningWorker) {
+    console.log('[Mining] Terminating existing worker');
     miningWorker.terminate();
+    miningWorker = null;
   }
 
   onNonceFound = onFound;
   gameState.setMining();
+  console.log('[Mining] Creating new worker');
 
   // Create inline worker
   const blob = new Blob([createWorkerCode()], { type: 'application/javascript' });
@@ -120,6 +127,7 @@ export function startMining(onFound: (nonce: bigint) => void): void {
   miningWorker.onmessage = (e: MessageEvent<FoundMessage>) => {
     if (e.data.type === 'FOUND') {
       const nonce = BigInt(e.data.nonce);
+      console.log(`[Mining] Worker found nonce: ${nonce}`);
 
       // Save callback reference before terminateMining clears it
       const callback = onNonceFound;
@@ -128,7 +136,10 @@ export function startMining(onFound: (nonce: bigint) => void): void {
       gameState.setMiningComplete();
 
       if (callback) {
+        console.log('[Mining] Calling callback with nonce');
         callback(nonce);
+      } else {
+        console.warn('[Mining] No callback registered!');
       }
     }
   };
