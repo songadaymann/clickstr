@@ -1070,6 +1070,7 @@ async function resolveLeaderboardEns(): Promise<void> {
     .filter(entry => !entry.name && !getCachedEns(entry.address))
     .map(entry => entry.address);
 
+  console.log('[Leaderboard] ENS addresses to resolve:', addressesToResolve.length);
   if (addressesToResolve.length === 0) return;
 
   // Resolve all addresses in parallel
@@ -1078,11 +1079,13 @@ async function resolveLeaderboardEns(): Promise<void> {
       if (ensName) {
         // Update the DOM element with the ENS name
         const item = leaderboardListEl.querySelector(`[data-address="${address}"]`);
+        console.log('[Leaderboard] DOM update for', address, ':', item ? 'found' : 'NOT FOUND');
         if (item) {
           const nameEl = item.querySelector('.leaderboard-name');
           if (nameEl) {
             const isYou = gameState.userAddress?.toLowerCase() === address.toLowerCase();
             nameEl.textContent = ensName + (isYou ? ' (you)' : '');
+            console.log('[Leaderboard] Updated name to:', ensName);
           }
         }
       }
