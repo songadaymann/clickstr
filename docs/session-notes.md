@@ -2186,3 +2186,165 @@ Analyzed the contract's difficulty adjustment system:
 
 - `9fee509` - Improve mobile UX and add 1/1 NFT lightbox viewer
 - `b14912d` - Add click transaction logging for retroactive 1/1 attribution
+
+---
+
+## Session 25 - ENS Resolution, Panel Visibility & Button Freeze Fix (Feb 2, 2026)
+
+### ENS Names Not Showing in Leaderboard
+
+**Problem:** ENS names weren't displaying in the leaderboard - users saw shortened addresses instead of their .eth names.
+
+**Root Cause:** The ENS service (`src/services/ens.ts`) was using a hardcoded public RPC URL (`https://eth.llamarpc.com`) which is rate-limited and unreliable.
+
+**Fix:** Updated `getMainnetProvider()` to use the Alchemy mainnet RPC from environment variable:
+```typescript
+function getMainnetProvider(): ethers.providers.JsonRpcProvider {
+  if (mainnetProvider) return mainnetProvider;
+  const rpcUrl = import.meta.env.VITE_ETH_MAINNET_RPC_URL || 'https://eth.llamarpc.com';
+  mainnetProvider = new ethers.providers.JsonRpcProvider(rpcUrl);
+  return mainnetProvider;
+}
+```
+
+Also cached the provider instance to avoid recreating it on every lookup.
+
+### Hide Panels Until Wallet Connected
+
+**Problem:** Leaderboard and NFT panels were visible before wallet connection, showing "Loading..." states that looked broken.
+
+**Fix:**
+1. Added `display: none` to `#leaderboard-panel` in CSS
+2. Added `leaderboardPanel` DOM element reference in `main.ts`
+3. Created `updatePanelVisibility()` function called on connection state changes
+4. NFT panel already hidden by default, controlled by `renderNftPanel()`
+
+**Behavior:**
+- On page load: Both panels hidden
+- On wallet connect: Leaderboard shows; NFT panel shows if there are claimable rewards
+- On disconnect: Both panels hidden again
+
+### Game Status Panel Layout Swap
+
+**Problem:** User requested swapping Pool and All-Time Clicks positions in the game status panel.
+
+**Before:**
+```
+Game | Epoch | Pool
+All-Time Clicks: 1.46k
+Clicking Now: ...
+```
+
+**After:**
+```
+Game | Epoch | All-Time (1.46k suffix)
+Pool: 941,000 $CLICKSTR
+Clicking Now: ...
+```
+
+**Changes:**
+- `index.html`: Restructured panel elements, renamed IDs
+- `main.ts`: Updated element references (`headerAlltimeClicksEl`, `headerAlltimeSuffixEl`), changed `updateDisplays()` and `updateGlobalStats()` to use new elements
+- `panels.css`: Added `.global-stat-suffix` style for "$CLICKSTR" label
+
+### DSEG7 Font Number Cutoff
+
+**Problem:** Numbers with digit `6` were being cut off at the bottom in the leaderboard (e.g., "1.16k" looked like "1.1k").
+
+**Root Cause:** The DSEG7 seven-segment font has descender segments that extend below the baseline, particularly on digits 6 and 9.
+
+**Fix:** Added `line-height: 1.4` and `padding-bottom: 2px` to `.leaderboard-clicks`:
+```css
+.leaderboard-clicks {
+  font-size: 18px;
+  line-height: 1.4;
+  padding-bottom: 2px;
+  /* ... */
+}
+```
+
+Also added `overflow: visible` to `.leaderboard-item`.
+
+### Button Freeze Bug Fix (Critical)
+
+**Problem:** Intermittently, the click button would freeze and stop responding. Users had to refresh the page to fix it.
+
+**Root Cause:** When the mining worker encountered an error or timed out, it would terminate but NOT call the callback. This left `isPressed` and `isMiningClick` stuck at `true`, causing the guard `if (isPressed || isMiningClick) return;` to block all future clicks.
+
+**Fix:** Three-part solution:
+
+1. **Worker error handler calls callback:**
+```typescript
+miningWorker.onerror = (error) => {
+  const callback = onNonceFound;
+  terminateMining();
+  gameState.setMiningComplete();
+  if (callback) callback(BigInt(0)); // Signal error with nonce 0
+};
+```
+
+2. **Callback ignores error nonce:**
+```typescript
+function onClickMined(nonce: bigint): void {
+  // Clear safety timeout
+  if (miningTimeout) clearTimeout(miningTimeout);
+
+  isMiningClick = false;
+  isPressed = false;
+  buttonImg.src = 'button-up.jpg';
+  playButtonUp();
+
+  // Only add valid clicks (nonce 0 indicates mining error)
+  if (nonce !== 0n) {
+    gameState.addClick(nonce);
+    // ...
+  }
+}
+```
+
+3. **Safety timeout (10 seconds):**
+```typescript
+function pressDown(): void {
+  // ...
+  if (gameState.isConnected) {
+    isMiningClick = true;
+    startMining(onClickMined);
+
+    // Safety timeout: if mining takes more than 10 seconds, something is wrong
+    miningTimeout = setTimeout(() => {
+      if (isMiningClick) {
+        console.warn('[Mining] Timeout - resetting button state');
+        terminateMining();
+        onClickMined(0n);
+      }
+    }, 10000);
+  }
+}
+```
+
+### Debug Logging Added
+
+Added console logging for achievement celebration debugging:
+- `[Achievements] handleAchievements called:` with data from server
+- `[Celebration] Personal milestone - zelda sound + confetti`
+- `[Celebration] Global milestone - disco + confetti`
+
+### Files Changed
+
+**Frontend (`src-ts/src/`):**
+- `services/ens.ts` - Use Alchemy RPC, cache provider
+- `services/mining.ts` - Error handler calls callback with error nonce
+- `main.ts` - Panel visibility, new element refs, button freeze fix with timeout
+- `effects/celebrations.ts` - Debug logging
+- `styles/panels.css` - Leaderboard panel hidden, number cutoff fix, global-stat-suffix
+- `index.html` - Panel restructure for Pool/All-Time swap
+
+### Commits
+
+- `458c427` - Fix ENS resolution and hide panels until wallet connected
+- `6f9a409` - Swap Pool and All-Time Clicks positions in game status panel
+- `7c0c6ab` - Fix DSEG7 font cutoff in leaderboard click counts
+- `a8e1d55` - Fix DSEG7 number cutoff with padding-bottom
+- `e6661ca` - Increase line-height for DSEG7 digit 6 descender
+- `4f0c55f` - Add debug logging for achievement celebrations
+- `55a6eeb` - Fix button freezing when mining worker errors or hangs
