@@ -45,8 +45,8 @@ const NETWORKS = {
   sepolia: {
     chainId: 11155111,
     rpcUrl: "https://ethereum-sepolia-rpc.publicnode.com",
-    contractAddress: "0x6dD800B88FEecbE7DaBb109884298590E5BbBf20",
-    tokenAddress: "0xE7BBD98a6cA0de23baA1E781Df1159FCb1a467fA",
+    contractAddress: "0xA16d45e4D186B9678020720BD1e743872a6e9bA0", // Clickstr v5
+    tokenAddress: "0x3706Dcde2dBA966F225E14d3F6c22eaF7A5724c4", // MockClickToken v5
     explorerUrl: "https://sepolia.etherscan.io",
   },
   mainnet: {

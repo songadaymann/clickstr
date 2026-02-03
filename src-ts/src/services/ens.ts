@@ -14,13 +14,20 @@ const CACHE_DURATION_MS = 5 * 60 * 1000;
 /** Batch queue for ENS lookups */
 let pendingLookups: Map<string, Promise<string | null>> = new Map();
 
+/** Cached mainnet provider instance */
+let mainnetProvider: ethers.providers.JsonRpcProvider | null = null;
+
 /**
  * Get a mainnet provider for ENS resolution
  * ENS only works on mainnet, regardless of what network we're on
  */
 function getMainnetProvider(): ethers.providers.JsonRpcProvider {
-  // Use a mainnet RPC for ENS resolution
-  return new ethers.providers.JsonRpcProvider('https://eth.llamarpc.com');
+  if (mainnetProvider) return mainnetProvider;
+
+  // Use Alchemy mainnet RPC if available, fallback to public RPC
+  const rpcUrl = import.meta.env.VITE_ETH_MAINNET_RPC_URL || 'https://eth.llamarpc.com';
+  mainnetProvider = new ethers.providers.JsonRpcProvider(rpcUrl);
+  return mainnetProvider;
 }
 
 /**

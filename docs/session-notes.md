@@ -2021,3 +2021,168 @@ function handleStateChange(event: string): void {
 3. **Connection state is async with AppKit** - The modal opens immediately, but connection happens later via subscription callbacks
 
 4. **TypeScript strictness** - AppKit's adapter types needed `as any` cast due to `exactOptionalPropertyTypes` conflicts
+
+---
+
+## Session 24 - Mobile UX, NFT Lightbox & Click Transaction Logging (Feb 2, 2026)
+
+### Mobile UX Improvements
+
+#### 1. Disabled Custom Cursors on Mobile
+
+**Problem:** Custom cursor cosmetics don't make sense on touch devices - users tap, not hover with a mouse pointer.
+
+**Solution:** Added touch device detection in `src/effects/cursor.ts`:
+```typescript
+function checkIsTouchDevice(): boolean {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+```
+
+Changes:
+- `initCursor()`: On touch devices, hides cursor element and skips mouse tracking setup
+- `applyCursor()`: On touch devices, still saves equipped cursor to state (for collection modal) but doesn't display visual effects
+- No particle effects spawned on mobile
+
+#### 2. Smaller Trophy Section on Mobile
+
+**Problem:** The 1/1 NFT trophy section took up too much screen space in the collection modal on mobile.
+
+**Solution:** Added mobile-specific styles in `responsive.css`:
+```css
+@media (max-width: 768px) {
+  .trophy-section { padding: var(--spacing-md); }
+  .trophy-img { width: 40px; height: 40px; }
+  .trophy-name { font-size: 10px; }
+  .trophy-click-num { font-size: 9px; }
+}
+```
+
+### NFT Image Lightbox Feature
+
+**Problem:** Users wanted to view 1/1 NFT artwork larger, especially on mobile.
+
+**Solution:** Added click-to-enlarge lightbox for all 1/1 NFTs in the collection modal.
+
+#### Implementation
+
+**HTML (`index.html`):**
+```html
+<div id="image-lightbox" class="modal">
+  <div class="lightbox-content">
+    <button class="lightbox-close-btn" id="lightbox-close-btn">X</button>
+    <img id="lightbox-image" src="" alt="NFT Preview">
+    <div class="lightbox-caption">
+      <span class="lightbox-name" id="lightbox-name"></span>
+      <span class="lightbox-click-num" id="lightbox-click-num"></span>
+    </div>
+  </div>
+</div>
+```
+
+**CSS (`modals.css`):**
+- Full-screen backdrop (click to close)
+- Centered image with gold border and glow
+- Caption with NFT name and click number
+- Responsive sizing (80vw max on desktop, 90vw on mobile)
+
+**JavaScript (`main.ts`):**
+- `showImageLightbox(imageSrc, name, clickNum)` - Opens lightbox with specified image
+- `setupLightboxListeners()` - Close button and backdrop click handlers
+- Updated `renderTrophySection()` - Trophy items now clickable
+- Updated `renderCollectionGrid()` - Global 1/1 items (tier 200-500) now clickable
+
+### Click Transaction Logging (API)
+
+**Problem:** No way to retroactively determine who made a specific global click number. If we wanted to add a 1/1 NFT for click #1111 later, we couldn't find who made it.
+
+**Solution:** Added transaction logging to the API that records every click submission.
+
+#### Implementation
+
+**New Redis key:** `clickstr:click-log` (list)
+
+**Log entry format (~120 bytes each):**
+```json
+{"a": "0x1234...", "c": 50, "b": 10000, "f": 10050, "t": 1706900000}
+```
+- `a` = address
+- `c` = clicks in this batch
+- `b` = global count before
+- `f` = global count after
+- `t` = timestamp
+
+**New API endpoint:** `GET /api/clickstr?findClick=1111`
+
+Returns:
+```json
+{
+  "success": true,
+  "clickNumber": 1111,
+  "found": true,
+  "address": "0xabc...",
+  "batchStart": 1100,
+  "batchEnd": 1150,
+  "batchSize": 50,
+  "timestamp": 1706900000,
+  "note": "Click #1111 was part of a batch of 50 clicks (1100-1150)"
+}
+```
+
+**Storage cost analysis:**
+- 120 bytes × 1000 submissions/day = ~3.6MB/month
+- At 10K submissions/day = ~36MB/month (~$0.01 storage, ~$0.60 commands)
+- Negligible cost, enables future flexibility
+
+### Bot Miner Testing
+
+Tested the public miner script with updated contract addresses:
+
+**Contract address fix:** `public-miner.js` had outdated Sepolia addresses. Updated to v5:
+- Clickstr: `0xA16d45e4D186B9678020720BD1e743872a6e9bA0`
+- Token: `0x3706Dcde2dBA966F225E14d3F6c22eaF7A5724c4`
+
+**Test results:**
+- 7 successful transactions before running out of Sepolia ETH
+- 3,500 clicks submitted
+- ~345.7 CLICK earned
+- ~0.062 ETH spent on gas (~0.009 ETH per 500-click batch)
+
+**Gas analysis:**
+- Each 500-click batch uses ~12M gas (verifying 500 PoW hashes on-chain)
+- That's ~40% of a single Ethereum block
+- Sepolia gas: ~1 gwei → ~0.012 ETH per TX
+- Mainnet gas: ~0.1 gwei → ~0.0012 ETH per TX (10x cheaper!)
+
+### Difficulty Floor Discussion
+
+Analyzed the contract's difficulty adjustment system:
+
+**Current guards:**
+- Minimum floor: `difficultyTarget = 1000` (line 535-536 in Clickstr.sol)
+- Max adjustment: 4x per epoch
+- Starting difficulty: `type(uint256).max / 1000`
+
+**To reach floor:** Would need ~85 consecutive epochs of maximum difficulty increases. With 12 epochs per game, that's 7+ games of sustained massive over-mining.
+
+**Conclusion:** The floor is reachable in theory but practically impossible. The seasonal reset model provides a natural safety valve - if anything goes wrong in one game, the next game starts fresh.
+
+### Files Changed
+
+**Frontend (`src-ts/`):**
+- `index.html` - Image lightbox modal HTML
+- `src/effects/cursor.ts` - Touch device detection, mobile cursor disable
+- `src/main.ts` - Lightbox functions, trophy/collection click handlers
+- `src/styles/modals.css` - Lightbox styles
+- `src/styles/responsive.css` - Mobile trophy section sizing
+
+**API (`mann-dot-cool/api/`):**
+- `clickstr.js` - Click transaction logging, `findClick` query endpoint
+
+**Scripts:**
+- `scripts/public-miner.js` - Updated contract addresses to v5
+
+### Commits
+
+- `9fee509` - Improve mobile UX and add 1/1 NFT lightbox viewer
+- `b14912d` - Add click transaction logging for retroactive 1/1 attribution

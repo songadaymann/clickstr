@@ -98,6 +98,7 @@ let poolSuffixEl: HTMLElement;
 let arcadeCurrentEl: HTMLElement;
 let arcadeAlltimeEl: HTMLElement;
 let arcadeEarnedEl: HTMLElement;
+let leaderboardPanel: HTMLElement;
 let leaderboardListEl: HTMLElement;
 // walletModal removed - AppKit handles wallet modal
 let helpModal: HTMLElement;
@@ -211,6 +212,7 @@ function cacheElements(): void {
   arcadeCurrentEl = getElement('arcade-current');
   arcadeAlltimeEl = getElement('arcade-alltime');
   arcadeEarnedEl = getElement('arcade-earned');
+  leaderboardPanel = getElement('leaderboard-panel');
   leaderboardListEl = getElement('leaderboard-list');
   // walletModal removed - AppKit handles wallet modal
   helpModal = getElement('help-modal');
@@ -869,6 +871,7 @@ function handleStateChange(event: string): void {
     case 'connectionChanged':
       updateConnectButton();
       updateMobileWalletText();
+      updatePanelVisibility();
       // Detect new connection (transition from disconnected to connected)
       if (gameState.isConnected && !wasConnected) {
         wasConnected = true;
@@ -884,6 +887,21 @@ function handleStateChange(event: string): void {
     case 'statsChanged':
       updateDisplays();
       break;
+  }
+}
+
+/**
+ * Update visibility of panels that require wallet connection
+ * Leaderboard panel is hidden until wallet is connected
+ * NFT panel visibility is managed by renderNftPanel() based on claimable items
+ */
+function updatePanelVisibility(): void {
+  if (gameState.isConnected) {
+    leaderboardPanel.style.display = 'block';
+    // NFT panel visibility is controlled by renderNftPanel based on achievements
+  } else {
+    leaderboardPanel.style.display = 'none';
+    nftPanel.style.display = 'none';
   }
 }
 
