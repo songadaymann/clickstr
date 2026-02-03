@@ -13,9 +13,9 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     chainId: 11155111,
     chainName: 'Sepolia',
     rpcUrl: import.meta.env.VITE_SEPOLIA_RPC_URL || '',
-    contractAddress: '0xA16d45e4D186B9678020720BD1e743872a6e9bA0', // Clickstr (v5 - 24hr test Feb 2-3)
-    tokenAddress: '0x3706Dcde2dBA966F225E14d3F6c22eaF7A5724c4', // MockClickToken (v5)
-    nftContractAddress: '0x39B41525ba423FcAbE23564ecCCdEa66e7D59551', // ClickstrNFT (v5 - IPFS metadata)
+    contractAddress: '0xf724ede44Bbb2Ccf46cec530c21B14885D441e02', // Clickstr (v6 - mainnet dry run Feb 3-4)
+    tokenAddress: '0x78A607EDE7C7b134F51E725e4bA73D7b269580fc', // MockClickToken (v6 - 1B supply)
+    nftContractAddress: '0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849', // ClickstrNFT (v6 - same as mainnet)
     turnstileSiteKey: '0x4AAAAAACV0UOMmCeG_g2Jr',
   },
   mainnet: {
@@ -42,7 +42,7 @@ export function buildConfig(networkId: NetworkId = CURRENT_NETWORK): AppConfig {
     maxBatchSize: 500,
     walletConnectProjectId: import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID || '',
     apiUrl: 'https://mann.cool/api/clickstr',
-    subgraphUrl: 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.3/gn',
+    subgraphUrl: 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.4/gn',
   };
 }
 

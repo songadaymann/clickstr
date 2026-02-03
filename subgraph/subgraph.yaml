@@ -6,14 +6,14 @@ dataSources:
     name: Clickstr
     # =========================================================================
     # IMPORTANT: Update this for each new season deployment!
-    # Current: Sepolia 24-hour test deployment (Feb 2-3, 2026) - v5
+    # Current: Sepolia mainnet dry run (Feb 3-4, 2026) - v6
     # =========================================================================
     network: sepolia
     source:
-      address: "0xA16d45e4D186B9678020720BD1e743872a6e9bA0"
+      address: "0xf724ede44Bbb2Ccf46cec530c21B14885D441e02"
       abi: Clickstr
       # Start block should be the block the contract was deployed
-      startBlock: 10177493
+      startBlock: 10184500
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

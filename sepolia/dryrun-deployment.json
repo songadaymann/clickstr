@@ -1,0 +1,23 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "dryRun": true,
+  "season": {
+    "totalEpochs": 12,
+    "epochDuration": 7200,
+    "poolAmount": "3000000",
+    "seasonLengthHours": 24
+  },
+  "contracts": {
+    "clickstrNFT": "0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849",
+    "clickToken": "0x78A607EDE7C7b134F51E725e4bA73D7b269580fc",
+    "clickstr": "0xf724ede44Bbb2Ccf46cec530c21B14885D441e02"
+  },
+  "wallets": {
+    "gameDeployer": "0x73468BD5fDD81b6e0c583bB5bb38534684c8DFe0",
+    "safeWallet": "0x4890c268170a51d7864d4F879E73AC24A0415810"
+  },
+  "deployedAt": "2026-02-03T19:10:24.811Z",
+  "gameStartTime": "2026-02-03T19:10:24.000Z",
+  "gameEndTime": "2026-02-04T19:10:24.000Z"
+}

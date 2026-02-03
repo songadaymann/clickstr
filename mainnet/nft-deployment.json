@@ -1,0 +1,13 @@
+{
+  "network": "mainnet",
+  "chainId": 1,
+  "contract": {
+    "name": "ClickstrNFT",
+    "address": "0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849",
+    "signer": "0xf55E4fac663ad8db80284620F97D95391ab002EF",
+    "baseURI": "ipfs://QmfZqEdzeEm61d3uSeFxBc1HasR3KC6rMsiRnxkvzM3Ywx/clickstr-metadata/"
+  },
+  "deployer": "0xf55E4fac663ad8db80284620F97D95391ab002EF",
+  "deployedAt": "2026-02-03T18:41:03.393Z",
+  "txHash": "0x0502f8ce85d76bd10fe8340747ba0e2f9d46cd44999cf4ba2fee6b25ab8098c2"
+}

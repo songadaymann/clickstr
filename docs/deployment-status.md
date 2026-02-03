@@ -69,21 +69,32 @@ Points to v5 contract: `0xA16d45e4D186B9678020720BD1e743872a6e9bA0`
 
 ---
 
-## Mainnet (Not Yet Deployed)
+## Mainnet
 
-### NFT Signer (Same for Testnet & Mainnet)
-- Address: `0xf55E4fac663ad8db80284620F97D95391ab002EF`
-- **IMPORTANT:** For mainnet, deploy NFT contract FROM this signer address so it's also the owner
+### Deployed Contracts
 
-### Required Steps
-1. Get production Turnstile keys from Cloudflare
-2. Deploy NFT contract from signer wallet (`0xf55E...`) so signer = owner
-3. Deploy Clickstr and Token contracts
-4. Update frontend `NETWORK = 'mainnet'`
-5. Update Vercel env vars:
-   - `NFT_CONTRACT_ADDRESS` = new mainnet NFT address
+| Contract | Address | Etherscan |
+|----------|---------|-----------|
+| ClickstrNFT | `0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849` | [View](https://etherscan.io/address/0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849#code) |
+| $CLICK Token | `0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d` | [View](https://etherscan.io/address/0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d) |
+| Clickstr | `TBD` | Deploy after TokenWorks allowlist |
+
+**NFT Contract Details:**
+- Deployed: 2026-02-03
+- Owner: `0xf55E4fac663ad8db80284620F97D95391ab002EF`
+- Signer: `0xf55E4fac663ad8db80284620F97D95391ab002EF`
+- BaseURI: `ipfs://QmfZqEdzeEm61d3uSeFxBc1HasR3KC6rMsiRnxkvzM3Ywx/clickstr-metadata/`
+
+### Remaining Steps
+1. [x] Deploy NFT contract from signer wallet (`0xf55E...`) so signer = owner
+2. [x] Deploy $CLICK token via TokenWorks
+3. [ ] Wait for TokenWorks to allowlist Clickstr contract address for transfers
+4. [ ] Deploy Clickstr game contract
+5. [ ] Update frontend `NETWORK = 'mainnet'`
+6. [ ] Update Vercel env vars:
+   - `NFT_CONTRACT_ADDRESS=0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849`
    - `NFT_SIGNER_PRIVATE_KEY` = private key for `0xf55E...`
-6. Deploy mainnet subgraph
+7. [ ] Deploy mainnet subgraph
 
 ---
 
@@ -102,10 +113,10 @@ export const NETWORKS = {
   },
   mainnet: {
     chainId: 1,
-    contractAddress: '0x...',  // TODO
-    tokenAddress: '0x...',      // TODO
-    nftContractAddress: '0x...', // TODO
-    turnstileSiteKey: '...',    // TODO: Production key
+    contractAddress: '0x...',  // TODO: Deploy after TokenWorks allowlist
+    tokenAddress: '0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d',      // $CLICK token
+    nftContractAddress: '0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849', // DEPLOYED
+    turnstileSiteKey: '0x4AAAAAACV0UOMmCeG_g2Jr',  // Same as testnet for now
   }
 };
 
