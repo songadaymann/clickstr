@@ -28,7 +28,7 @@ html, body {
 
 @font-face {
   font-family: 'SevenSegment';
-  src: url('/Fonts/Seven Segment.ttf') format('truetype');
+  src: url('/Fonts/7segment.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
 }
