@@ -98,6 +98,8 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 - [x] Migrated to Reown AppKit for reliable mobile wallet connections
 - [x] Rankings modal with tabs for Global + each past game
 - [x] "Your Total Clicks" reads consistently from API only
+- [x] ENS name resolution in leaderboard (fixed "Anonymous" filter bug)
+- [x] Streak counter panel (top-right, shows current/best streak)
 
 ### Remaining
 - [ ] Show current difficulty level somewhere
@@ -125,7 +127,7 @@ Backend is DONE in mann.cool API (`api/clickstr.js` lines 829-852, 930-936):
 - [x] Check and award streak achievements (tiers 101-103)
 
 **Frontend:**
-- [x] Show streak counter in UI (panel below NFT rewards on right side)
+- [x] Show streak counter in UI (top-right corner near help button)
 - [ ] Display streak achievements in Mint Rewards panel when earned
 
 **Milestones:**
@@ -178,11 +180,11 @@ The frontend has been refactored from a single 4,922-line `index.html` to a modu
 
 ### Remaining
 
-1. **Write Unit Tests** (Priority: Medium) - DONE (102 tests)
-   - [x] Test `GameState` subscription and state updates (39 tests)
-   - [x] Test `persistence.ts` localStorage functions (15 tests)
-   - [x] Test `milestones.ts` helper functions (34 tests)
-   - [x] Test `api.ts` mergeLeaderboards logic (14 tests)
+1. **Unit Tests** - DONE (102 tests passing)
+   - [x] Test `GameState` subscription and state updates (39 tests) - `src-ts/src/state/GameState.test.ts`
+   - [x] Test `persistence.ts` localStorage functions (15 tests) - `src-ts/src/state/persistence.test.ts`
+   - [x] Test `milestones.ts` helper functions (34 tests) - `src-ts/src/config/milestones.test.ts`
+   - [x] Test `api.ts` mergeLeaderboards logic (14 tests) - `src-ts/src/services/api.test.ts`
    - [ ] Mock tests for wallet/contract interactions
 
 2. **Code Quality** (Priority: Low)
