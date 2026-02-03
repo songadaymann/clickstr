@@ -1070,7 +1070,7 @@ async function resolveLeaderboardEns(): Promise<void> {
   console.log('[Leaderboard] Entry names:', leaderboardData.map(e => ({ addr: e.address?.slice(0,10), name: e.name, cached: getCachedEns(e.address) })));
 
   const addressesToResolve = leaderboardData
-    .filter(entry => !entry.name && !getCachedEns(entry.address))
+    .filter(entry => (!entry.name || entry.name === 'Anonymous') && !getCachedEns(entry.address))
     .map(entry => entry.address);
 
   console.log('[Leaderboard] ENS addresses to resolve:', addressesToResolve.length);
