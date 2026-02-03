@@ -2554,3 +2554,70 @@ Tested and confirmed the NFT tier bonus system is fully operational:
 | Clickstr | TBD | ⏳ Waiting for TokenWorks allowlist |
 
 **Blocker:** TokenWorks requires allowlisting addresses before they can transfer tokens. This prevents unauthorized pools that avoid the burn fees. Waiting for them to allowlist the Clickstr contract address.
+
+## Session 16 - Bug Fixes and UI Polish (Feb 3, 2026)
+
+### Investigated: Gas Limit Error with Large Batches
+
+**Issue:** When submitting 500 clicks at MAX EASY difficulty, Rabby Wallet showed error: `[From https://eth-sepolia.g.alchemy.com] gas limit too high`
+
+**Analysis:**
+- At MAX EASY difficulty, nearly ALL proofs are valid (not just some)
+- 500 valid proofs = ~13.2M gas (44% of block)
+- Gas estimates for different batch sizes at MAX EASY:
+  - 100 proofs: ~2.6M gas (8.8% of block)
+  - 200 proofs: ~5.3M gas (17.6% of block)
+  - 300 proofs: ~7.9M gas (26.4% of block)
+  - 500 proofs: ~13.2M gas (44.1% of block)
+
+**Finding:** This is a **Rabby Wallet limitation**, not a game bug. MetaMask handles the same transaction fine. Rabby has stricter gas estimation limits, especially on testnets.
+
+**Decision:** No code changes needed. Will monitor on mainnet - the issue may be Sepolia-specific.
+
+### Fixed: Legendary NFT Display in Collection Modal
+
+**Problems:**
+1. Trophy section title showed static "LEGENDARY 1/1s" instead of owned/total count
+2. Click numbers showed "Click #69" instead of cleaner "CLICK 69"
+
+**Changes:**
+- Added `trophyTitle` element with dynamic text: "LEGENDARY X/24" (where X = owned count)
+- Removed `#` from click number display (now "CLICK 69" instead of "Click #69")
+- Updated both trophy section and collection grid lightbox text
+
+### Fixed: Button Animation Not Showing at MAX EASY Difficulty
+
+**Problem:** When mining at MAX EASY difficulty, clicks were being recorded but the button's "down" animation wasn't visible. Sound played, clicks counted, but visually the button appeared stuck in "up" state.
+
+**Root Cause:** Mining completes so fast (< 1ms) that the browser doesn't have time to render the "down" image before `onClickMined` switches it back to "up". Both image changes happen in the same rendering frame.
+
+**Fix:** Added minimum visual delay (50ms) before resetting button state:
+```typescript
+const MIN_DOWN_TIME_MS = 50;
+let buttonDownTime = 0;
+
+function pressDown(): void {
+  // ...
+  buttonDownTime = Date.now();
+  buttonImg.src = 'button-down.jpg';
+  // ...
+}
+
+function onClickMined(nonce: bigint): void {
+  const elapsed = Date.now() - buttonDownTime;
+  const remainingDelay = Math.max(0, MIN_DOWN_TIME_MS - elapsed);
+
+  setTimeout(() => {
+    // Reset button state after minimum visible time
+    buttonImg.src = 'button-up.jpg';
+    // ...
+  }, remainingDelay);
+}
+```
+
+**Diagnostic Logging:** Added console logs to button/mining flow for future debugging:
+- `[Button] pressDown - setting isPressed=true, showing down image`
+- `[Button] pressDown BLOCKED - isPressed=X, isMiningClick=Y`
+- `[Mining] startMining called`
+- `[Mining] Worker found nonce: X`
+- `[Button] onClickMined - reset state, showing up image`
