@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GameState } from './GameState';
-import type { GameStateEvent } from './GameState';
+import type { ClaimState } from '@/types/index';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -301,15 +301,15 @@ describe('GameState', () => {
     });
 
     it('can set pending claim', () => {
-      const claim = { tier: 5, name: 'Test' };
+      const claim: ClaimState = { tier: 5, milestoneId: 'serious-clicker' };
       gameState.setPendingClaim(claim);
 
       expect(gameState.pendingClaim).toEqual(claim);
     });
 
     it('can add to claim queue', () => {
-      const claim1 = { tier: 1, name: 'First' };
-      const claim2 = { tier: 2, name: 'Second' };
+      const claim1: ClaimState = { tier: 1, milestoneId: 'first-timer' };
+      const claim2: ClaimState = { tier: 2, milestoneId: 'getting-started' };
 
       gameState.addToClaimQueue(claim1, claim2);
 
@@ -317,8 +317,8 @@ describe('GameState', () => {
     });
 
     it('can shift from claim queue', () => {
-      const claim1 = { tier: 1, name: 'First' };
-      const claim2 = { tier: 2, name: 'Second' };
+      const claim1: ClaimState = { tier: 1, milestoneId: 'first-timer' };
+      const claim2: ClaimState = { tier: 2, milestoneId: 'getting-started' };
       gameState.addToClaimQueue(claim1, claim2);
 
       const shifted = gameState.shiftClaimQueue();
