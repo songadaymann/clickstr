@@ -1066,6 +1066,9 @@ function renderLeaderboard(): void {
  * Updates the DOM when names are resolved
  */
 async function resolveLeaderboardEns(): Promise<void> {
+  // Debug: log what names we have
+  console.log('[Leaderboard] Entry names:', leaderboardData.map(e => ({ addr: e.address?.slice(0,10), name: e.name, cached: getCachedEns(e.address) })));
+
   const addressesToResolve = leaderboardData
     .filter(entry => !entry.name && !getCachedEns(entry.address))
     .map(entry => entry.address);
