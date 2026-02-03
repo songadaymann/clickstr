@@ -31,13 +31,14 @@
 - [ ] Verify contracts on Etherscan
 - [ ] Update frontend `NETWORK = 'mainnet'`
 - [ ] Deploy mainnet subgraph: `goldsky subgraph deploy clickstr-mainnet/1.0.0`
+- [ ] Update Vercel env var with mainnet NFT contract
 
 ### Testing (Sepolia v5)
-- [ ] Test full flow: Connect wallet → click → verify → submit → see achievements
+- [x] Test full flow: Connect wallet → click → verify → submit → see achievements
 - [ ] Test epoch transitions (12 × 2hr epochs)
 - [ ] Test difficulty adjustment after epochs
 - [ ] Test winner bonus distribution
-- [ ] Verify NFT claiming flow end-to-end
+- [x] Verify NFT claiming flow end-to-end
 - [ ] Test NFT tier bonuses apply correctly
 - [ ] Run `npm run test:bot-b` to verify Turnstile blocks automation
 
@@ -99,10 +100,19 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 - [x] "Your Total Clicks" reads consistently from API only
 
 ### Remaining
-- [ ] Show streak counter in header
+- [ ] Show streak counter somewhere
+- [ ] Show current difficulty level somewhere
+- [ ] Add simple 3 sentence explanation on first visit 
 - [ ] Sound effects for achievements
 - [ ] Confetti animation for legendary unlocks
 - [ ] Error handling improvements
+- [ ] Investigate remaining font weirdness
+       - Can we make . bigger so numbers like 5.34k read better
+       - What's up with the words 'active' and 'inactive' in the game state - they look weird
+       - Number 6 still looks werd in some, but not all, leaderboard positions
+- [ ] Think about making modals bigger, so font can be bigger for readability. 
+
+
 
 ---
 
