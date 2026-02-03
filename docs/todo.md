@@ -100,26 +100,44 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 - [x] "Your Total Clicks" reads consistently from API only
 
 ### Remaining
-- [ ] Show streak counter somewhere
 - [ ] Show current difficulty level somewhere
-- [ ] Add simple 3 sentence explanation on first visit 
+- [ ] Add simple 3 sentence explanation on first visit
 - [ ] Sound effects for achievements
 - [ ] Confetti animation for legendary unlocks
 - [ ] Error handling improvements
 - [ ] Investigate remaining font weirdness
        - Can we make . bigger so numbers like 5.34k read better
        - What's up with the words 'active' and 'inactive' in the game state - they look weird
-       - Number 6 still looks werd in some, but not all, leaderboard positions
+       - Number 6 still looks weird in some, but not all, leaderboard positions
 - [ ] Think about making modals bigger, so font can be bigger for readability. 
 
 
 
 ---
 
+## Streak Tracking
+
+Backend is DONE in mann.cool API (`api/clickstr.js` lines 829-852, 930-936):
+- [x] Track which days a user clicked (Redis key `clickstr:streak:{address}`)
+- [x] Calculate current streak on each click
+- [x] Update `currentStreak` and `longestStreak` in Redis hash
+- [x] Return streak info in stats endpoint response
+- [x] Check and award streak achievements (tiers 101-103)
+
+**Frontend (remaining):**
+- [ ] Show streak counter somewhere in UI (API returns `streak.current` and `streak.longest`)
+- [ ] Display streak achievements in Mint Rewards panel when earned
+
+**Milestones:**
+- Tier 101: Week Warrior (7 day streak)
+- Tier 102: Month Master (30 day streak)
+- Tier 103: Perfect Attendance (90 day streak)
+
+---
+
 ## API Enhancements
 
 - [ ] Create NFT metadata API endpoint (`/api/clickstr/nft/[tokenId]`)
-- [ ] Add streak tracking display to stats endpoint
 
 ---
 
