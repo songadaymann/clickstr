@@ -765,6 +765,7 @@ function handleAchievements(data: {
   newMilestones?: Array<{ id: string; name: string; tier?: number; cosmetic?: string }>;
   newAchievements?: UnlockedAchievement[];
 }): void {
+  console.log('[Achievements] handleAchievements called:', data);
   const claimable: ClaimState[] = [];
   let hasPersonalMilestone = false;
   let hasGlobalMilestone = false;

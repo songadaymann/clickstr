@@ -12,6 +12,7 @@ import { playMilestoneSound, playGlobalMilestoneSound } from './sounds.ts';
  * - Launches confetti for 3 seconds
  */
 export function celebratePersonalMilestone(): void {
+  console.log('[Celebration] Personal milestone - zelda sound + confetti');
   playMilestoneSound();
   launchConfetti(3000);
 }
@@ -23,6 +24,7 @@ export function celebratePersonalMilestone(): void {
  * - Launches confetti for 5 seconds
  */
 export function celebrateGlobalMilestone(): void {
+  console.log('[Celebration] Global milestone - disco + confetti');
   playGlobalMilestoneSound();
   triggerDisco(11000);
   launchConfetti(5000);
