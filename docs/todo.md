@@ -98,19 +98,17 @@ All NFT artwork and cursor images have been uploaded to IPFS via Pinata.
 - [x] Migrated to Reown AppKit for reliable mobile wallet connections
 - [x] Rankings modal with tabs for Global + each past game
 - [x] "Your Total Clicks" reads consistently from API only
-- [x] ENS name resolution in leaderboard (fixed "Anonymous" filter bug)
-- [x] Streak counter panel (top-right, shows current/best streak)
 
 ### Remaining
-- [ ] Show current difficulty level somewhere
+- [x] Show current difficulty level somewhere
+- [x] Show estimated reward per click
+- [x] Leaderboard improvements (Humans/On-Chain tabs, matrix view in rankings modal)
+- [x] NFT panel improvements (green MINT button, no grey-out)
 - [ ] Add simple 3 sentence explanation on first visit
-- [ ] Sound effects for achievements
-- [ ] Confetti animation for legendary unlocks
+- [x] Sound effects for achievements
+- [x] Confetti animation for legendary unlocks
 - [ ] Error handling improvements
-- [ ] Investigate remaining font weirdness
-       - Can we make . bigger so numbers like 5.34k read better
-       - What's up with the words 'active' and 'inactive' in the game state - they look weird
-       - Number 6 still looks weird in some, but not all, leaderboard positions
+- [x] Investigate remaining font weirdness (removed # and ~ that don't render)
 - [ ] Think about making modals bigger, so font can be bigger for readability. 
 
 
@@ -127,7 +125,7 @@ Backend is DONE in mann.cool API (`api/clickstr.js` lines 829-852, 930-936):
 - [x] Check and award streak achievements (tiers 101-103)
 
 **Frontend:**
-- [x] Show streak counter in UI (top-right corner near help button)
+- [x] Show streak counter in UI (panel below NFT rewards on right side)
 - [ ] Display streak achievements in Mint Rewards panel when earned
 
 **Milestones:**
@@ -180,11 +178,11 @@ The frontend has been refactored from a single 4,922-line `index.html` to a modu
 
 ### Remaining
 
-1. **Unit Tests** - DONE (102 tests passing)
-   - [x] Test `GameState` subscription and state updates (39 tests) - `src-ts/src/state/GameState.test.ts`
-   - [x] Test `persistence.ts` localStorage functions (15 tests) - `src-ts/src/state/persistence.test.ts`
-   - [x] Test `milestones.ts` helper functions (34 tests) - `src-ts/src/config/milestones.test.ts`
-   - [x] Test `api.ts` mergeLeaderboards logic (14 tests) - `src-ts/src/services/api.test.ts`
+1. **Write Unit Tests** (Priority: Medium) - DONE (102 tests)
+   - [x] Test `GameState` subscription and state updates (39 tests)
+   - [x] Test `persistence.ts` localStorage functions (15 tests)
+   - [x] Test `milestones.ts` helper functions (34 tests)
+   - [x] Test `api.ts` mergeLeaderboards logic (14 tests)
    - [ ] Mock tests for wallet/contract interactions
 
 2. **Code Quality** (Priority: Low)

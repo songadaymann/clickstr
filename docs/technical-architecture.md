@@ -92,17 +92,46 @@ src-ts/
 Original single-file vanilla HTML/JS implementation (~4,922 lines). Kept for reference but TypeScript version is the active codebase.
 
 ### Key Features
-- Arcade cabinet aesthetic with DSEG7 seven-segment fonts
+- Arcade cabinet aesthetic with dual seven-segment fonts:
+  - TrackmaniaSegment for numbers/values (chunky, high contrast)
+  - SevenSegment for labels/text (supports full alphabet)
 - Wallet connections via Reown AppKit (MetaMask, Rainbow, Rabby, Coinbase)
 - Inline WebWorker for keccak256 mining
 - Cloudflare Turnstile for bot protection
 - localStorage persistence for pending clicks
 - Circular click zone centered on button
-- Real-time stats (session clicks, all-time, earned)
+
+### UI Layout
+- **Top center:** 2x2 grid of player stats (Session Clicks, Total Clicks, Total Earned, Day Streak)
+- **Top right:** Connect wallet button (fixed position)
+- **Left side:** Leaderboard panel with Humans/On-Chain tabs (top: 250px, 3 items visible with scroll)
+- **Right side:** Mint Rewards panel with green MINT buttons (top: 250px, 3 items visible with scroll)
+- **Bottom center:** Game status panel (ACTIVE/INACTIVE, epoch, pool, clicking now, difficulty, est. per click)
+- **Bottom right:** Help button (fixed position)
+
+### Game Status Panel
+The bottom-center panel shows:
+- **Game:** ACTIVE/INACTIVE status
+- **Epoch:** Current epoch / total epochs
+- **All-Time:** Player's all-time click count
+- **Pool:** Remaining tokens in game pool
+- **Clicking Now:** Active humans and bots count
+- **Difficulty:** Current mining difficulty (e.g., "2x", "1.5kx")
+- **Est. Per Click:** Estimated $CLICKSTR reward per successful click
+
+### Additional Features
 - Merged leaderboard (frontend + contract data)
 - Collection modal with 95 NFT slots
 - Cursor cosmetics with 16 particle effects
 - Achievement toasts on milestone unlock
+
+### Mint Rewards Panel
+The right-side panel shows claimable NFT rewards:
+- All items display at full visibility (no grey-out for claimed items)
+- Claimable items show a green "MINT" button
+- Claimed items show no button (already minted)
+- Sync button refreshes achievement status from server
+- Limited to 3 visible items with scroll for more
 
 ## Server APIs (mann.cool)
 
@@ -169,16 +198,39 @@ https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/c
 
 ## Dual Leaderboard System
 
-The leaderboard has two modes accessible via toggle in the sidebar panel and tabs in the full rankings modal:
+The leaderboard has two modes accessible via toggle in the sidebar panel:
 
-| Mode | Description | Data Source |
-|------|-------------|-------------|
-| **Global** | All-time frontend clicks (humans across all games) | Redis via mann.cool API |
-| **Per-Game** | On-chain clicks for a specific game/season | Game's Goldsky subgraph |
+| Mode | Label | Description | Data Source |
+|------|-------|-------------|-------------|
+| **Humans** | Sidebar "Humans" tab | Frontend clicks (Turnstile-verified) | Redis via mann.cool API |
+| **On-Chain** | Sidebar "On-Chain" tab | On-chain clicks for current game | Game's Goldsky subgraph |
 
 **Why two modes:**
-- Global tracks human activity that counts toward NFT milestones (persists forever)
-- Per-Game tracks on-chain competition within each seasonal contract
+- Humans tracks Turnstile-verified activity that counts toward NFT milestones
+- On-Chain tracks the competition for epoch winner bonuses (includes bots)
+
+### Rankings Modal (Full View)
+
+The "See All Rankings" modal provides detailed breakdowns:
+
+**Tabs:**
+- **All-Time Humans** - All-time frontend clicks (simple list)
+- **[Game Name]** - Matrix view per game showing both click types
+
+**Matrix View (per-game tabs):**
+
+| Column | Description |
+|--------|-------------|
+| Rank | Position by on-chain clicks |
+| H/B | Human or Bot label (H if human clicks >= 50% of on-chain) |
+| Player | Address/ENS name |
+| On-Chain | Total on-chain clicks (determines epoch winner) |
+| Human | Turnstile-verified frontend clicks (shown in green) |
+
+This allows users to see:
+- Who's winning the epoch (on-chain column)
+- Who's actually clicking manually vs botting (human column)
+- Whether a player is primarily human or bot (H/B label)
 
 ### Games Configuration
 
@@ -208,14 +260,6 @@ export const GAMES: GameConfig[] = [
   // Add new games here as they launch
 ];
 ```
-
-### Rankings Modal Tabs
-
-The full rankings modal ("See All Rankings") shows tabs for:
-- **Global** - All-time frontend clicks
-- **[Game Name]** - One tab per game from the `GAMES` config
-
-Each tab fetches from the appropriate data source and displays up to 50 entries.
 
 ## Redis Data Structure
 
