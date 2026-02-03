@@ -668,6 +668,7 @@ function pressDown(): void {
   }
   console.log('[Button] pressDown - setting isPressed=true, showing down image');
   isPressed = true;
+  buttonDownTime = Date.now();
   buttonImg.src = 'button-down.jpg';
   playButtonDown();
 
@@ -697,6 +698,12 @@ function pressUp(): void {
   }
 }
 
+/** Minimum time (ms) to show button in down state for visual feedback */
+const MIN_DOWN_TIME_MS = 50;
+
+/** Timestamp when button was pressed down */
+let buttonDownTime = 0;
+
 function onClickMined(nonce: bigint): void {
   console.log(`[Button] onClickMined called - nonce=${nonce}, isMiningClick=${isMiningClick}, isPressed=${isPressed}`);
 
@@ -706,18 +713,25 @@ function onClickMined(nonce: bigint): void {
     miningTimeout = null;
   }
 
-  isMiningClick = false;
-  isPressed = false;
-  buttonImg.src = 'button-up.jpg';
-  playButtonUp();
-  console.log('[Button] onClickMined - reset state, showing up image');
+  // Calculate how long the button has been visually down
+  const elapsed = Date.now() - buttonDownTime;
+  const remainingDelay = Math.max(0, MIN_DOWN_TIME_MS - elapsed);
 
-  // Only add valid clicks (nonce 0 indicates mining error)
-  if (nonce !== 0n) {
-    gameState.addClick(nonce);
-    updateDisplays();
-    updateSubmitButton();
-  }
+  // Delay the visual reset to ensure minimum down time is visible
+  setTimeout(() => {
+    isMiningClick = false;
+    isPressed = false;
+    buttonImg.src = 'button-up.jpg';
+    playButtonUp();
+    console.log('[Button] onClickMined - reset state, showing up image');
+
+    // Only add valid clicks (nonce 0 indicates mining error)
+    if (nonce !== 0n) {
+      gameState.addClick(nonce);
+      updateDisplays();
+      updateSubmitButton();
+    }
+  }, remainingDelay);
 }
 
 // ============ Connection ============
