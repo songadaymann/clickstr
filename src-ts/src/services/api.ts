@@ -492,44 +492,71 @@ export async function fetchActiveUsers(): Promise<ActiveUsersResponse> {
 
 /**
  * Fetch recent bot activity from subgraph
- * Counts unique addresses that submitted in the last N minutes
+ * Counts unique addresses that submitted on-chain in the last N minutes
+ * but are NOT in the human leaderboard (i.e., they didn't use the frontend with Turnstile)
  */
 export async function fetchRecentBotActivity(minutesAgo = 5): Promise<number> {
   try {
     // Get timestamp from N minutes ago
     const cutoffTime = Math.floor(Date.now() / 1000) - (minutesAgo * 60);
 
-    const response = await fetch(CONFIG.subgraphUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: `{
-          clickSubmissions(
-            first: 100,
-            where: { timestamp_gt: "${cutoffTime}" },
-            orderBy: timestamp,
-            orderDirection: desc
-          ) {
-            user { id }
-          }
-        }`,
+    // Fetch both: recent on-chain activity AND human leaderboard
+    const [subgraphResponse, humanResponse] = await Promise.all([
+      fetch(CONFIG.subgraphUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `{
+            clickSubmissions(
+              first: 100,
+              where: { timestamp_gt: "${cutoffTime}" },
+              orderBy: timestamp,
+              orderDirection: desc
+            ) {
+              user { id }
+            }
+          }`,
+        }),
       }),
-    });
+      fetch(`${CONFIG.apiUrl}?leaderboard=true`),
+    ]);
 
-    if (!response.ok) throw new Error('Failed to fetch recent activity');
+    if (!subgraphResponse.ok) throw new Error('Failed to fetch recent activity');
 
-    const data = await response.json() as {
+    const subgraphData = await subgraphResponse.json() as {
       data?: {
         clickSubmissions?: Array<{ user: { id: string } }>;
       };
     };
 
-    if (data.data?.clickSubmissions) {
-      // Count unique addresses
-      const uniqueAddresses = new Set(
-        data.data.clickSubmissions.map(s => s.user.id.toLowerCase())
+    // Get set of human addresses from the leaderboard
+    const humanAddresses = new Set<string>();
+    if (humanResponse.ok) {
+      const humanData = await humanResponse.json() as {
+        leaderboard?: Array<{ address: string }>;
+      };
+      if (humanData.leaderboard) {
+        humanData.leaderboard.forEach(entry => {
+          humanAddresses.add(entry.address.toLowerCase());
+        });
+      }
+    }
+
+    if (subgraphData.data?.clickSubmissions) {
+      // Get unique addresses from recent on-chain activity
+      const recentOnChainAddresses = new Set(
+        subgraphData.data.clickSubmissions.map(s => s.user.id.toLowerCase())
       );
-      return uniqueAddresses.size;
+
+      // Count only those NOT in human leaderboard (true bots)
+      let botCount = 0;
+      recentOnChainAddresses.forEach(addr => {
+        if (!humanAddresses.has(addr)) {
+          botCount++;
+        }
+      });
+
+      return botCount;
     }
     return 0;
   } catch (error) {
