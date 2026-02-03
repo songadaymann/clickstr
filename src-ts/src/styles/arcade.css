@@ -11,7 +11,8 @@
     var(--glow-red-xl);
   letter-spacing: 2px;
   background: rgba(0, 0, 0, 0.6);
-  padding: var(--spacing-sm) var(--spacing-lg);
+  /* Adjusted padding: more on top to push down, more on right to center horizontally */
+  padding: 12px 20px 8px 16px;
   border-radius: var(--radius-md);
   border: 2px solid var(--color-red-950);
   box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
@@ -29,54 +30,45 @@
   opacity: 0.7;
 }
 
-/* Top center - Current clicks (prominent) */
-#current-clicks-display {
+/* Top center - 2x2 grid of player stats */
+#player-stats-grid {
   position: absolute;
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
   z-index: var(--z-ui);
   pointer-events: none;
 }
 
-#current-clicks-display .arcade-display {
-  font-size: 48px;
-  min-width: 200px;
-  text-align: center;
-}
-
-/* Bottom center - All-time stats */
-#alltime-stats-display {
-  position: absolute;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 30px;
-  z-index: var(--z-ui);
-  pointer-events: none;
-}
-
-.alltime-stat {
+.player-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.alltime-stat .arcade-label {
+.player-stat .arcade-label {
   font-size: 14px;
   letter-spacing: 2px;
   opacity: 1;
   text-shadow: var(--glow-red-md), 0 0 16px rgba(255, 0, 0, 0.4);
 }
 
-.alltime-stat .arcade-display {
+.player-stat .arcade-display {
   font-size: 28px;
   min-width: 160px;
   text-align: center;
+}
+
+/* Streak stat - hidden until wallet connected */
+#streak-stat {
+  display: none;
+}
+
+#streak-stat.visible {
+  display: flex;
 }
 
 /* Achievement toast - ARCADE STYLE */

@@ -9,6 +9,8 @@ export const CLICKSTR_ABI = [
   'function getGameStats() external view returns (uint256 poolRemaining_, uint256 currentEpoch_, uint256 totalEpochs_, uint256 gameStartTime_, uint256 gameEndTime_, uint256 difficulty_, bool started_, bool ended_)',
   'function getDifficultyTarget() external view returns (uint256)',
   'function getUserLifetimeStats(address user) external view returns (uint256 totalClicks, uint256 totalEarned, uint256 totalBurned, uint256 epochsWon_)',
+  'function TARGET_CLICKS_PER_EPOCH() external view returns (uint256)',
+  'function DAILY_EMISSION_RATE() external view returns (uint256)',
 ] as const;
 
 /** ClickstrNFT contract ABI */

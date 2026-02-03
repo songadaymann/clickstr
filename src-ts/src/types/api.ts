@@ -110,6 +110,15 @@ export interface MergedLeaderboardEntry {
   isHuman: boolean;
 }
 
+/** Matrix leaderboard entry (combines on-chain + human clicks) */
+export interface MatrixLeaderboardEntry {
+  address: string;
+  name: string | null;
+  onChainClicks: number;
+  humanClicks: number;
+  rank: number;
+}
+
 /** Active users response from heartbeat API */
 export interface ActiveUsersResponse {
   success: boolean;

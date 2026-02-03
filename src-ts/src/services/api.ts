@@ -14,6 +14,7 @@ import type {
   LeaderboardEntry,
   SubgraphUser,
   MergedLeaderboardEntry,
+  MatrixLeaderboardEntry,
   ActiveUsersResponse,
   HeartbeatResponse,
 } from '@/types/index.ts';
@@ -328,6 +329,81 @@ export async function fetchGameLeaderboard(
     return [];
   } catch (error) {
     console.error('Game leaderboard fetch error:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch matrix leaderboard for a game (combines all players with on-chain + human clicks)
+ * Sorted by on-chain clicks (who wins epochs)
+ */
+export async function fetchMatrixLeaderboard(
+  subgraphUrl: string,
+  limit = 50
+): Promise<MatrixLeaderboardEntry[]> {
+  try {
+    // Fetch both data sources in parallel
+    const [subgraphResponse, frontendData] = await Promise.all([
+      fetch(subgraphUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `{
+            users(first: ${limit}, orderBy: totalClicks, orderDirection: desc) {
+              id
+              totalClicks
+            }
+          }`,
+        }),
+      }),
+      fetchFrontendLeaderboard(limit),
+    ]);
+
+    if (!subgraphResponse.ok) throw new Error('Failed to fetch subgraph');
+
+    const subgraphData = await subgraphResponse.json() as SubgraphUsersResponse;
+    const onChainUsers = subgraphData.data?.users || [];
+
+    // Build a map of frontend (human) clicks by address
+    const frontendMap = new Map(
+      frontendData.map(e => [e.address?.toLowerCase(), e])
+    );
+
+    // Build a set of all addresses from both sources
+    const allAddresses = new Set<string>();
+    for (const user of onChainUsers) {
+      allAddresses.add(user.id.toLowerCase());
+    }
+    for (const entry of frontendData) {
+      allAddresses.add(entry.address.toLowerCase());
+    }
+
+    // Build merged entries
+    const entries: MatrixLeaderboardEntry[] = [];
+    for (const addr of allAddresses) {
+      const onChainUser = onChainUsers.find(u => u.id.toLowerCase() === addr);
+      const frontendUser = frontendMap.get(addr);
+
+      entries.push({
+        address: onChainUser?.id || frontendUser?.address || addr,
+        name: frontendUser?.name ?? null,
+        onChainClicks: parseInt(onChainUser?.totalClicks || '0') || 0,
+        humanClicks: frontendUser?.totalClicks || 0,
+        rank: 0, // Will be set after sorting
+      });
+    }
+
+    // Sort by on-chain clicks (epoch winner competition)
+    entries.sort((a, b) => b.onChainClicks - a.onChainClicks);
+
+    // Assign ranks
+    entries.forEach((entry, index) => {
+      entry.rank = index + 1;
+    });
+
+    return entries.slice(0, limit);
+  } catch (error) {
+    console.error('Matrix leaderboard fetch error:', error);
     return [];
   }
 }

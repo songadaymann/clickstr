@@ -33,6 +33,23 @@ html, body {
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'TrackmaniaSegment';
+  src: url('/Fonts/7-segment-trackmania-united.otf.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Make display values (numbers) bolder via text stroke for chunkiness */
+.game-status-value,
+.leaderboard-clicks,
+.stat-value,
+#epoch-info,
+#header-alltime-clicks,
+.arcade-display-value {
+  -webkit-text-stroke: 0.5px currentColor;
+}
+
 /* WalletConnect modal z-index override */
 wcm-modal, w3m-modal,
 [class*="walletconnect"],

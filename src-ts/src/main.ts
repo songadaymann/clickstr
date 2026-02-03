@@ -27,6 +27,8 @@ import {
   recordOnChainSubmission,
   fetchGlobalLeaderboard,
   fetchGameLeaderboard,
+  fetchMatrixLeaderboard,
+  fetchRewardParams,
   startMining,
   terminateMining,
   sendHeartbeat,
@@ -84,7 +86,7 @@ import {
 // Import contract services for NFT claiming
 import { checkNftClaimed, claimNft, getClaimSignature, confirmClaim } from './services/index.ts';
 
-import type { MergedLeaderboardEntry, UnlockedAchievement, ClaimState, ServerStatsResponse } from './types/index.ts';
+import type { MergedLeaderboardEntry, MatrixLeaderboardEntry, UnlockedAchievement, ClaimState, ServerStatsResponse } from './types/index.ts';
 
 // ============ DOM Elements ============
 let buttonImg: HTMLImageElement;
@@ -116,6 +118,8 @@ let turnstileModal: HTMLElement;
 let activeHumansEl: HTMLElement;
 let activeBotsEl: HTMLElement;
 let gameStatusEl: HTMLElement;
+let difficultyDisplayEl: HTMLElement;
+let rewardPerClickEl: HTMLElement;
 
 // ============ Local State ============
 let isPressed = false;
@@ -128,14 +132,14 @@ let serverStats: ServerStatsResponse | null = null;
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 let leaderboardMode: 'global' | 'game' = 'global';
 let currentGame: GameConfig | undefined;
+let targetClicksPerEpoch: bigint = 0n;
+let dailyEmissionRate: bigint = 0n;
 
 // Additional DOM elements for NFT/Collection
 let nftPanel: HTMLElement;
 let nftList: HTMLElement;
-let nftClaimableCount: HTMLElement;
-let streakPanel: HTMLElement;
+let streakStat: HTMLElement;
 let streakCurrentEl: HTMLElement;
-let streakBestEl: HTMLElement;
 let collectionGrid: HTMLElement;
 let trophySection: HTMLElement;
 let trophyGrid: HTMLElement;
@@ -146,11 +150,11 @@ let claimLaterBtn: HTMLButtonElement;
 // Leaderboard toggle elements
 let leaderboardToggleGlobal: HTMLButtonElement;
 let leaderboardToggleGame: HTMLButtonElement;
-let leaderboardGameName: HTMLElement;
 
 // Rankings modal elements
 let rankingsTabsEl: HTMLElement;
 let rankingsListEl: HTMLElement;
+let rankingsMatrixHeaderEl: HTMLElement;
 let rankingsTab: 'global' | string = 'global'; // 'global' or game id
 
 // Lightbox elements
@@ -181,9 +185,6 @@ async function init(): Promise<void> {
 
   // Initialize current game
   currentGame = getCurrentGame();
-  if (currentGame) {
-    setText(leaderboardGameName, currentGame.name);
-  }
 
   // Set up event listeners
   setupEventListeners();
@@ -231,12 +232,10 @@ function cacheElements(): void {
   // NFT panel elements
   nftPanel = getElement('nft-panel');
   nftList = getElement('nft-list');
-  nftClaimableCount = getElement('nft-claimable-count');
 
-  // Streak panel elements
-  streakPanel = getElement('streak-panel');
-  streakCurrentEl = getElement('streak-current');
-  streakBestEl = getElement('streak-best');
+  // Streak stat elements (in bottom alltime stats)
+  streakStat = getElement('streak-stat');
+  streakCurrentEl = getElement('arcade-streak');
 
   // Collection modal elements
   collectionGrid = getElement('collection-grid');
@@ -252,15 +251,17 @@ function cacheElements(): void {
   activeHumansEl = getElement('active-humans');
   activeBotsEl = getElement('active-bots');
   gameStatusEl = getElement('game-status');
+  difficultyDisplayEl = getElement('difficulty-display');
+  rewardPerClickEl = getElement('reward-per-click');
 
   // Leaderboard toggle elements
   leaderboardToggleGlobal = getElement<HTMLButtonElement>('leaderboard-toggle-global');
   leaderboardToggleGame = getElement<HTMLButtonElement>('leaderboard-toggle-game');
-  leaderboardGameName = getElement('leaderboard-game-name');
 
   // Rankings modal elements
   rankingsTabsEl = getElement('rankings-tabs');
   rankingsListEl = getElement('rankings-list');
+  rankingsMatrixHeaderEl = getElement('rankings-matrix-header');
 
   // Lightbox elements
   imageLightbox = getElement('image-lightbox');
@@ -623,6 +624,16 @@ async function onConnected(): Promise<void> {
   // Fetch game data
   await refreshGameData();
 
+  // Fetch reward params (for difficulty display)
+  const rewardParams = await fetchRewardParams();
+  if (rewardParams) {
+    targetClicksPerEpoch = rewardParams.targetClicksPerEpoch;
+    dailyEmissionRate = rewardParams.dailyEmissionRate;
+  }
+
+  // Update difficulty and reward display
+  updateDifficultyDisplay();
+
   // Try to restore saved clicks
   const restored = gameState.tryRestoreFromStorage();
   if (restored) {
@@ -664,8 +675,8 @@ async function handleDisconnect(): Promise<void> {
   isMiningClick = false;
   isPressed = false;
   buttonImg.src = 'button-up.jpg';
-  // Hide streak panel on disconnect
-  streakPanel.style.display = 'none';
+  // Hide streak stat on disconnect
+  streakStat.classList.remove('visible');
 }
 
 // ============ Submit ============
@@ -975,6 +986,65 @@ function updateDisplays(): void {
     setText(epochInfoEl, '0 / 0');
     setText(poolInfoEl, '0');
   }
+
+  // Update difficulty display
+  updateDifficultyDisplay();
+}
+
+/**
+ * Update difficulty and estimated reward per click displays
+ */
+function updateDifficultyDisplay(): void {
+  if (!gameState.isGameActive || gameState.difficultyTarget === 0n) {
+    setText(difficultyDisplayEl, '--');
+    setText(rewardPerClickEl, '--');
+    return;
+  }
+
+  // Calculate difficulty as a human-readable number
+  // Difficulty target is lower = harder, so we show the inverse ratio
+  // MAX_UINT256 / difficultyTarget gives us a "difficulty multiplier"
+  const maxUint256 = 2n ** 256n - 1n;
+  const difficultyRatio = maxUint256 / gameState.difficultyTarget;
+
+  // Format difficulty (show as 1x, 10x, 100x, 1k, 10k, etc.)
+  let difficultyStr: string;
+  if (difficultyRatio < 1000n) {
+    difficultyStr = `${difficultyRatio}x`;
+  } else if (difficultyRatio < 1_000_000n) {
+    difficultyStr = `${(Number(difficultyRatio) / 1000).toFixed(1)}kx`;
+  } else {
+    difficultyStr = `${(Number(difficultyRatio) / 1_000_000).toFixed(1)}Mx`;
+  }
+  setText(difficultyDisplayEl, difficultyStr);
+
+  // Calculate estimated reward per click
+  // Formula: (poolRemaining * dailyEmissionRate / 10000) / targetClicksPerEpoch / 2
+  // This gives gross reward per click, then we take half (player gets 50%)
+  if (targetClicksPerEpoch > 0n && dailyEmissionRate > 0n) {
+    const poolWei = BigInt(Math.floor(gameState.poolRemaining * 1e18));
+    const epochBudget = (poolWei * dailyEmissionRate) / 10000n;
+    const grossPerClick = epochBudget / targetClicksPerEpoch;
+    const playerPerClick = grossPerClick / 2n;
+
+    // Convert to tokens (18 decimals)
+    const rewardTokens = Number(playerPerClick) / 1e18;
+
+    // Format nicely (no ~ since it doesn't render in segment font)
+    let rewardStr: string;
+    if (rewardTokens >= 1) {
+      rewardStr = rewardTokens.toFixed(1);
+    } else if (rewardTokens >= 0.01) {
+      rewardStr = rewardTokens.toFixed(2);
+    } else if (rewardTokens >= 0.001) {
+      rewardStr = rewardTokens.toFixed(3);
+    } else {
+      rewardStr = rewardTokens.toFixed(4);
+    }
+    setText(rewardPerClickEl, rewardStr);
+  } else {
+    setText(rewardPerClickEl, '--');
+  }
 }
 
 function updateSubmitButton(): void {
@@ -1032,8 +1102,8 @@ async function fetchLeaderboard(): Promise<void> {
 function renderLeaderboard(): void {
   if (leaderboardData.length === 0) {
     const message = leaderboardMode === 'global'
-      ? 'No clicks yet!'
-      : 'No on-chain submissions yet!';
+      ? 'No human clicks yet!'
+      : 'No on-chain clicks yet!';
     setHtml(leaderboardListEl, `<li class="leaderboard-loading">${message}</li>`);
     return;
   }
@@ -1059,7 +1129,7 @@ function renderLeaderboard(): void {
 
       return `
         <li class="leaderboard-item ${isYou ? 'is-you' : ''}" data-address="${entry.address}">
-          <span class="leaderboard-rank ${rankClass}">#${entry.rank}</span>
+          <span class="leaderboard-rank ${rankClass}">${entry.rank}</span>
           ${iconHtml}
           <span class="leaderboard-name ${isYou ? 'is-you' : ''}">${displayName}${isYou ? ' (you)' : ''}</span>
           <span class="leaderboard-clicks">${formatNumber(entry.totalClicks)}</span>
@@ -1321,7 +1391,7 @@ function renderRankingsTabs(): void {
   const games = getAllGames();
 
   // Build tabs HTML
-  let tabsHtml = `<button class="rankings-tab${rankingsTab === 'global' ? ' active' : ''}" data-tab="global">Global</button>`;
+  let tabsHtml = `<button class="rankings-tab${rankingsTab === 'global' ? ' active' : ''}" data-tab="global">All-Time Humans</button>`;
 
   for (const game of games) {
     const isActive = rankingsTab === game.id;
@@ -1369,23 +1439,23 @@ async function loadRankingsForTab(tabId: string): Promise<void> {
   setHtml(rankingsListEl, '<li class="rankings-loading">Loading...</li>');
 
   try {
-    let data: MergedLeaderboardEntry[];
-
     if (tabId === 'global') {
-      // Global: all-time frontend clicks from Redis
-      data = await fetchGlobalLeaderboard(50);
+      // Global: all-time frontend clicks from Redis (simple list)
+      rankingsMatrixHeaderEl.style.display = 'none';
+      const data = await fetchGlobalLeaderboard(50);
+      renderRankingsList(data);
     } else {
-      // Game: on-chain clicks from that game's subgraph
+      // Game: matrix view with on-chain + human clicks
+      rankingsMatrixHeaderEl.style.display = 'flex';
       const games = getAllGames();
       const game = games.find(g => g.id === tabId);
       if (game) {
-        data = await fetchGameLeaderboard(game.subgraphUrl, 50);
+        const data = await fetchMatrixLeaderboard(game.subgraphUrl, 50);
+        renderMatrixRankingsList(data);
       } else {
-        data = [];
+        setHtml(rankingsListEl, '<li class="rankings-loading">Game not found</li>');
       }
     }
-
-    renderRankingsList(data);
   } catch (error) {
     console.error('Failed to load rankings:', error);
     setHtml(rankingsListEl, '<li class="rankings-loading">Failed to load rankings</li>');
@@ -1425,7 +1495,7 @@ function renderRankingsList(data: MergedLeaderboardEntry[]): void {
 
       return `
         <li class="rankings-item ${isYou ? 'is-you' : ''}" data-address="${entry.address}">
-          <span class="rankings-rank ${rankClass}">#${entry.rank}</span>
+          <span class="rankings-rank ${rankClass}">${entry.rank}</span>
           ${iconHtml}
           <span class="rankings-name ${isYou ? 'is-you' : ''}">${displayName}${isYou ? ' (you)' : ''}</span>
           <span class="rankings-clicks">${formatNumber(entry.totalClicks)}</span>
@@ -1438,6 +1508,78 @@ function renderRankingsList(data: MergedLeaderboardEntry[]): void {
 
   // Kick off ENS resolution in background
   resolveRankingsEns(data);
+}
+
+/**
+ * Render the matrix rankings list (for game tabs with on-chain + human columns)
+ */
+function renderMatrixRankingsList(data: MatrixLeaderboardEntry[]): void {
+  if (data.length === 0) {
+    setHtml(rankingsListEl, '<li class="rankings-loading">No clicks recorded yet!</li>');
+    return;
+  }
+
+  const userAddrLower = gameState.userAddress?.toLowerCase();
+
+  const html = data
+    .map((entry) => {
+      const isYou = userAddrLower && entry.address?.toLowerCase() === userAddrLower;
+      const rankClass = entry.rank === 1 ? 'gold' : entry.rank === 2 ? 'silver' : entry.rank === 3 ? 'bronze' : '';
+
+      // Priority: server name > cached ENS > shortened address
+      const cachedEns = getCachedEns(entry.address);
+      const displayName =
+        entry.name && entry.name !== 'Anonymous'
+          ? entry.name
+          : cachedEns || shortenAddress(entry.address);
+
+      // Determine if mostly human: human clicks > 50% of on-chain clicks
+      const isHuman = entry.humanClicks > 0 && entry.humanClicks >= entry.onChainClicks * 0.5;
+      const labelClass = isHuman ? 'human-label' : 'bot-label';
+      const labelText = isHuman ? 'H' : 'B';
+
+      return `
+        <li class="rankings-item matrix-item ${isYou ? 'is-you' : ''}" data-address="${entry.address}">
+          <span class="rankings-rank ${rankClass}">${entry.rank}</span>
+          <span class="rankings-type-label ${labelClass}">${labelText}</span>
+          <span class="rankings-name ${isYou ? 'is-you' : ''}">${displayName}${isYou ? ' (you)' : ''}</span>
+          <span class="rankings-clicks matrix-clicks">${formatNumber(entry.onChainClicks)}</span>
+          <span class="rankings-clicks matrix-clicks human-clicks">${formatNumber(entry.humanClicks)}</span>
+        </li>
+      `;
+    })
+    .join('');
+
+  setHtml(rankingsListEl, html);
+
+  // Kick off ENS resolution in background
+  resolveMatrixRankingsEns(data);
+}
+
+/**
+ * Resolve ENS names for matrix rankings entries in the background
+ */
+async function resolveMatrixRankingsEns(data: MatrixLeaderboardEntry[]): Promise<void> {
+  const addressesToResolve = data
+    .filter(entry => !entry.name && !getCachedEns(entry.address))
+    .map(entry => entry.address);
+
+  if (addressesToResolve.length === 0) return;
+
+  for (const address of addressesToResolve) {
+    lookupEns(address).then(ensName => {
+      if (ensName) {
+        const item = rankingsListEl.querySelector(`[data-address="${address}"]`);
+        if (item) {
+          const nameEl = item.querySelector('.rankings-name');
+          if (nameEl) {
+            const isYou = gameState.userAddress?.toLowerCase() === address.toLowerCase();
+            nameEl.textContent = ensName + (isYou ? ' (you)' : '');
+          }
+        }
+      }
+    });
+  }
 }
 
 /**
@@ -1475,19 +1617,16 @@ async function resolveRankingsEns(data: MergedLeaderboardEntry[]): Promise<void>
  */
 function updateStreakPanel(stats: ServerStatsResponse): void {
   if (!stats.streak) {
-    streakPanel.style.display = 'none';
+    streakStat.classList.remove('visible');
     return;
   }
 
   const current = stats.streak.current || 0;
-  const longest = stats.streak.longest || 0;
-
   setText(streakCurrentEl, String(current));
-  setText(streakBestEl, String(longest));
 
-  // Show panel if connected
+  // Show streak stat if connected
   if (gameState.isConnected) {
-    streakPanel.style.display = 'flex';
+    streakStat.classList.add('visible');
   }
 }
 
@@ -1546,10 +1685,6 @@ async function renderNftPanel(stats: ServerStatsResponse): Promise<void> {
     return a.tier - b.tier;
   });
 
-  // Count claimable
-  const claimableCount = nftItems.filter(n => !n.claimed).length;
-  setText(nftClaimableCount, claimableCount.toString());
-
   // Render the list
   if (nftItems.length === 0) {
     setHtml(nftList, '<li class="nft-empty">No achievements yet</li>');
@@ -1579,7 +1714,7 @@ async function renderNftPanel(stats: ServerStatsResponse): Promise<void> {
           <div class="nft-name">${info.name}</div>
           <div class="nft-desc">${info.desc}</div>
         </div>
-        ${item.claimed ? '<span class="nft-claimed-badge">✓</span>' : '<span class="nft-claim-badge">Mint</span>'}
+        ${item.claimed ? '' : '<button class="nft-mint-btn">MINT</button>'}
       </li>
     `;
   }

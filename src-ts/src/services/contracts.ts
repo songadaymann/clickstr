@@ -91,6 +91,30 @@ export async function fetchDifficultyTarget(): Promise<bigint | null> {
 }
 
 /**
+ * Fetch reward calculation parameters from contract
+ */
+export async function fetchRewardParams(): Promise<{ targetClicksPerEpoch: bigint; dailyEmissionRate: bigint } | null> {
+  if (!gameContract) {
+    console.error('[Contracts] Game contract not initialized');
+    return null;
+  }
+
+  try {
+    const [targetClicks, emissionRate] = await Promise.all([
+      gameContract.TARGET_CLICKS_PER_EPOCH(),
+      gameContract.DAILY_EMISSION_RATE(),
+    ]);
+    return {
+      targetClicksPerEpoch: targetClicks.toBigInt(),
+      dailyEmissionRate: emissionRate.toBigInt(),
+    };
+  } catch (error) {
+    console.error('[Contracts] Error fetching reward params:', error);
+    return null;
+  }
+}
+
+/**
  * Fetch current epoch info
  */
 export async function fetchEpochInfo(): Promise<EpochInfo | null> {

@@ -21,8 +21,12 @@
   box-shadow: var(--shadow-inset) !important;
 }
 
-/* Connect button */
+/* Connect button - fixed top right */
 #connect-btn {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  z-index: var(--z-ui);
   background: linear-gradient(to bottom, var(--color-red-950), var(--color-red-975));
   border-color: var(--color-red-600);
   color: var(--color-red-400);
@@ -100,10 +104,10 @@
   box-shadow: var(--shadow-inset);
 }
 
-/* Help button */
+/* Help button - fixed bottom right */
 #help-btn {
   position: fixed;
-  top: 15px;
+  bottom: 15px;
   right: 15px;
   width: 44px;
   height: 44px;
@@ -130,26 +134,25 @@
   text-shadow: var(--glow-red-md);
 }
 
-/* See rankings button */
+/* See rankings button - matches see-collection-btn */
 .see-rankings-btn {
-  width: 100%;
-  margin-top: var(--spacing-md);
-  padding: 10px;
-  background: linear-gradient(to bottom, var(--color-red-975), var(--color-red-990));
-  border: 1px solid var(--color-red-900);
-  color: var(--color-red-400);
+  display: block;
+  margin: var(--spacing-md) auto 0;
   font-family: var(--font-label);
-  font-size: 12px;
+  font-size: 14px;
+  color: var(--color-red-400);
+  background: transparent;
+  border: 1px solid var(--color-red-400);
+  padding: var(--spacing-sm) var(--spacing-lg);
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  text-shadow: var(--glow-red-sm);
+  text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
   transition: all var(--transition-fast);
 }
 
 .see-rankings-btn:hover {
-  background: linear-gradient(to bottom, var(--color-red-950), var(--color-red-975));
-  border-color: var(--color-red-700);
-  text-shadow: var(--glow-red-md);
+  background: rgba(255, 0, 0, 0.1);
+  box-shadow: var(--glow-red-lg);
 }
 
 /* See collection button */

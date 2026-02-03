@@ -43,6 +43,7 @@ export type {
   ClaimSignatureResponse,
   VerificationResponse,
   MergedLeaderboardEntry,
+  MatrixLeaderboardEntry,
   ActiveUsersResponse,
   HeartbeatResponse,
 } from './api.ts';

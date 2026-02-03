@@ -26,9 +26,12 @@
     <!-- Circular click zone - centered on button -->
     <div id="button-click-zone"></div>
 
+    <!-- Connect button - fixed position top right -->
+    <button id="connect-btn" class="arcade-btn">Connect Wallet</button>
+
     <!-- UI Overlay - appears on hover -->
     <div id="ui-overlay">
-      <!-- Top bar: Stats + Connect -->
+      <!-- Top bar: Stats (hidden) -->
       <div id="top-bar">
         <div id="stats">
           <div class="stat">
@@ -40,14 +43,12 @@
             <span class="stat-value cyan" id="earned">0</span>
           </div>
         </div>
-        <button id="connect-btn" class="arcade-btn">Connect Wallet</button>
       </div>
 
       <!-- Right side: NFT Panel -->
       <div id="nft-panel">
         <div class="nft-header">
           <span class="nft-title">Mint Rewards</span>
-          <span class="nft-count" id="nft-claimable-count">0</span>
           <button class="sync-btn" id="sync-achievements-btn" title="Sync achievements">&#x21bb;</button>
         </div>
         <ul class="nft-list" id="nft-list">
@@ -58,30 +59,13 @@
         </div>
       </div>
 
-      <!-- Right side: Streak Panel -->
-      <div id="streak-panel">
-        <div class="streak-icon">🔥</div>
-        <div class="streak-info">
-          <div class="streak-current">
-            <span class="streak-value" id="streak-current">0</span>
-            <span class="streak-label">day streak</span>
-          </div>
-          <div class="streak-best">
-            <span class="streak-best-label">Best:</span>
-            <span class="streak-best-value" id="streak-best">0</span>
-          </div>
-        </div>
-      </div>
-
       <!-- Right side: Leaderboard -->
       <div id="leaderboard-panel">
         <div class="leaderboard-header">
           <span class="leaderboard-title">Leaderboard</span>
           <div class="leaderboard-toggle">
-            <button class="leaderboard-toggle-btn active" id="leaderboard-toggle-global">Global</button>
-            <button class="leaderboard-toggle-btn" id="leaderboard-toggle-game">
-              <span id="leaderboard-game-name">Beta Game 1</span>
-            </button>
+            <button class="leaderboard-toggle-btn active" id="leaderboard-toggle-global">Humans</button>
+            <button class="leaderboard-toggle-btn" id="leaderboard-toggle-game">On-Chain</button>
           </div>
         </div>
         <ul class="leaderboard-list" id="leaderboard-list">
@@ -144,6 +128,17 @@
               <span class="active-label">bots</span>
             </div>
           </div>
+          <div class="global-stat-divider"></div>
+          <div class="global-stat-row">
+            <div class="global-stat-mini">
+              <span class="global-stat-label">Difficulty</span>
+              <span class="global-stat-value difficulty-value" id="difficulty-display">--</span>
+            </div>
+            <div class="global-stat-mini">
+              <span class="global-stat-label">Est. Per Click</span>
+              <span class="global-stat-value reward-value" id="reward-per-click">--</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -176,21 +171,23 @@
     <div id="mining-indicator">Mining...</div>
 
     <!-- ARCADE DISPLAYS -->
-    <!-- Top center: Current session clicks -->
-    <div id="current-clicks-display">
-      <div class="arcade-label">Session Clicks</div>
-      <div class="arcade-display" id="arcade-current">0</div>
-    </div>
-
-    <!-- Bottom center: All-time stats -->
-    <div id="alltime-stats-display">
-      <div class="alltime-stat">
+    <!-- Top center: 2x2 grid of player stats -->
+    <div id="player-stats-grid">
+      <div class="player-stat">
+        <div class="arcade-label">Session Clicks</div>
+        <div class="arcade-display" id="arcade-current">0</div>
+      </div>
+      <div class="player-stat">
         <div class="arcade-label">Your Total Clicks</div>
         <div class="arcade-display" id="arcade-alltime">0</div>
       </div>
-      <div class="alltime-stat">
+      <div class="player-stat">
         <div class="arcade-label">Your Total Earned</div>
         <div class="arcade-display" id="arcade-earned">0</div>
+      </div>
+      <div class="player-stat" id="streak-stat">
+        <div class="arcade-label">Day Streak</div>
+        <div class="arcade-display" id="arcade-streak">0</div>
       </div>
     </div>
   </div>
@@ -294,10 +291,17 @@
         <button class="rankings-close-btn" id="rankings-close-btn">X</button>
       </div>
       <div class="rankings-tabs" id="rankings-tabs">
-        <button class="rankings-tab active" data-tab="global">Global</button>
+        <button class="rankings-tab active" data-tab="global">All-Time Humans</button>
         <!-- Game tabs will be populated by JS -->
       </div>
       <div class="rankings-list-container">
+        <div class="rankings-matrix-header" id="rankings-matrix-header" style="display: none;">
+          <span class="matrix-col rank-col"></span>
+          <span class="matrix-col type-col"></span>
+          <span class="matrix-col name-col">Player</span>
+          <span class="matrix-col clicks-col">On-Chain</span>
+          <span class="matrix-col clicks-col">Human</span>
+        </div>
         <ul class="rankings-list" id="rankings-list">
           <li class="rankings-loading">Loading...</li>
         </ul>
