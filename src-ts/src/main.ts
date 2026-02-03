@@ -94,7 +94,8 @@ let submitBtn: HTMLButtonElement;
 let submitContainer: HTMLElement;
 let epochInfoEl: HTMLElement;
 let poolInfoEl: HTMLElement;
-let poolSuffixEl: HTMLElement;
+let headerAlltimeClicksEl: HTMLElement;
+let headerAlltimeSuffixEl: HTMLElement;
 let arcadeCurrentEl: HTMLElement;
 let arcadeAlltimeEl: HTMLElement;
 let arcadeEarnedEl: HTMLElement;
@@ -112,7 +113,6 @@ let achievementDescEl: HTMLElement;
 let turnstileModal: HTMLElement;
 
 // Global stats panel elements
-let globalTotalClicksEl: HTMLElement;
 let activeHumansEl: HTMLElement;
 let activeBotsEl: HTMLElement;
 let gameStatusEl: HTMLElement;
@@ -208,7 +208,8 @@ function cacheElements(): void {
   submitContainer = getElement('submit-container');
   epochInfoEl = getElement('epoch-info');
   poolInfoEl = getElement('pool-info');
-  poolSuffixEl = getElement('pool-suffix');
+  headerAlltimeClicksEl = getElement('header-alltime-clicks');
+  headerAlltimeSuffixEl = getElement('header-alltime-suffix');
   arcadeCurrentEl = getElement('arcade-current');
   arcadeAlltimeEl = getElement('arcade-alltime');
   arcadeEarnedEl = getElement('arcade-earned');
@@ -240,7 +241,6 @@ function cacheElements(): void {
   claimLaterBtn = getElement<HTMLButtonElement>('claim-later-btn');
 
   // Global stats panel elements
-  globalTotalClicksEl = getElement('global-total-clicks');
   activeHumansEl = getElement('active-humans');
   activeBotsEl = getElement('active-bots');
   gameStatusEl = getElement('game-status');
@@ -931,16 +931,14 @@ function updateDisplays(): void {
     removeClass(gameStatusEl, 'inactive');
     addClass(gameStatusEl, 'active');
     setText(epochInfoEl, `${gameState.currentEpoch} / ${gameState.totalEpochs}`);
-    const poolFormatted = formatTokensSplit(gameState.poolRemaining);
-    setText(poolInfoEl, poolFormatted.value);
-    setText(poolSuffixEl, poolFormatted.suffix);
+    // Pool now shows full number with comma formatting
+    setText(poolInfoEl, gameState.poolRemaining.toLocaleString());
   } else {
     setText(gameStatusEl, 'INACTIVE');
     removeClass(gameStatusEl, 'active');
     addClass(gameStatusEl, 'inactive');
     setText(epochInfoEl, '0 / 0');
     setText(poolInfoEl, '0');
-    setText(poolSuffixEl, '');
   }
 }
 
@@ -1137,9 +1135,11 @@ async function updateGlobalStats(): Promise<void> {
     setText(activeHumansEl, activeUsers.activeHumans.toString());
     setText(activeBotsEl, recentBots.toString());
 
-    // Also update global clicks if provided
+    // Update all-time clicks in header with k/M suffix formatting
     if (activeUsers.globalClicks !== undefined) {
-      setText(globalTotalClicksEl, formatNumber(activeUsers.globalClicks));
+      const formatted = formatTokensSplit(activeUsers.globalClicks);
+      setText(headerAlltimeClicksEl, formatted.value);
+      setText(headerAlltimeSuffixEl, formatted.suffix);
     }
   } catch (error) {
     console.warn('Failed to update global stats:', error);

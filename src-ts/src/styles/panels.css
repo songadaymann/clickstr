@@ -822,6 +822,16 @@
     var(--glow-red-lg);
 }
 
+.global-stat-suffix {
+  font-family: var(--font-label);
+  color: var(--color-red-400);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-left: var(--spacing-sm);
+  opacity: 0.8;
+}
+
 .global-stat-divider {
   height: 1px;
   background: var(--color-red-950);
