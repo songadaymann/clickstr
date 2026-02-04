@@ -2796,3 +2796,126 @@ The `network.ts` and `subgraph.yaml` were updated for v6, but `games.ts` was mis
 - `src-ts/src/config/games.ts` - Added Beta Game 3, archived Beta Game 2
 - `docs/deployment-status.md` - Updated to v6 as current
 - `docs/mainnet-deployment-guide.md` - Added games.ts update step to checklist
+
+---
+
+## Session 19 - Mainnet Launch: Season 1 (Feb 4, 2026)
+
+### Overview
+
+Launched Clickstr Season 1 on Ethereum mainnet. This is a 3-day mini-season to test the real token economics before a longer season.
+
+### Season 1 Parameters
+
+| Parameter | Value |
+|-----------|-------|
+| Total Epochs | 3 |
+| Epoch Duration | 24 hours (86400 seconds) |
+| Pool Size | 3,000,000 $CLICK |
+| Season Length | 3 days |
+| Start | 2026-02-04 15:19:59 UTC |
+| End | 2026-02-07 15:19:59 UTC |
+
+### Mainnet Contracts Deployed
+
+| Contract | Address |
+|----------|---------|
+| $CLICK Token | `0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d` |
+| ClickstrNFT | `0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849` |
+| Clickstr | `0xf724ede44Bbb2Ccf46cec530c21B14885D441e02` |
+
+### Deployment Steps Completed
+
+1. **Deploy Clickstr Contract**
+   ```bash
+   PHASE=2 \
+     TOKEN_ADDRESS=0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d \
+     NFT_ADDRESS=0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849 \
+     SEASON_EPOCHS=3 \
+     SEASON_DURATION=86400 \
+     npx hardhat run scripts/deploy-sepolia-dryrun.js --network mainnet
+   ```
+
+2. **Verify Contract on Etherscan** ✓
+
+3. **Deploy Mainnet Subgraph**
+   - Updated `subgraph/subgraph.yaml` to `network: mainnet`
+   - Set startBlock to `24384297`
+   - Deployed as `clickstr-mainnet/1.0.0`
+
+4. **Update Frontend**
+   - `network.ts`: Added mainnet addresses, set `CURRENT_NETWORK = 'mainnet'`
+   - `games.ts`: Added Season 1, archived Beta Game 3
+   - Pushed to deploy via Vercel
+
+5. **Update mann.cool API**
+   - Changed `POW_CHAIN_ID` from `11155111` (Sepolia) to `1` (Mainnet)
+   - Reset API click data for fresh start
+
+6. **Update Vercel Environment Variables**
+   - `VITE_ETH_MAINNET_RPC_URL` on clickstr.fun
+   - `NFT_CONTRACT_ADDRESS` on mann.cool (already correct)
+
+### Issues Encountered & Fixes
+
+#### Issue 1: Deploy Script Hardcoded Sepolia RPC
+
+The `deploy-sepolia-dryrun.js` script had `SEPOLIA_RPC_URL` hardcoded even when running `--network mainnet`.
+
+**Fix:** Updated script to detect network and use appropriate RPC URL:
+```javascript
+const networkName = hre.network.name;
+const rpcUrl = networkName === 'mainnet'
+  ? process.env.ETH_MAINNET_RPC_URL
+  : process.env.SEPOLIA_RPC_URL;
+```
+
+#### Issue 2: Missing Frontend RPC URL
+
+Frontend was failing with "cannot decode result data" because `VITE_ETH_MAINNET_RPC_URL` wasn't set in Vercel.
+
+**Fix:** Added `VITE_ETH_MAINNET_RPC_URL` to clickstr.fun Vercel env vars.
+
+#### Issue 3: API Chain ID Still Sepolia
+
+The mann.cool API had `POW_CHAIN_ID = 11155111` hardcoded for off-chain proof validation.
+
+**Fix:** Changed to `POW_CHAIN_ID = 1` in `api/clickstr.js`.
+
+#### Issue 4: TokenWorks Transfer Restriction
+
+Users got `InvalidTransfer()` error when trying to submit clicks. The $CLICK token (via TokenWorks) has transfer restrictions and the Clickstr contract wasn't allowlisted.
+
+**Fix:** TokenWorks team added `0xf724ede44Bbb2Ccf46cec530c21B14885D441e02` to the allowlist.
+
+### Other Updates
+
+- Updated `scripts/public-miner.js` with mainnet contract addresses
+- Updated `src-ts/bot.html` with mainnet addresses
+- Updated `docs/mainnet-deployment-guide.md` with final Clickstr address
+- Updated `docs/deployment-status.md` with full mainnet deployment info
+
+### Key Learnings
+
+1. **TokenWorks Allowlist is Critical:** The game contract must be allowlisted BEFORE users can claim rewards. Tokens can go INTO the contract (via deployer), but can't come OUT until allowlisted.
+
+2. **Chain ID Must Match Everywhere:** Mining (frontend), validation (API), and submission (contract) all use chain ID in the proof hash. A mismatch causes invalid proofs.
+
+3. **Test User Experience Before Announcing:** The deployment succeeded, but users couldn't actually play until the allowlist was added. Better to confirm end-to-end flow before going public.
+
+4. **No Fallback for Locked Tokens:** Once tokens are in the Clickstr contract, there's no owner withdrawal function. This is by design (prevents rug pulls) but means you're dependent on external factors like allowlists.
+
+### Files Changed
+
+**clickstr repo:**
+- `scripts/deploy-sepolia-dryrun.js` - Network detection for RPC URL
+- `scripts/public-miner.js` - Mainnet contract addresses
+- `src-ts/src/config/network.ts` - Mainnet config, CURRENT_NETWORK = 'mainnet'
+- `src-ts/src/config/games.ts` - Season 1 entry
+- `src-ts/bot.html` - Mainnet addresses
+- `subgraph/subgraph.yaml` - network: mainnet, startBlock
+- `docs/deployment-status.md` - Full rewrite for mainnet
+- `docs/mainnet-deployment-guide.md` - Final Clickstr address
+
+**mann.cool repo:**
+- `api/clickstr.js` - POW_CHAIN_ID = 1

@@ -52,8 +52,8 @@ const NETWORKS = {
   mainnet: {
     chainId: 1,
     rpcUrl: "https://eth.llamarpc.com",
-    contractAddress: null,  // TODO: Set when mainnet launches
-    tokenAddress: null,     // TODO: Set when mainnet launches
+    contractAddress: "0xf724ede44Bbb2Ccf46cec530c21B14885D441e02", // Clickstr Season 1
+    tokenAddress: "0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d", // $CLICK token
     explorerUrl: "https://etherscan.io",
   }
 };

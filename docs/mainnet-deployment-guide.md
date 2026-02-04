@@ -384,7 +384,7 @@ curl -X POST "https://mann.cool/api/clickstr-admin-reset" \
 |----------|---------|
 | ClickstrNFT | `0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849` |
 | $CLICK Token | `0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d` |
-| Clickstr | TBD |
+| Clickstr | `0xf724ede44Bbb2Ccf46cec530c21B14885D441e02` |
 
 ### Sepolia v6 (Dry Run - Feb 3-4, 2026)
 | Contract | Address |
