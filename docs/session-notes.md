@@ -2712,3 +2712,87 @@ Ran the public miner script against the v6 contract to test difficulty adjustmen
 2. **Bot Mining is Gas-Efficient at EASY:** At MAX EASY difficulty, the limiting factor is gas cost, not hash rate. A bot can mine indefinitely as long as it has ETH for gas
 
 3. **Epoch Transitions:** Bot continued operating through epoch 3, automatically adapting to difficulty changes
+
+---
+
+## Session 18 - Frontend Config Fix: Point to v6 Sepolia (Feb 4, 2026)
+
+### Problem: Bot Clicks Not Showing in On-Chain Leaderboard
+
+After running the bot miner on v6 Sepolia (`0xf724ede44Bbb2Ccf46cec530c21B14885D441e02`), the On-Chain leaderboard tab wasn't showing any clicks.
+
+**Root Cause:** The frontend's `games.ts` config was still pointing to the v5 contract and v1.0.3 subgraph, but the bot was mining against v6 which has a v1.0.4 subgraph.
+
+### Configuration Mismatch Found
+
+| Component | Was Pointing To | Should Point To |
+|-----------|-----------------|-----------------|
+| `games.ts` (Beta Game 2) | v5 contract `0xA16d45e4D186B9678020720BD1e743872a6e9bA0` | v6 contract `0xf724ede44Bbb2Ccf46cec530c21B14885D441e02` |
+| `games.ts` subgraph | v1.0.3 | v1.0.4 |
+| `network.ts` | Already correct (v6) | Already correct (v6) |
+| `subgraph.yaml` | Already correct (v6) | Already correct (v6) |
+
+### Fix Applied
+
+**1. Updated `src-ts/src/config/games.ts`:**
+
+Marked Beta Game 2 as ended, added new Beta Game 3 pointing to v6:
+
+```typescript
+{
+  id: 'beta-2',
+  name: 'Beta Game 2',
+  subgraphUrl: '...clickstr-sepolia/1.0.3/gn',
+  contractAddress: '0xA16d45e4D186B9678020720BD1e743872a6e9bA0',
+  endDate: '2026-02-03',  // Now ended
+  isActive: false,
+  isBeta: true,
+},
+{
+  id: 'beta-3',
+  name: 'Beta Game 3',
+  subgraphUrl: '...clickstr-sepolia/1.0.4/gn',
+  contractAddress: '0xf724ede44Bbb2Ccf46cec530c21B14885D441e02',
+  startDate: '2026-02-03',
+  endDate: null,  // Ongoing
+  isActive: true,
+  isBeta: true,
+},
+```
+
+**2. Updated `docs/deployment-status.md`:**
+- Changed current test from v5 to v6
+- Updated contract addresses, subgraph version, timeline
+- Added v5 to "Previous Sepolia Deployments" section
+
+**3. Updated `docs/mainnet-deployment-guide.md`:**
+
+Added critical reminder to update `games.ts` when deploying new seasons:
+
+```markdown
+### Update Games Config (IMPORTANT!)
+
+Edit `src-ts/src/config/games.ts` to add the new game/season...
+
+**Why this matters:** The "On-Chain" leaderboard tab uses this config 
+to fetch data from the correct subgraph. If games.ts doesn't point to 
+the new contract/subgraph, the leaderboard will show stale data.
+```
+
+Also added to deployment checklist:
+- [ ] **Update games.ts** - add new game entry with subgraph URL and contract address
+
+### Key Learning
+
+When deploying a new season/game contract:
+1. Update `network.ts` (contract addresses for wallet/mining)
+2. Update `subgraph.yaml` (for indexing)
+3. **Also update `games.ts`** (for leaderboard display) ← Easy to forget!
+
+The `network.ts` and `subgraph.yaml` were updated for v6, but `games.ts` was missed. This caused the mismatch where the app was mining against v6 but displaying leaderboard data from v5's subgraph (which had no data for v6 contract).
+
+### Files Changed
+
+- `src-ts/src/config/games.ts` - Added Beta Game 3, archived Beta Game 2
+- `docs/deployment-status.md` - Updated to v6 as current
+- `docs/mainnet-deployment-guide.md` - Added games.ts update step to checklist
