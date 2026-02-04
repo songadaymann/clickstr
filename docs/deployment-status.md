@@ -2,31 +2,31 @@
 
 ## Current Test Deployment (Sepolia)
 
-**24-Hour Test Environment (v5) - Final Pre-Mainnet Test**
+**24-Hour Test Environment (v6) - Mainnet Dry Run**
 
 | Parameter | Production | Test |
 |-----------|------------|------|
 | Total Epochs | 90 | 12 |
 | Epoch Duration | 24 hours | 2 hours |
-| Pool Size | 100M | 1M |
+| Pool Size | 100M | 3M |
 | Season Length | 90 days | 1 day |
 
 **Timeline:**
-- Start: 2026-02-02 18:08:12 UTC
-- End: 2026-02-03 18:08:12 UTC
+- Start: 2026-02-03 19:10:24 UTC
+- End: 2026-02-04 19:10:24 UTC
 
-### Test Contracts (v5 - Current)
+### Test Contracts (v6 - Current)
 
 | Contract | Address | Etherscan |
 |----------|---------|-----------|
-| MockClickToken | `0x3706Dcde2dBA966F225E14d3F6c22eaF7A5724c4` | [View](https://sepolia.etherscan.io/address/0x3706Dcde2dBA966F225E14d3F6c22eaF7A5724c4) |
-| ClickstrNFT | `0x39B41525ba423FcAbE23564ecCCdEa66e7D59551` | [View](https://sepolia.etherscan.io/address/0x39B41525ba423FcAbE23564ecCCdEa66e7D59551) |
-| Clickstr | `0xA16d45e4D186B9678020720BD1e743872a6e9bA0` | [View](https://sepolia.etherscan.io/address/0xA16d45e4D186B9678020720BD1e743872a6e9bA0) |
+| MockClickToken | `0x78A607EDE7C7b134F51E725e4bA73D7b269580fc` | [View](https://sepolia.etherscan.io/address/0x78A607EDE7C7b134F51E725e4bA73D7b269580fc) |
+| ClickstrNFT | `0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849` | [View](https://sepolia.etherscan.io/address/0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849) |
+| Clickstr | `0xf724ede44Bbb2Ccf46cec530c21B14885D441e02` | [View](https://sepolia.etherscan.io/address/0xf724ede44Bbb2Ccf46cec530c21B14885D441e02) |
 
 **NFT Contract Details:**
 - Signer: `0xf55E4fac663ad8db80284620F97D95391ab002EF`
 - BaseURI: `ipfs://QmfZqEdzeEm61d3uSeFxBc1HasR3KC6rMsiRnxkvzM3Ywx/clickstr-metadata/`
-- Owner: `0xAd9fDaD276AB1A430fD03177A07350CD7C61E897`
+- Owner: `0xf55E4fac663ad8db80284620F97D95391ab002EF`
 
 **NFT Tier Bonuses (enabled):**
 - Tier 4 (1K clicks): +2%
@@ -36,6 +36,13 @@
 - Tier 11 (500K clicks): +10%
 
 ### Previous Sepolia Deployments
+
+**v5 (24hr test Feb 2-3)**
+| Contract | Address |
+|----------|---------|
+| MockClickToken | `0x3706Dcde2dBA966F225E14d3F6c22eaF7A5724c4` |
+| ClickstrNFT | `0x39B41525ba423FcAbE23564ecCCdEa66e7D59551` |
+| Clickstr | `0xA16d45e4D186B9678020720BD1e743872a6e9bA0` |
 
 **v4 (24hr test Jan 30-31)**
 | Contract | Address |
@@ -60,12 +67,12 @@
 
 ## Subgraph Deployment
 
-**Goldsky Endpoint (Sepolia v1.0.3):**
+**Goldsky Endpoint (Sepolia v1.0.4):**
 ```
-https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.3/gn
+https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.4/gn
 ```
 
-Points to v5 contract: `0xA16d45e4D186B9678020720BD1e743872a6e9bA0`
+Points to v6 contract: `0xf724ede44Bbb2Ccf46cec530c21B14885D441e02`
 
 ---
 
@@ -106,9 +113,9 @@ Located in `src-ts/src/config/network.ts`:
 export const NETWORKS = {
   sepolia: {
     chainId: 11155111,
-    contractAddress: '0xA16d45e4D186B9678020720BD1e743872a6e9bA0',  // Clickstr v5
-    tokenAddress: '0x3706Dcde2dBA966F225E14d3F6c22eaF7A5724c4',     // MockClickToken v5
-    nftContractAddress: '0x39B41525ba423FcAbE23564ecCCdEa66e7D59551', // ClickstrNFT v5
+    contractAddress: '0xf724ede44Bbb2Ccf46cec530c21B14885D441e02',  // Clickstr v6
+    tokenAddress: '0x78A607EDE7C7b134F51E725e4bA73D7b269580fc',     // MockClickToken v6
+    nftContractAddress: '0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849', // ClickstrNFT v6
     turnstileSiteKey: '0x4AAAAAACV0UOMmCeG_g2Jr',
   },
   mainnet: {
@@ -121,7 +128,7 @@ export const NETWORKS = {
 };
 
 // Subgraph URL in buildConfig():
-subgraphUrl: 'https://api.goldsky.com/.../clickstr-sepolia/1.0.3/gn'
+subgraphUrl: 'https://api.goldsky.com/.../clickstr-sepolia/1.0.4/gn'
 ```
 
 ---

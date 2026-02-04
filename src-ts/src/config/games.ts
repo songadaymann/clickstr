@@ -37,6 +37,16 @@ export const GAMES: GameConfig[] = [
     subgraphUrl: 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.3/gn',
     contractAddress: '0xA16d45e4D186B9678020720BD1e743872a6e9bA0',
     startDate: '2026-02-02',
+    endDate: '2026-02-03',
+    isActive: false,
+    isBeta: true,
+  },
+  {
+    id: 'beta-3',
+    name: 'Beta Game 3',
+    subgraphUrl: 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.4/gn',
+    contractAddress: '0xf724ede44Bbb2Ccf46cec530c21B14885D441e02',
+    startDate: '2026-02-03',
     endDate: null,  // Ongoing
     isActive: true,
     isBeta: true,

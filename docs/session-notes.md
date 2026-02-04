@@ -2621,3 +2621,94 @@ function onClickMined(nonce: bigint): void {
 - `[Mining] startMining called`
 - `[Mining] Worker found nonce: X`
 - `[Button] onClickMined - reset state, showing up image`
+
+---
+
+## Session 17 - Difficulty Display Labels + Bot Testing (Feb 3-4, 2026)
+
+This session improved the difficulty display UX and tested bot mining against the v6 Sepolia contract.
+
+### Difficulty Display Changed from Ratios to Labels
+
+**Problem:** The difficulty display showed ratio numbers like "2x" or "1000x" which were confusing. At MAX EASY difficulty (death spiral prevention), it showed "2x" which sounds like "harder" but actually means trivially easy (only ~2 hashes needed per valid proof).
+
+**Root Cause:** The display formula `maxUint256 / difficultyTarget` gives a ratio that increases as difficulty increases. But without context, users couldn't tell if "2x" meant easy or hard.
+
+**Solution:** Replaced ratio numbers with intuitive text labels based on thresholds:
+
+| Ratio Range | Label | Meaning |
+|-------------|-------|---------|
+| < 10 | EASY | Nearly every hash is valid |
+| 10-100 | NORMAL- | Easier than starting difficulty |
+| 100-500 | NORMAL | Around starting difficulty (1000) |
+| 500-2000 | NORMAL+ | Slightly harder than start |
+| 2000-10k | HARD | Noticeably harder |
+| 10k-100k | HARD+ | Significantly harder |
+| > 100k | EXTREME | Very competitive |
+
+**Code Change (`src-ts/src/main.ts` lines 1115-1154):**
+```typescript
+// Convert to human-readable difficulty label
+let difficultyStr: string;
+if (difficultyRatio < 10n) {
+  difficultyStr = 'EASY';
+} else if (difficultyRatio < 100n) {
+  difficultyStr = 'NORMAL-';
+} else if (difficultyRatio < 500n) {
+  difficultyStr = 'NORMAL';
+} else if (difficultyRatio < 2000n) {
+  difficultyStr = 'NORMAL+';
+} else if (difficultyRatio < 10000n) {
+  difficultyStr = 'HARD';
+} else if (difficultyRatio < 100000n) {
+  difficultyStr = 'HARD+';
+} else {
+  difficultyStr = 'EXTREME';
+}
+setText(difficultyDisplayEl, difficultyStr);
+```
+
+### Updated Public Miner for v6 Contract
+
+**Problem:** The `scripts/public-miner.js` bot miner had hardcoded v5 contract addresses, causing errors when trying to mine against the current v6 deployment.
+
+**Fix:** Updated the Sepolia network config in `public-miner.js`:
+```javascript
+sepolia: {
+  chainId: 11155111,
+  rpcUrl: "https://ethereum-sepolia-rpc.publicnode.com",
+  contractAddress: "0xf724ede44Bbb2Ccf46cec530c21B14885D441e02", // Clickstr v6
+  tokenAddress: "0x78A607EDE7C7b134F51E725e4bA73D7b269580fc", // MockClickToken v6
+  explorerUrl: "https://sepolia.etherscan.io",
+},
+```
+
+### Bot Mining Test Results
+
+Ran the public miner script against the v6 contract to test difficulty adjustment and accumulate clicks:
+
+**Configuration:**
+- Wallet: `0xAd9fDaD276AB1A430fD03177A07350CD7C61E897` (BOT_A)
+- Initial ETH: 0.372 ETH
+- Batch size: 500 proofs per TX
+- Workers: 10 threads
+
+**Performance (after ~5 minutes):**
+- Clicks submitted: 10,000+
+- CLICK earned: ~3,457 CLICK
+- Gas spent: ~0.27 ETH
+- Hash rate: 65-212 H/s (avg ~100 H/s)
+- Gas per batch: ~12M gas (~0.014 ETH)
+
+**Observations:**
+- At EASY difficulty, mining is extremely fast (5-15 seconds per 500 proofs)
+- Each batch earns ~172 CLICK and burns ~172 CLICK (50/50 split working correctly)
+- Pool started at 2.88M CLICK, being depleted at ~345 CLICK/minute from bot
+
+### Key Insights
+
+1. **Difficulty Labels More Intuitive:** Users now see "EASY" instead of "2x", making it immediately clear that mining is trivial
+
+2. **Bot Mining is Gas-Efficient at EASY:** At MAX EASY difficulty, the limiting factor is gas cost, not hash rate. A bot can mine indefinitely as long as it has ETH for gas
+
+3. **Epoch Transitions:** Bot continued operating through epoch 3, automatically adapting to difficulty changes

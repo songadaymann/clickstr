@@ -233,6 +233,36 @@ export const CURRENT_NETWORK: NetworkId = 'mainnet';
 subgraphUrl: 'https://api.goldsky.com/.../clickstr-mainnet/1.0.0/gn',
 ```
 
+### Update Games Config (IMPORTANT!)
+
+Edit `src-ts/src/config/games.ts` to add the new game/season:
+
+```typescript
+// Mark previous game as inactive
+{
+  id: 'beta-3',
+  name: 'Beta Game 3',
+  subgraphUrl: '...',
+  contractAddress: '0x...',
+  endDate: '2026-02-04',  // Set end date
+  isActive: false,        // Mark inactive
+  isBeta: true,
+},
+// Add the new mainnet game
+{
+  id: 'game-1',
+  name: 'Season 1',
+  subgraphUrl: 'https://api.goldsky.com/.../clickstr-mainnet/1.0.0/gn',
+  contractAddress: '0x...',  // Mainnet Clickstr address
+  startDate: '2026-XX-XX',
+  endDate: null,  // Ongoing
+  isActive: true,
+  isBeta: false,
+},
+```
+
+**Why this matters:** The "On-Chain" leaderboard tab uses this config to fetch data from the correct subgraph. If the games.ts config doesn't point to the new contract/subgraph, the leaderboard will show stale data or no data.
+
 ### Deploy Frontend
 
 ```bash
@@ -305,7 +335,8 @@ curl -X POST "https://mann.cool/api/clickstr-admin-reset" \
 ### Frontend
 - [ ] Update network.ts with all addresses
 - [ ] Update CURRENT_NETWORK to 'mainnet'
-- [ ] Update subgraph URL
+- [ ] Update subgraph URL in network.ts
+- [ ] **Update games.ts** - add new game entry with subgraph URL and contract address
 - [ ] Push to GitHub
 - [ ] Verify Vercel deployment
 
