@@ -1119,20 +1119,37 @@ function updateDifficultyDisplay(): void {
     return;
   }
 
-  // Calculate difficulty as a human-readable number
-  // Difficulty target is lower = harder, so we show the inverse ratio
-  // MAX_UINT256 / difficultyTarget gives us a "difficulty multiplier"
+  // Calculate difficulty ratio relative to starting difficulty
+  // Starting difficulty = maxUint256 / 1000, so ratio of 1000 = normal
+  // Higher ratio = harder (more hashes needed), lower = easier
   const maxUint256 = 2n ** 256n - 1n;
   const difficultyRatio = maxUint256 / gameState.difficultyTarget;
 
-  // Format difficulty (show as 1x, 10x, 100x, 1k, 10k, etc.)
+  // Convert to human-readable difficulty label
+  // Reference: starting difficulty (1000) = NORMAL
+  // Thresholds chosen to give intuitive labels:
+  //   < 10:      EASY     (nearly every hash is valid)
+  //   10-100:    NORMAL-  (easier than start)
+  //   100-500:   NORMAL   (around starting difficulty)
+  //   500-2000:  NORMAL+  (slightly harder than start)
+  //   2000-10k:  HARD     (noticeably harder)
+  //   10k-100k:  HARD+    (significantly harder)
+  //   > 100k:    EXTREME  (very competitive)
   let difficultyStr: string;
-  if (difficultyRatio < 1000n) {
-    difficultyStr = `${difficultyRatio}x`;
-  } else if (difficultyRatio < 1_000_000n) {
-    difficultyStr = `${(Number(difficultyRatio) / 1000).toFixed(1)}kx`;
+  if (difficultyRatio < 10n) {
+    difficultyStr = 'EASY';
+  } else if (difficultyRatio < 100n) {
+    difficultyStr = 'NORMAL-';
+  } else if (difficultyRatio < 500n) {
+    difficultyStr = 'NORMAL';
+  } else if (difficultyRatio < 2000n) {
+    difficultyStr = 'NORMAL+';
+  } else if (difficultyRatio < 10000n) {
+    difficultyStr = 'HARD';
+  } else if (difficultyRatio < 100000n) {
+    difficultyStr = 'HARD+';
   } else {
-    difficultyStr = `${(Number(difficultyRatio) / 1_000_000).toFixed(1)}Mx`;
+    difficultyStr = 'EXTREME';
   }
   setText(difficultyDisplayEl, difficultyStr);
 
