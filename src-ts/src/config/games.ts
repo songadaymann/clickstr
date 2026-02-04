@@ -47,21 +47,20 @@ export const GAMES: GameConfig[] = [
     subgraphUrl: 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.4/gn',
     contractAddress: '0xf724ede44Bbb2Ccf46cec530c21B14885D441e02',
     startDate: '2026-02-03',
-    endDate: null,  // Ongoing
-    isActive: true,
+    endDate: '2026-02-04',
+    isActive: false,
     isBeta: true,
   },
-  // Future games will be added here:
-  // {
-  //   id: 'game-1',
-  //   name: 'Game 1',
-  //   subgraphUrl: '...',
-  //   contractAddress: '...',
-  //   startDate: '...',
-  //   endDate: '...',
-  //   isActive: false,
-  //   isBeta: false,
-  // },
+  {
+    id: 'season-1',
+    name: 'Season 1',
+    subgraphUrl: 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-mainnet/1.0.0/gn',
+    contractAddress: '0xf724ede44Bbb2Ccf46cec530c21B14885D441e02',
+    startDate: '2026-02-04',
+    endDate: '2026-02-07',
+    isActive: true,
+    isBeta: false,
+  },
 ];
 
 /**

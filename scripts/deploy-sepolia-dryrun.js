@@ -127,7 +127,16 @@ async function phase2() {
     process.exit(1);
   }
 
-  const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
+  // Detect network from hardhat config
+  const networkName = hre.network.name;
+  const rpcUrl = networkName === 'mainnet'
+    ? process.env.ETH_MAINNET_RPC_URL
+    : process.env.SEPOLIA_RPC_URL;
+
+  console.log("Network:", networkName);
+  console.log("RPC URL:", rpcUrl?.substring(0, 50) + "...");
+
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
   const gameDeployer = new ethers.Wallet(mainnetKey, provider);
 
   // Season configuration
@@ -210,10 +219,11 @@ async function phase2() {
   console.log("   End time:", new Date(Number(gameStats.gameEndTime_) * 1000).toISOString());
 
   // Save deployment info
+  const isMainnet = networkName === 'mainnet';
   const deploymentInfo = {
-    network: "sepolia",
-    chainId: 11155111,
-    dryRun: true,
+    network: networkName,
+    chainId: isMainnet ? 1 : 11155111,
+    dryRun: !isMainnet,
     season: {
       totalEpochs,
       epochDuration,

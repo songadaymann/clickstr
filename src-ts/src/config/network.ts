@@ -22,15 +22,15 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     chainId: 1,
     chainName: 'Ethereum',
     rpcUrl: import.meta.env.VITE_ETH_MAINNET_RPC_URL || '',
-    contractAddress: '0x...', // TODO: Deploy and add mainnet Clickstr address
-    tokenAddress: '0x...', // TODO: Deploy $CLICK via TokenWorks and add address
-    nftContractAddress: '0x...', // TODO: Deploy and add mainnet NFT address
+    contractAddress: '0xf724ede44Bbb2Ccf46cec530c21B14885D441e02', // Clickstr Season 1 (Feb 4-7, 2026)
+    tokenAddress: '0x7ddbd0c4a0383a0f9611b715809f92c90e1d991d', // $CLICK token via TokenWorks
+    nftContractAddress: '0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849', // ClickstrNFT
     turnstileSiteKey: '0x4AAAAAACV0UOMmCeG_g2Jr',
   },
 } as const;
 
 /** Current active network - change this for deployment */
-export const CURRENT_NETWORK: NetworkId = 'sepolia';
+export const CURRENT_NETWORK: NetworkId = 'mainnet';
 
 /** Build the full application configuration */
 export function buildConfig(networkId: NetworkId = CURRENT_NETWORK): AppConfig {
@@ -42,7 +42,9 @@ export function buildConfig(networkId: NetworkId = CURRENT_NETWORK): AppConfig {
     maxBatchSize: 500,
     walletConnectProjectId: import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID || '',
     apiUrl: 'https://mann.cool/api/clickstr',
-    subgraphUrl: 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.4/gn',
+    subgraphUrl: networkId === 'mainnet'
+      ? 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-mainnet/1.0.0/gn'
+      : 'https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/clickstr-sepolia/1.0.4/gn',
   };
 }
 
