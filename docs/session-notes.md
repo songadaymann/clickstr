@@ -2919,3 +2919,241 @@ Users got `InvalidTransfer()` error when trying to submit clicks. The $CLICK tok
 
 **mann.cool repo:**
 - `api/clickstr.js` - POW_CHAIN_ID = 1
+
+---
+
+## Session 19 - V2 Security Fixes & Frontend Claim UI (Feb 5, 2026)
+
+### Overview
+
+Reviewed the V2 security documentation and implemented all critical/high severity contract fixes, plus built the complete frontend token claim UI.
+
+### V2 Contract Security Fixes
+
+#### Critical Fixes
+
+1. **Treasury Burn Ratio Enforcement** (`ClickstrTreasury.sol`)
+   - Added `if (burnAmount < userAmount) revert InsufficientBurnRatio();`
+   - Prevents bypassing the 50/50 burn mechanism via compromised games
+
+2. **Registry Season Validation** (`ClickRegistry.sol`)
+   - Added `if (season != gameToSeason[msg.sender]) revert SeasonMismatch();`
+   - Prevents games from writing clicks to unauthorized seasons
+
+#### High Severity Fixes
+
+3. **Maximum Click Count** (`ClickstrGameV2.sol`)
+   - Added `MAX_CLICKS_PER_CLAIM = 100_000_000` constant
+   - Validates in both `claimReward()` and `claimMultipleEpochs()`
+   - Prevents compromised server from signing arbitrarily large click counts
+
+4. **Claim Grace Period** (`ClickstrGameV2.sol`)
+   - Added `CLAIM_GRACE_PERIOD = 72 hours` constant
+   - `endGame()` now requires `block.timestamp >= gameEndTime + CLAIM_GRACE_PERIOD`
+   - Users have 72 hours after game ends to claim rewards before pool burns
+
+#### Medium Severity Fixes
+
+5. **Finalizer Reward Split** (`ClickstrGameV2.sol`)
+   - Changed from 1% to 0.1% (`FINALIZER_REWARD_RATE = 10`)
+   - Now uses 50/50 burn split (was 100% to finalizer, 0% burn)
+   - Critical: Without this change, treasury burn enforcement would break finalization
+   - If 1M tokens distributed: finalizer gets ~500 tokens (was 10k)
+
+### Frontend V2 Token Claim UI
+
+Implemented complete claim flow for V2 epoch rewards.
+
+#### New Types (`src/types/api.ts`)
+- `V2ClaimableEpoch` - epoch, clicks, claimed, estimatedReward
+- `V2ClaimableEpochsResponse` - API response wrapper
+
+#### New API Functions (`src/services/api.ts`)
+- `fetchV2ClaimableEpochs(address)` - GET `/api/clickstr-v2?claimable=true&address=...`
+
+#### New Contract ABI & Functions (`src/types/contracts.ts`, `src/services/contracts.ts`)
+- `CLICKSTR_V2_ABI` - claimReward, claimMultipleEpochs, hasClaimed, etc.
+- `claimV2Reward(contractAddress, epoch, clickCount, signature)`
+- `checkV2Claimed(contractAddress, userAddress, epoch)`
+
+#### New HTML (`index.html`)
+- `#v2-claim-modal` - Modal with claimable epoch list
+- Individual "Claim" buttons per epoch
+- "Claim All" batch button
+- "Claim (N)" button in game status panel
+
+#### New CSS (`src/styles/modals.css`)
+- Full arcade-themed styling for V2 claim modal
+- Loading, empty, item, and button states
+
+#### New Functions (`src/main.ts`)
+- `setupV2ClaimModalListeners()` - Modal event handlers
+- `showV2ClaimModal()` - Open modal and fetch epochs
+- `renderV2ClaimList()` - Render epoch list with buttons
+- `handleV2ClaimSingle(e)` - Claim single epoch:
+  1. Call `requestV2ClaimAttestation(epoch)` (handles Turnstile + wallet signature)
+  2. Call `claimV2Reward()` on-chain
+  3. Update UI
+- `handleV2ClaimAll()` - Claim all epochs sequentially
+- `checkV2ClaimableEpochs()` - Check on wallet connect, show/hide button
+
+### User Flow
+
+1. Connect wallet → `checkV2ClaimableEpochs()` checks API
+2. If claimable epochs exist, "Claim (N)" button appears next to Pool info
+3. Click → modal opens with list of claimable epochs
+4. Click "Claim" on epoch → `requestV2ClaimAttestation()` gets server signature
+5. If Turnstile required → modal shown, token obtained
+6. If wallet signature required → user signs challenge
+7. `claimV2Reward()` submits on-chain transaction
+8. UI updates: "Claimed!" shown, epoch removed from list
+
+### Design Decisions
+
+**Finalizer Reward Rate:** Changed from 1% to 0.1% because:
+- At 1%, a 1M token distribution epoch would give finalizer 10k tokens
+- This seemed excessive for just calling a function
+- The 50/50 split was necessary to comply with treasury burn enforcement
+
+**Grace Period:** 72 hours chosen as a reasonable window for users to claim after game ends.
+
+**Max Click Count:** 100M clicks per epoch seems impossible to achieve legitimately (would require ~1,157 clicks/second for 24 hours), so it's a reasonable safety limit.
+
+### Files Changed
+
+**Contracts:**
+- `contracts/ClickstrTreasury.sol` - Burn ratio enforcement
+- `contracts/ClickRegistry.sol` - Season validation
+- `contracts/ClickstrGameV2.sol` - Max clicks, grace period, finalizer split
+
+**Frontend:**
+- `src-ts/index.html` - V2 claim modal, claim button
+- `src-ts/src/styles/modals.css` - V2 claim modal styles
+- `src-ts/src/types/api.ts` - V2ClaimableEpoch types
+- `src-ts/src/types/contracts.ts` - CLICKSTR_V2_ABI
+- `src-ts/src/types/index.ts` - Exports
+- `src-ts/src/services/api.ts` - fetchV2ClaimableEpochs
+- `src-ts/src/services/contracts.ts` - claimV2Reward, checkV2Claimed
+- `src-ts/src/services/index.ts` - Exports
+- `src-ts/src/main.ts` - V2 claim UI logic
+
+**Documentation:**
+- `docs/v2-security.md` - Rewritten with comprehensive findings, marked fixed items
+- `docs/v2-transition.md` - Added frontend implementation section
+- `docs/todo.md` - Marked frontend tasks complete
+- `docs/session-notes.md` - This session
+
+---
+
+## Session 20: V2 Sepolia Test Deployment (February 5, 2026)
+
+### Overview
+
+Deployed the complete V2 contract stack to Sepolia for testing. This includes the permanent infrastructure (Registry, Treasury) and a test game season.
+
+### Deployed Contracts (Sepolia)
+
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| MockClickToken | `0x120E2fCf5b26FC49Fe3d1E7c851346c898619C28` | Test ERC20 (1B supply) |
+| ClickRegistry | `0xAb16745314623EF6fAE03E90EC3987519C431B0f` | Permanent click record |
+| ClickstrTreasury | `0x82378b6C7247b02f4b985Aca079a0A85E0D2cbAe` | Token treasury (100M funded) |
+| ClickstrGameV2 | `0xe37B2cCCFDD4441E4c87abE6d4cF05Fe0fFbda24` | Season 2 game (1 day, 10M pool) |
+| ClickstrNFTV2 | `0x50276Dd07F357e13f4B7D978d0E9E747974EfF09` | Achievement NFTs |
+
+### Signers
+
+| Role | Address |
+|------|---------|
+| Attestation Signer | `0xd4eEf240c88eA5Dc72de6fB7774065CEE22F7Afd` |
+| NFT Signer | `0xf55E4fac663ad8db80284620F97D95391ab002EF` |
+| Deployer/Owner | `0xAd9fDaD276AB1A430fD03177A07350CD7C61E897` |
+
+### Game Configuration
+
+- Season: 2
+- Epochs: 1
+- Duration: 86400 seconds (24 hours)
+- Pool: 10,000,000 CLICK
+- Start: Feb 5, 2026 17:42 UTC
+- End: Feb 6, 2026 17:42 UTC
+
+### Deployment Steps
+
+1. Created `scripts/deploy-v2-sepolia-test.js` - unified deployment script
+2. Deployed all 5 contracts in sequence
+3. Authorized game in registry for season 2
+4. Authorized game as treasury disburser with 10M allowance
+5. Started the game
+6. Verified all contracts on Etherscan
+
+### Frontend Updates
+
+Updated frontend to support V2 contracts on Sepolia:
+
+1. **Network config** (`src-ts/src/config/network.ts`)
+   - Updated Sepolia addresses to V2 contracts
+   - Added registry/treasury addresses as comments
+
+2. **Contract service** (`src-ts/src/services/contracts.ts`)
+   - Added `IS_V2` flag based on network
+   - Use V2 ABI when on Sepolia
+   - Handle V2's different return values:
+     - `getGameStats()` returns `seasonNumber_` instead of `difficulty_`
+     - `getUserStats()` instead of `getUserLifetimeStats()`
+     - No on-chain difficulty in V2
+
+3. **Build fixes**
+   - Committed missing type exports (CLICKSTR_V2_ABI, V2 API types)
+   - Committed all src-ts changes for Vercel build
+
+### Environment Variables
+
+**Local `.env`:**
+- `ATTESTATION_SIGNER=0x...` - Public address for contract constructor
+
+**Vercel:**
+- `VITE_NETWORK=sepolia` - Target network for build
+- `ATTESTATION_SIGNER_PRIVATE_KEY=0x...` - Server signing key
+
+### API Reset
+
+Reset all off-chain click data via admin endpoint:
+```bash
+curl -X POST https://mann.cool/api/clickstr-admin-reset \
+  -H "Content-Type: application/json" \
+  -d '{"secret": "..."}'
+```
+
+Cleared 21 keys including clicks, milestones, achievements for 4 test addresses.
+
+### Spot Check Results
+
+Verified all contract configurations are correct:
+- Registry authorizes game for season 2 ✓
+- Treasury authorizes game as disburser with 10M allowance ✓
+- Game points to correct registry and treasury ✓
+- NFT points to correct registry ✓
+- All signers configured correctly ✓
+
+### Next Steps
+
+1. Wait for Vercel build to complete
+2. Test clicking flow on live site
+3. Test V2 claim flow (click → accumulate → claim on-chain)
+4. Verify tokens distributed from treasury correctly
+
+### Files Changed
+
+**New:**
+- `scripts/deploy-v2-sepolia-test.js` - Unified test deployment script
+- `sepolia/deployment-v2-test.json` - Deployment info
+
+**Modified:**
+- `src-ts/src/config/network.ts` - V2 Sepolia addresses
+- `src-ts/src/services/contracts.ts` - V2 ABI support
+- `src-ts/src/types/contracts.ts` - V2 ABI definition
+- `src-ts/src/types/index.ts` - V2 exports
+- `src-ts/src/types/api.ts` - V2 API types
+- `src-ts/src/services/api.ts` - V2 API functions
+- `src-ts/src/services/index.ts` - V2 exports
