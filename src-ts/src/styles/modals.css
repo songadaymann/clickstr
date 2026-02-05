@@ -785,3 +785,183 @@
     font-size: 14px;
   }
 }
+
+/* ============ V2 TOKEN CLAIM MODAL ============ */
+.v2-claim-modal-content {
+  background: var(--color-red-dark);
+  border: 3px solid var(--color-red-700);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  max-width: 420px;
+  width: 90%;
+  box-shadow:
+    var(--shadow-inset-deep),
+    var(--shadow-arcade);
+  position: relative;
+}
+
+.v2-claim-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.v2-claim-title {
+  font-family: var(--font-label);
+  color: var(--color-gold);
+  font-size: 16px;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.v2-claim-close-btn {
+  background: transparent;
+  border: 1px solid var(--color-red-700);
+  color: var(--color-red-400);
+  font-family: var(--font-label);
+  font-size: 12px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.v2-claim-close-btn:hover {
+  background: var(--color-red-700);
+  color: var(--color-red-200);
+}
+
+.v2-claim-info {
+  font-family: var(--font-label);
+  color: var(--color-red-300);
+  font-size: 11px;
+  text-align: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.v2-claim-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.v2-claim-loading {
+  font-family: var(--font-label);
+  color: var(--color-red-400);
+  font-size: 12px;
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+.v2-claim-empty {
+  font-family: var(--font-label);
+  color: var(--color-red-500);
+  font-size: 12px;
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+.v2-claim-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--color-red-900);
+}
+
+.v2-claim-item:last-child {
+  border-bottom: none;
+}
+
+.v2-claim-epoch {
+  font-family: var(--font-label);
+  color: var(--color-red-300);
+  font-size: 12px;
+}
+
+.v2-claim-clicks {
+  font-family: var(--font-label);
+  color: var(--color-cyan);
+  font-size: 11px;
+}
+
+.v2-claim-reward {
+  font-family: var(--font-label);
+  color: var(--color-gold);
+  font-size: 12px;
+}
+
+.v2-claim-item-btn {
+  background: linear-gradient(180deg, var(--color-green-600) 0%, var(--color-green-800) 100%);
+  border: 2px solid var(--color-green-400);
+  color: white;
+  font-family: var(--font-label);
+  font-size: 10px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.v2-claim-item-btn:hover {
+  background: linear-gradient(180deg, var(--color-green-500) 0%, var(--color-green-700) 100%);
+  box-shadow: 0 0 8px var(--color-green-400);
+}
+
+.v2-claim-item-btn:disabled {
+  background: var(--color-red-900);
+  border-color: var(--color-red-800);
+  color: var(--color-red-600);
+  cursor: not-allowed;
+}
+
+.v2-claim-item-claimed {
+  font-family: var(--font-label);
+  color: var(--color-red-600);
+  font-size: 10px;
+}
+
+.v2-claim-footer {
+  margin-top: var(--spacing-md);
+  text-align: center;
+}
+
+.v2-claim-all-btn {
+  background: linear-gradient(180deg, var(--color-gold) 0%, #b8860b 100%);
+  border: 2px solid var(--color-gold);
+  color: black;
+  font-family: var(--font-label);
+  font-size: 12px;
+  padding: 8px 24px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.v2-claim-all-btn:hover:not(:disabled) {
+  box-shadow: 0 0 12px var(--color-gold);
+}
+
+.v2-claim-all-btn:disabled {
+  background: var(--color-red-900);
+  border-color: var(--color-red-800);
+  color: var(--color-red-600);
+  cursor: not-allowed;
+}
+
+/* Claim tokens button in game panel */
+.claim-tokens-btn {
+  background: linear-gradient(180deg, var(--color-gold) 0%, #b8860b 100%);
+  border: 1px solid var(--color-gold);
+  color: black;
+  font-family: var(--font-label);
+  font-size: 8px;
+  padding: 2px 6px;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: all var(--transition-fast);
+}
+
+.claim-tokens-btn:hover {
+  box-shadow: 0 0 8px var(--color-gold);
+}

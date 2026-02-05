@@ -17,6 +17,8 @@ export {
   fetchMatrixLeaderboard,
   getClaimSignature,
   confirmClaim,
+  requestV2ClaimSignature,
+  fetchV2ClaimableEpochs,
   sendHeartbeat,
   fetchActiveUsers,
   fetchRecentBotActivity,
@@ -52,6 +54,8 @@ export {
   submitClicks,
   checkNftClaimed,
   claimNft,
+  claimV2Reward,
+  checkV2Claimed,
   refreshGameData,
   refreshUserStats,
 } from './contracts.ts';

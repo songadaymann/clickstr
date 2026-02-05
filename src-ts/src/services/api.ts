@@ -17,9 +17,12 @@ import type {
   MatrixLeaderboardEntry,
   ActiveUsersResponse,
   HeartbeatResponse,
+  V2ClaimSignatureResponse,
+  V2ClaimableEpochsResponse,
 } from '@/types/index.ts';
 
 const CLAIM_SIGNATURE_URL = 'https://mann.cool/api/clickstr-claim-signature';
+const V2_CLAIM_URL = 'https://mann.cool/api/clickstr-v2';
 
 /**
  * Fetch user stats from the server
@@ -455,6 +458,45 @@ export async function confirmClaim(
 }
 
 /**
+ * Request a V2 claim attestation (with optional Turnstile + wallet signature)
+ */
+export async function requestV2ClaimSignature(
+  address: string,
+  epoch: number,
+  options?: {
+    turnstileToken?: string | null;
+    walletSignature?: string | null;
+  }
+): Promise<V2ClaimSignatureResponse> {
+  try {
+    const body: Record<string, unknown> = {
+      address,
+      action: 'claim',
+      epoch,
+    };
+
+    if (options?.turnstileToken) {
+      body.turnstileToken = options.turnstileToken;
+    }
+    if (options?.walletSignature) {
+      body.walletSignature = options.walletSignature;
+    }
+
+    const response = await fetch(V2_CLAIM_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json() as V2ClaimSignatureResponse;
+    return data;
+  } catch (error) {
+    console.error('V2 claim signature error:', error);
+    return { error: 'Failed to request claim signature' };
+  }
+}
+
+/**
  * Send heartbeat to server to indicate active frontend session
  */
 export async function sendHeartbeat(address: string): Promise<HeartbeatResponse> {
@@ -589,5 +631,21 @@ export async function syncAchievements(address: string): Promise<SyncAchievement
   } catch (error) {
     console.error('Sync achievements error:', error);
     return { success: false };
+  }
+}
+
+/**
+ * Fetch V2 claimable epochs for a user
+ */
+export async function fetchV2ClaimableEpochs(address: string): Promise<V2ClaimableEpochsResponse> {
+  try {
+    const response = await fetch(`${V2_CLAIM_URL}?claimable=true&address=${address}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch claimable epochs');
+    }
+    return await response.json() as V2ClaimableEpochsResponse;
+  } catch (error) {
+    console.error('V2 claimable epochs fetch error:', error);
+    return { success: false, error: 'Failed to fetch claimable epochs' };
   }
 }

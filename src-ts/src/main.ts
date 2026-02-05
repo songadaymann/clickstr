@@ -39,6 +39,8 @@ import {
   getCachedEns,
   initWalletSubscriptions,
   openConnectModal,
+  getSigner,
+  requestV2ClaimSignature,
 } from './services/index.ts';
 
 // Import effects
@@ -85,10 +87,25 @@ import {
   GLOBAL_ONE_OF_ONE_TIERS,
 } from './config/index.ts';
 
-// Import contract services for NFT claiming
-import { checkNftClaimed, claimNft, getClaimSignature, confirmClaim } from './services/index.ts';
+// Import contract services for NFT claiming and V2 token claiming
+import {
+  checkNftClaimed,
+  claimNft,
+  getClaimSignature,
+  confirmClaim,
+  fetchV2ClaimableEpochs,
+  claimV2Reward,
+} from './services/index.ts';
 
-import type { MergedLeaderboardEntry, MatrixLeaderboardEntry, UnlockedAchievement, ClaimState, ServerStatsResponse } from './types/index.ts';
+import type {
+  MergedLeaderboardEntry,
+  MatrixLeaderboardEntry,
+  UnlockedAchievement,
+  ClaimState,
+  ServerStatsResponse,
+  V2ClaimSignatureResponse,
+  V2ClaimableEpoch,
+} from './types/index.ts';
 
 // ============ DOM Elements ============
 let buttonImg: HTMLImageElement;
@@ -111,6 +128,10 @@ let welcomeModal: HTMLElement;
 let claimModal: HTMLElement;
 let collectionModal: HTMLElement;
 let rankingsModal: HTMLElement;
+let v2ClaimModal: HTMLElement;
+let v2ClaimList: HTMLElement;
+let v2ClaimAllBtn: HTMLButtonElement;
+let claimTokensBtn: HTMLButtonElement;
 let imageLightbox: HTMLElement;
 let achievementToast: HTMLElement;
 let achievementNameEl: HTMLElement;
@@ -137,6 +158,8 @@ let leaderboardMode: 'global' | 'game' = 'global';
 let currentGame: GameConfig | undefined;
 let targetClicksPerEpoch: bigint = 0n;
 let dailyEmissionRate: bigint = 0n;
+let v2ClaimableEpochs: V2ClaimableEpoch[] = [];
+let v2IsClaimingInProgress = false;
 
 // Additional DOM elements for NFT/Collection
 let nftPanel: HTMLElement;
@@ -253,6 +276,12 @@ function cacheElements(): void {
   claimNftBtn = getElement<HTMLButtonElement>('claim-nft-btn');
   claimLaterBtn = getElement<HTMLButtonElement>('claim-later-btn');
 
+  // V2 claim modal elements
+  v2ClaimModal = getElement('v2-claim-modal');
+  v2ClaimList = getElement('v2-claim-list');
+  v2ClaimAllBtn = getElement<HTMLButtonElement>('v2-claim-all-btn');
+  claimTokensBtn = getElement<HTMLButtonElement>('claim-tokens-btn');
+
   // Global stats panel elements
   activeHumansEl = getElement('active-humans');
   activeBotsEl = getElement('active-bots');
@@ -359,6 +388,9 @@ function setupEventListeners(): void {
 
   // Claim modal
   setupClaimModalListeners();
+
+  // V2 token claim modal
+  setupV2ClaimModalListeners();
 
   // UI visibility based on mouse position
   setupUIVisibility();
@@ -588,6 +620,226 @@ function setupClaimModalListeners(): void {
 }
 
 /**
+ * Set up V2 token claim modal event listeners
+ */
+function setupV2ClaimModalListeners(): void {
+  // Close button
+  const closeBtn = getElementOrNull('v2-claim-close-btn');
+  closeBtn?.addEventListener('click', () => hideModal(v2ClaimModal));
+
+  // Click backdrop to close
+  v2ClaimModal?.addEventListener('click', (e) => {
+    if (e.target === v2ClaimModal) hideModal(v2ClaimModal);
+  });
+
+  // Claim All button
+  v2ClaimAllBtn?.addEventListener('click', handleV2ClaimAll);
+
+  // Claim Tokens button in game panel
+  claimTokensBtn?.addEventListener('click', showV2ClaimModal);
+}
+
+/**
+ * Show V2 claim modal and load claimable epochs
+ */
+async function showV2ClaimModal(): Promise<void> {
+  if (!gameState.userAddress) {
+    console.warn('[V2 Claim] Wallet not connected');
+    return;
+  }
+
+  showModal(v2ClaimModal);
+  setHtml(v2ClaimList, '<li class="v2-claim-loading">Loading claimable epochs...</li>');
+  v2ClaimAllBtn.disabled = true;
+
+  // Fetch claimable epochs from API
+  const response = await fetchV2ClaimableEpochs(gameState.userAddress);
+
+  if (!response.success || !response.claimableEpochs) {
+    setHtml(v2ClaimList, '<li class="v2-claim-empty">No claimable epochs found</li>');
+    return;
+  }
+
+  v2ClaimableEpochs = response.claimableEpochs.filter(e => !e.claimed && e.clicks > 0);
+
+  if (v2ClaimableEpochs.length === 0) {
+    setHtml(v2ClaimList, '<li class="v2-claim-empty">No unclaimed epochs</li>');
+    return;
+  }
+
+  // Render the list
+  renderV2ClaimList();
+}
+
+/**
+ * Render the V2 claimable epochs list
+ */
+function renderV2ClaimList(): void {
+  if (v2ClaimableEpochs.length === 0) {
+    setHtml(v2ClaimList, '<li class="v2-claim-empty">No unclaimed epochs</li>');
+    v2ClaimAllBtn.disabled = true;
+    return;
+  }
+
+  const items = v2ClaimableEpochs.map((epoch, idx) => {
+    const reward = epoch.estimatedReward || '~';
+    return `
+      <li class="v2-claim-item" data-epoch="${epoch.epoch}">
+        <span class="v2-claim-epoch">Epoch ${epoch.epoch}</span>
+        <span class="v2-claim-clicks">${formatNumber(epoch.clicks)} clicks</span>
+        <span class="v2-claim-reward">${reward}</span>
+        <button class="v2-claim-item-btn" data-idx="${idx}">Claim</button>
+      </li>
+    `;
+  }).join('');
+
+  setHtml(v2ClaimList, items);
+  v2ClaimAllBtn.disabled = v2ClaimableEpochs.length === 0;
+
+  // Add click handlers to individual claim buttons
+  v2ClaimList.querySelectorAll('.v2-claim-item-btn').forEach(btn => {
+    btn.addEventListener('click', handleV2ClaimSingle);
+  });
+}
+
+/**
+ * Handle claiming a single epoch
+ */
+async function handleV2ClaimSingle(e: Event): Promise<void> {
+  if (v2IsClaimingInProgress) return;
+
+  const btn = e.target as HTMLButtonElement;
+  const idx = parseInt(btn.dataset.idx || '0', 10);
+  const epochData = v2ClaimableEpochs[idx];
+
+  if (!epochData) return;
+
+  btn.disabled = true;
+  btn.textContent = '...';
+  v2IsClaimingInProgress = true;
+
+  try {
+    // Get attestation signature
+    const attestation = await requestV2ClaimAttestation(epochData.epoch);
+
+    if (attestation.error || !attestation.signature || !attestation.contractAddress) {
+      console.error('[V2 Claim] Attestation error:', attestation.error || 'Missing data');
+      btn.textContent = 'Error';
+      setTimeout(() => {
+        btn.textContent = 'Claim';
+        btn.disabled = false;
+      }, 2000);
+      v2IsClaimingInProgress = false;
+      return;
+    }
+
+    // Call contract
+    const receipt = await claimV2Reward(
+      attestation.contractAddress,
+      attestation.epoch!,
+      attestation.clickCount!,
+      attestation.signature
+    );
+
+    console.log('[V2 Claim] Success:', receipt.transactionHash);
+
+    // Update UI - mark as claimed
+    const listItem = btn.closest('.v2-claim-item');
+    if (listItem) {
+      listItem.innerHTML = `
+        <span class="v2-claim-epoch">Epoch ${epochData.epoch}</span>
+        <span class="v2-claim-clicks">${formatNumber(epochData.clicks)} clicks</span>
+        <span class="v2-claim-item-claimed">Claimed!</span>
+      `;
+    }
+
+    // Remove from list
+    v2ClaimableEpochs = v2ClaimableEpochs.filter(e => e.epoch !== epochData.epoch);
+    v2ClaimAllBtn.disabled = v2ClaimableEpochs.length === 0;
+
+    // Refresh user stats
+    refreshUserStats();
+
+  } catch (error) {
+    console.error('[V2 Claim] Transaction error:', error);
+    btn.textContent = 'Failed';
+    setTimeout(() => {
+      btn.textContent = 'Claim';
+      btn.disabled = false;
+    }, 2000);
+  } finally {
+    v2IsClaimingInProgress = false;
+  }
+}
+
+/**
+ * Handle claiming all epochs
+ */
+async function handleV2ClaimAll(): Promise<void> {
+  if (v2IsClaimingInProgress || v2ClaimableEpochs.length === 0) return;
+
+  v2ClaimAllBtn.disabled = true;
+  v2ClaimAllBtn.textContent = 'Claiming...';
+
+  // For now, claim one at a time (could batch later)
+  for (const epoch of [...v2ClaimableEpochs]) {
+    try {
+      const attestation = await requestV2ClaimAttestation(epoch.epoch);
+
+      if (attestation.error || !attestation.signature || !attestation.contractAddress) {
+        console.error(`[V2 Claim] Attestation error for epoch ${epoch.epoch}:`, attestation.error);
+        continue;
+      }
+
+      await claimV2Reward(
+        attestation.contractAddress,
+        attestation.epoch!,
+        attestation.clickCount!,
+        attestation.signature
+      );
+
+      // Remove from list
+      v2ClaimableEpochs = v2ClaimableEpochs.filter(e => e.epoch !== epoch.epoch);
+
+    } catch (error) {
+      console.error(`[V2 Claim] Error claiming epoch ${epoch.epoch}:`, error);
+    }
+  }
+
+  // Refresh the list
+  renderV2ClaimList();
+  v2ClaimAllBtn.textContent = 'Claim All';
+  v2ClaimAllBtn.disabled = v2ClaimableEpochs.length === 0;
+
+  // Refresh user stats
+  refreshUserStats();
+}
+
+/**
+ * Check and show V2 claim button if there are claimable epochs
+ */
+async function checkV2ClaimableEpochs(): Promise<void> {
+  if (!gameState.userAddress) {
+    claimTokensBtn.style.display = 'none';
+    return;
+  }
+
+  const response = await fetchV2ClaimableEpochs(gameState.userAddress);
+
+  if (response.success && response.claimableEpochs) {
+    const unclaimed = response.claimableEpochs.filter(e => !e.claimed && e.clicks > 0);
+    if (unclaimed.length > 0) {
+      claimTokensBtn.style.display = 'inline-block';
+      claimTokensBtn.textContent = `Claim (${unclaimed.length})`;
+    } else {
+      claimTokensBtn.style.display = 'none';
+    }
+  } else {
+    claimTokensBtn.style.display = 'none';
+  }
+}
+
+/**
  * Set up lightbox event listeners
  */
 function setupLightboxListeners(): void {
@@ -777,6 +1029,9 @@ async function onConnected(): Promise<void> {
     updateStreakPanel(stats);
     await renderNftPanel(stats);
   }
+
+  // Check for V2 claimable epochs
+  checkV2ClaimableEpochs();
 
   // Start periodic updates
   startPeriodicUpdates();
@@ -1465,6 +1720,42 @@ function onTurnstileSuccess(token: string): void {
     // Re-trigger submit - create a dummy event
     handleSubmit(new Event('click'));
   }
+}
+
+async function requestV2ClaimAttestation(epoch: number): Promise<V2ClaimSignatureResponse> {
+  if (!gameState.userAddress) {
+    return { error: 'Wallet not connected' };
+  }
+
+  let response = await requestV2ClaimSignature(gameState.userAddress, epoch, {
+    turnstileToken,
+  });
+
+  if (response.requiresVerification) {
+    turnstileToken = null;
+    showTurnstileModal();
+    return response;
+  }
+
+  if (response.requiresSignature && response.challenge) {
+    const signer = getSigner();
+    if (!signer) {
+      return { error: 'Wallet not connected' };
+    }
+
+    const walletSignature = await signer.signMessage(response.challenge);
+    response = await requestV2ClaimSignature(gameState.userAddress, epoch, {
+      turnstileToken,
+      walletSignature,
+    });
+
+    if (response.requiresVerification) {
+      turnstileToken = null;
+      showTurnstileModal();
+    }
+  }
+
+  return response;
 }
 
 function showClaimModal(milestoneId: string, tier: number): void {

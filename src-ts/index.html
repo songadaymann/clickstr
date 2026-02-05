@@ -121,6 +121,7 @@
             <span class="global-stat-label">Pool</span>
             <span class="global-stat-value" id="pool-info">0</span>
             <span class="global-stat-suffix">$CLICKSTR</span>
+            <button class="claim-tokens-btn" id="claim-tokens-btn" style="display:none;">Claim</button>
           </div>
           <div class="global-stat-divider"></div>
           <div class="global-stat-row">
@@ -250,6 +251,25 @@
       <button class="claim-btn" id="claim-nft-btn">Mint NFT</button>
       <button class="claim-later-btn" id="claim-later-btn">Claim Later</button>
       <div class="claim-gas-note">You'll pay a small gas fee to mint</div>
+    </div>
+  </div>
+
+  <!-- V2 Token Claim Modal -->
+  <div id="v2-claim-modal" class="modal">
+    <div class="v2-claim-modal-content">
+      <div class="v2-claim-header">
+        <span class="v2-claim-title">Claim Token Rewards</span>
+        <button class="v2-claim-close-btn" id="v2-claim-close-btn">X</button>
+      </div>
+      <div class="v2-claim-info">
+        Claim your $CLICKSTR tokens for completed epochs
+      </div>
+      <ul class="v2-claim-list" id="v2-claim-list">
+        <li class="v2-claim-loading">Loading claimable epochs...</li>
+      </ul>
+      <div class="v2-claim-footer">
+        <button class="v2-claim-all-btn" id="v2-claim-all-btn" disabled>Claim All</button>
+      </div>
     </div>
   </div>
 
