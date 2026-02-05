@@ -41,11 +41,14 @@ export type {
   RecordClicksResponse,
   ClaimSignatureRequest,
   ClaimSignatureResponse,
+  V2ClaimSignatureResponse,
   VerificationResponse,
   MergedLeaderboardEntry,
   MatrixLeaderboardEntry,
   ActiveUsersResponse,
   HeartbeatResponse,
+  V2ClaimableEpoch,
+  V2ClaimableEpochsResponse,
 } from './api.ts';
 
 // Effects types
@@ -60,6 +63,7 @@ export type {
 export {
   CLICKSTR_ABI,
   NFT_CONTRACT_ABI,
+  CLICKSTR_V2_ABI,
 } from './contracts.ts';
 
 export type {
