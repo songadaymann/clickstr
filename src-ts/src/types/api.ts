@@ -94,6 +94,28 @@ export interface ClaimSignatureResponse {
   error?: string;
 }
 
+/** V2 claim attestation response */
+export interface V2ClaimSignatureResponse {
+  success?: boolean;
+  signature?: string;
+  epoch?: number;
+  clickCount?: number;
+  seasonNumber?: number;
+  contractAddress?: string;
+  chainId?: number;
+  claimData?: {
+    functionName: string;
+    args: [number, number, string];
+  };
+  requiresVerification?: boolean;
+  requiresSignature?: boolean;
+  challenge?: string;
+  expiresAt?: number;
+  note?: string;
+  error?: string;
+  reason?: string;
+}
+
 /** Verification status response */
 export interface VerificationResponse {
   success: boolean;
@@ -130,4 +152,21 @@ export interface ActiveUsersResponse {
 /** Heartbeat response */
 export interface HeartbeatResponse {
   success: boolean;
+}
+
+/** V2 claimable epoch info */
+export interface V2ClaimableEpoch {
+  epoch: number;
+  clicks: number;
+  claimed: boolean;
+  estimatedReward?: string;
+}
+
+/** V2 claimable epochs response */
+export interface V2ClaimableEpochsResponse {
+  success: boolean;
+  claimableEpochs?: V2ClaimableEpoch[];
+  currentEpoch?: number;
+  seasonNumber?: number;
+  error?: string;
 }
