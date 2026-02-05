@@ -13,10 +13,13 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
     chainId: 11155111,
     chainName: 'Sepolia',
     rpcUrl: import.meta.env.VITE_SEPOLIA_RPC_URL || '',
-    contractAddress: '0xf724ede44Bbb2Ccf46cec530c21B14885D441e02', // Clickstr (v6 - mainnet dry run Feb 3-4)
-    tokenAddress: '0x78A607EDE7C7b134F51E725e4bA73D7b269580fc', // MockClickToken (v6 - 1B supply)
-    nftContractAddress: '0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849', // ClickstrNFT (v6 - same as mainnet)
+    contractAddress: '0xe37B2cCCFDD4441E4c87abE6d4cF05Fe0fFbda24', // ClickstrGameV2 (V2 test - Feb 5, 2026)
+    tokenAddress: '0x120E2fCf5b26FC49Fe3d1E7c851346c898619C28', // MockClickToken (V2 test - 1B supply)
+    nftContractAddress: '0x50276Dd07F357e13f4B7D978d0E9E747974EfF09', // ClickstrNFTV2 (V2 test)
     turnstileSiteKey: '0x4AAAAAACV0UOMmCeG_g2Jr',
+    // V2 additional addresses:
+    // Registry: 0xAb16745314623EF6fAE03E90EC3987519C431B0f
+    // Treasury: 0x82378b6C7247b02f4b985Aca079a0A85E0D2cbAe
   },
   mainnet: {
     chainId: 1,
@@ -29,8 +32,15 @@ export const NETWORKS: Record<NetworkId, NetworkConfig> = {
   },
 } as const;
 
-/** Current active network - change this for deployment */
-export const CURRENT_NETWORK: NetworkId = 'mainnet';
+/**
+ * Current active network - set via VITE_NETWORK env var
+ * Usage:
+ *   VITE_NETWORK=sepolia npm run build   -> builds for Sepolia
+ *   VITE_NETWORK=mainnet npm run build   -> builds for Mainnet
+ *   npm run build                        -> defaults to mainnet
+ */
+export const CURRENT_NETWORK: NetworkId =
+  (import.meta.env.VITE_NETWORK as NetworkId) || 'mainnet';
 
 /** Build the full application configuration */
 export function buildConfig(networkId: NetworkId = CURRENT_NETWORK): AppConfig {

@@ -3,8 +3,11 @@
  */
 
 import { ethers } from 'ethers';
-import { CONFIG, hasNftContract } from '@/config/index.ts';
-import { CLICKSTR_ABI, NFT_CONTRACT_ABI } from '@/types/index.ts';
+import { CONFIG, hasNftContract, CURRENT_NETWORK } from '@/config/index.ts';
+import { CLICKSTR_ABI, NFT_CONTRACT_ABI, CLICKSTR_V2_ABI } from '@/types/index.ts';
+
+/** Whether we're using V2 contracts (Sepolia test) */
+const IS_V2 = CURRENT_NETWORK === 'sepolia';
 import type { GameStats, EpochInfo, UserLifetimeStats } from '@/types/index.ts';
 import { getSigner } from './wallet.ts';
 import { gameState } from '@/state/index.ts';
@@ -23,7 +26,9 @@ export function initializeContracts(): void {
     return;
   }
 
-  gameContract = new ethers.Contract(CONFIG.contractAddress, CLICKSTR_ABI, signer);
+  // Use V2 ABI for Sepolia test deployment
+  const gameAbi = IS_V2 ? CLICKSTR_V2_ABI : CLICKSTR_ABI;
+  gameContract = new ethers.Contract(CONFIG.contractAddress, gameAbi, signer);
 
   if (hasNftContract()) {
     nftContract = new ethers.Contract(CONFIG.nftContractAddress, NFT_CONTRACT_ABI, signer);
@@ -56,6 +61,21 @@ export async function fetchGameStats(): Promise<GameStats | null> {
   try {
     const stats = await gameContract.getGameStats();
 
+    if (IS_V2) {
+      // V2 returns seasonNumber_ instead of difficulty_
+      // Difficulty comes from server in V2
+      return {
+        poolRemaining: stats.poolRemaining_.toBigInt(),
+        currentEpoch: stats.currentEpoch_.toNumber(),
+        totalEpochs: stats.totalEpochs_.toNumber(),
+        gameStartTime: stats.gameStartTime_.toNumber(),
+        gameEndTime: stats.gameEndTime_.toNumber(),
+        difficulty: BigInt(0), // V2 doesn't have on-chain difficulty
+        started: stats.started_,
+        ended: stats.ended_,
+      };
+    }
+
     return {
       poolRemaining: stats.poolRemaining_.toBigInt(),
       currentEpoch: stats.currentEpoch_.toNumber(),
@@ -74,10 +94,16 @@ export async function fetchGameStats(): Promise<GameStats | null> {
 
 /**
  * Fetch the current difficulty target
+ * Note: V2 doesn't have on-chain difficulty - it comes from the server
  */
 export async function fetchDifficultyTarget(): Promise<bigint | null> {
   if (!gameContract) {
     console.error('[Contracts] Game contract not initialized');
+    return null;
+  }
+
+  // V2 doesn't have on-chain difficulty
+  if (IS_V2) {
     return null;
   }
 
@@ -92,11 +118,21 @@ export async function fetchDifficultyTarget(): Promise<bigint | null> {
 
 /**
  * Fetch reward calculation parameters from contract
+ * Note: V2 uses different constant names and values
  */
 export async function fetchRewardParams(): Promise<{ targetClicksPerEpoch: bigint; dailyEmissionRate: bigint } | null> {
   if (!gameContract) {
     console.error('[Contracts] Game contract not initialized');
     return null;
+  }
+
+  // V2 has these as constants but they're computed differently
+  // For now, return sensible defaults for V2
+  if (IS_V2) {
+    return {
+      targetClicksPerEpoch: BigInt(1_000_000), // Default target
+      dailyEmissionRate: BigInt(200), // 2% in basis points
+    };
   }
 
   try {
@@ -152,8 +188,18 @@ export async function fetchUserStats(address: string): Promise<UserLifetimeStats
   }
 
   try {
-    const stats = await gameContract.getUserLifetimeStats(address);
+    if (IS_V2) {
+      // V2 uses getUserStats with different return values (no totalBurned)
+      const stats = await gameContract.getUserStats(address);
+      return {
+        totalClicks: stats.totalClicks_.toNumber(),
+        totalEarned: stats.totalEarned_.toBigInt(),
+        totalBurned: BigInt(0), // V2 doesn't track per-user burns
+        epochsWon: stats.epochsWon_.toNumber(),
+      };
+    }
 
+    const stats = await gameContract.getUserLifetimeStats(address);
     return {
       totalClicks: stats.totalClicks.toNumber(),
       totalEarned: stats.totalEarned.toBigInt(),
@@ -270,4 +316,50 @@ export async function refreshUserStats(): Promise<void> {
   const earned = parseFloat(ethers.utils.formatEther(stats.totalEarned.toString()));
   // Only update earned tokens from contract - allTimeClicks comes from API
   gameState.setTotalEarned(earned);
+}
+
+/**
+ * Claim V2 token rewards for an epoch
+ * @param contractAddress The V2 game contract address (from API response)
+ * @param epoch The epoch to claim
+ * @param clickCount The number of clicks attested by server
+ * @param signature The server signature
+ * @returns Transaction receipt on success
+ */
+export async function claimV2Reward(
+  contractAddress: string,
+  epoch: number,
+  clickCount: number,
+  signature: string
+): Promise<ethers.providers.TransactionReceipt> {
+  const signer = getSigner();
+  if (!signer) {
+    throw new Error('Wallet not connected');
+  }
+
+  const v2Contract = new ethers.Contract(contractAddress, CLICKSTR_V2_ABI, signer);
+  const tx = await v2Contract.claimReward(epoch, clickCount, signature);
+  return await tx.wait();
+}
+
+/**
+ * Check if user has claimed V2 reward for an epoch
+ */
+export async function checkV2Claimed(
+  contractAddress: string,
+  userAddress: string,
+  epoch: number
+): Promise<boolean> {
+  const signer = getSigner();
+  if (!signer) {
+    return false;
+  }
+
+  try {
+    const v2Contract = new ethers.Contract(contractAddress, CLICKSTR_V2_ABI, signer);
+    return await v2Contract.hasClaimed(userAddress, epoch);
+  } catch (error) {
+    console.error('[Contracts] Error checking V2 claimed status:', error);
+    return false;
+  }
 }
