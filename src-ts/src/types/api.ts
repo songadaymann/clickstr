@@ -170,3 +170,49 @@ export interface V2ClaimableEpochsResponse {
   seasonNumber?: number;
   error?: string;
 }
+
+/** V2 submit clicks response */
+export interface V2SubmitClicksResponse {
+  success: boolean;
+  validClicks?: number;
+  invalidClicks?: number;
+  epochClicks?: number | null;
+  seasonClicks?: number;
+  lifetimeClicks?: number;
+  globalClicks?: number;
+  epoch?: number | null;
+  difficultyTarget?: string;
+  rank?: number | null;
+  gameActive?: boolean;
+  requiresVerification?: boolean;
+  newMilestones?: Array<{ id: string; name: string; tier: number }>;
+  newAchievements?: Array<{ id: string; name: string; tier: number; type: string }>;
+  nextMilestone?: { id: string; name: string; clicks: number } | null;
+  error?: string;
+}
+
+/** V2 game state from API */
+export interface V2GameState {
+  currentEpoch: number;
+  seasonNumber: number;
+  totalEpochs: number;
+  gameStarted: boolean;
+  gameEnded: boolean;
+}
+
+/** V2 stats response */
+export interface V2StatsResponse {
+  success: boolean;
+  address?: string;
+  currentEpochClicks?: number;
+  seasonClicks?: number;
+  lifetimeClicks?: number;
+  registryClicks?: number;
+  lifetimeEarned?: string; // In wei, as string to avoid precision loss
+  rank?: number | null;
+  milestones?: string[];
+  achievements?: string[];
+  difficultyTarget?: string;
+  gameState?: V2GameState;
+  error?: string;
+}

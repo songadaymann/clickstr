@@ -102,9 +102,19 @@ export async function fetchDifficultyTarget(): Promise<bigint | null> {
     return null;
   }
 
-  // V2 doesn't have on-chain difficulty
+  // V2: fetch difficulty from server (dynamic, adjusts per epoch)
   if (IS_V2) {
-    return null;
+    try {
+      const { fetchV2Difficulty } = await import('./api.ts');
+      const result = await fetchV2Difficulty();
+      if (result.success && result.difficultyTarget) {
+        return BigInt(result.difficultyTarget);
+      }
+    } catch (error) {
+      console.error('[Contracts] Error fetching V2 difficulty from server:', error);
+    }
+    // Fallback to default if server is unreachable
+    return BigInt('0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
   }
 
   try {
@@ -126,13 +136,22 @@ export async function fetchRewardParams(): Promise<{ targetClicksPerEpoch: bigin
     return null;
   }
 
-  // V2 has these as constants but they're computed differently
-  // For now, return sensible defaults for V2
+  // V2 has DAILY_EMISSION_RATE as a constant but no TARGET_CLICKS_PER_EPOCH
+  // V2 uses a different reward formula that doesn't need targetClicksPerEpoch
   if (IS_V2) {
-    return {
-      targetClicksPerEpoch: BigInt(1_000_000), // Default target
-      dailyEmissionRate: BigInt(200), // 2% in basis points
-    };
+    try {
+      const emissionRate = await gameContract.DAILY_EMISSION_RATE();
+      return {
+        targetClicksPerEpoch: BigInt(1_000_000), // Not used in V2, but needed for display
+        dailyEmissionRate: emissionRate.toBigInt(),
+      };
+    } catch {
+      // Fallback to hardcoded values if contract call fails
+      return {
+        targetClicksPerEpoch: BigInt(1_000_000),
+        dailyEmissionRate: BigInt(200), // 2% in basis points
+      };
+    }
   }
 
   try {
@@ -303,10 +322,15 @@ export async function refreshGameData(): Promise<boolean> {
 
 /**
  * Fetch and update user stats in state
- * Note: Only updates totalEarned from contract.
+ * Note: For V2, lifetime stats come from the API (via ClickRegistry).
+ * This function is mainly for V1 compatibility.
  * allTimeClicks comes from API (server stats) to track frontend clicks for NFT rewards.
  */
 export async function refreshUserStats(): Promise<void> {
+  // In V2, lifetime earned comes from the API/registry, not the per-season contract
+  // Skip this for V2 - stats are fetched via fetchV2Stats in onConnected
+  if (IS_V2) return;
+
   const address = gameState.userAddress;
   if (!address) return;
 
@@ -343,7 +367,7 @@ export async function claimV2Reward(
 }
 
 /**
- * Check if user has claimed V2 reward for an epoch
+ * Check if user has claimed V2 reward for an epoch (boolean)
  */
 export async function checkV2Claimed(
   contractAddress: string,
@@ -361,5 +385,28 @@ export async function checkV2Claimed(
   } catch (error) {
     console.error('[Contracts] Error checking V2 claimed status:', error);
     return false;
+  }
+}
+
+/**
+ * Get number of clicks already claimed for an epoch (for incremental claims)
+ */
+export async function getV2ClaimedClicks(
+  contractAddress: string,
+  userAddress: string,
+  epoch: number
+): Promise<number> {
+  const signer = getSigner();
+  if (!signer) {
+    return 0;
+  }
+
+  try {
+    const v2Contract = new ethers.Contract(contractAddress, CLICKSTR_V2_ABI, signer);
+    const claimed = await v2Contract.getClaimedClicks(userAddress, epoch);
+    return claimed.toNumber();
+  } catch (error) {
+    console.error('[Contracts] Error getting V2 claimed clicks:', error);
+    return 0;
   }
 }

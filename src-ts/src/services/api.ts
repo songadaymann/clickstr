@@ -793,3 +793,29 @@ export async function fetchActiveUsersV2(): Promise<ActiveUsersResponse> {
     return { success: false, activeHumans: 0, activeBots: 0 };
   }
 }
+
+/** Response from V2 difficulty endpoint */
+export interface V2DifficultyResponse {
+  success: boolean;
+  difficultyTarget?: string;
+  epoch?: number;
+  targetClicksPerEpoch?: number;
+  currentEpochClicks?: number;
+  gameActive?: boolean;
+}
+
+/**
+ * Fetch current PoW difficulty from V2 API
+ */
+export async function fetchV2Difficulty(): Promise<V2DifficultyResponse> {
+  try {
+    const response = await fetch(`${V2_CLAIM_URL}?difficulty=true`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch V2 difficulty');
+    }
+    return await response.json() as V2DifficultyResponse;
+  } catch (error) {
+    console.error('V2 difficulty fetch error:', error);
+    return { success: false };
+  }
+}

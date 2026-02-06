@@ -1032,6 +1032,10 @@ async function onConnected(): Promise<void> {
         const earnedInClick = parseFloat(v2Stats.lifetimeEarned) / 1e18;
         gameState.setTotalEarned(earnedInClick);
       }
+      // Sync difficulty from server (dynamic per-epoch adjustment)
+      if (v2Stats.difficultyTarget) {
+        gameState.setDifficulty(BigInt(v2Stats.difficultyTarget));
+      }
     }
   } else {
     // V1 mode: Check verification status and fetch server stats
@@ -1212,6 +1216,11 @@ async function handleV2Submit(nonces: readonly bigint[]): Promise<void> {
       gameState.setAllTimeClicks(result.lifetimeClicks);
     }
 
+    // Sync difficulty from server (tracks epoch-based adjustments)
+    if (result.difficultyTarget) {
+      gameState.setDifficulty(BigInt(result.difficultyTarget));
+    }
+
     // Clear submitted clicks
     gameState.clearSubmittedClicks(nonces.length);
 
@@ -1318,6 +1327,11 @@ async function handleV2Claim(e: Event): Promise<void> {
     }
 
     console.log('[V2 Claim] Clicks submitted:', submitResult);
+
+    // Sync difficulty from server response
+    if (submitResult.difficultyTarget) {
+      gameState.setDifficulty(BigInt(submitResult.difficultyTarget));
+    }
 
     // Get current epoch from response or state
     const currentEpoch = submitResult.epoch ?? gameState.currentEpoch;
