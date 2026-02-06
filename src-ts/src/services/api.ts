@@ -19,6 +19,8 @@ import type {
   HeartbeatResponse,
   V2ClaimSignatureResponse,
   V2ClaimableEpochsResponse,
+  V2SubmitClicksResponse,
+  V2StatsResponse,
 } from '@/types/index.ts';
 
 const CLAIM_SIGNATURE_URL = 'https://mann.cool/api/clickstr-claim-signature';
@@ -466,6 +468,7 @@ export async function requestV2ClaimSignature(
   options?: {
     turnstileToken?: string | null;
     walletSignature?: string | null;
+    challenge?: string | null;
   }
 ): Promise<V2ClaimSignatureResponse> {
   try {
@@ -480,6 +483,9 @@ export async function requestV2ClaimSignature(
     }
     if (options?.walletSignature) {
       body.walletSignature = options.walletSignature;
+    }
+    if (options?.challenge) {
+      body.challenge = options.challenge;
     }
 
     const response = await fetch(V2_CLAIM_URL, {
@@ -612,8 +618,10 @@ export interface SyncAchievementsResponse {
   success: boolean;
   address?: string;
   totalClicks?: number;
+  globalClicks?: number;
   newMilestones?: Array<{ id: string; name: string; tier: number }>;
   newAchievements?: Array<{ id: string; name: string; tier: number; type: string }>;
+  newGlobalMilestones?: Array<{ id: string; name: string; tier: number; globalClick: number; type: string }>;
   message?: string;
 }
 
@@ -647,5 +655,141 @@ export async function fetchV2ClaimableEpochs(address: string): Promise<V2Claimab
   } catch (error) {
     console.error('V2 claimable epochs fetch error:', error);
     return { success: false, error: 'Failed to fetch claimable epochs' };
+  }
+}
+
+/**
+ * Submit clicks to V2 API (off-chain with PoW validation)
+ */
+export async function submitClicksV2(
+  address: string,
+  nonces: string[],
+  turnstileToken?: string | null
+): Promise<V2SubmitClicksResponse> {
+  try {
+    const body: Record<string, unknown> = {
+      address,
+      nonces,
+    };
+
+    if (turnstileToken) {
+      body.turnstileToken = turnstileToken;
+    }
+
+    console.log('[V2 API] Submitting to:', V2_CLAIM_URL);
+    console.log('[V2 API] Body:', { address, noncesCount: nonces.length, hasTurnstile: !!turnstileToken });
+
+    const response = await fetch(V2_CLAIM_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    console.log('[V2 API] Response status:', response.status);
+
+    const result = await response.json() as V2SubmitClicksResponse;
+    console.log('[V2 API] Response data:', result);
+
+    if (response.status === 403 && result.requiresVerification) {
+      return { success: false, requiresVerification: true };
+    }
+
+    return result;
+  } catch (error) {
+    console.error('V2 submit clicks error:', error);
+    return { success: false, error: 'Failed to submit clicks' };
+  }
+}
+
+/**
+ * Fetch V2 stats for a user
+ */
+export async function fetchV2Stats(address: string): Promise<V2StatsResponse> {
+  try {
+    const response = await fetch(`${V2_CLAIM_URL}?address=${address}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch V2 stats');
+    }
+    return await response.json() as V2StatsResponse;
+  } catch (error) {
+    console.error('V2 stats fetch error:', error);
+    return { success: false, error: 'Failed to fetch stats' };
+  }
+}
+
+/**
+ * Send heartbeat to V2 API
+ */
+export async function sendHeartbeatV2(address: string): Promise<HeartbeatResponse> {
+  try {
+    const response = await fetch(V2_CLAIM_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        address,
+        heartbeat: true,
+      }),
+    });
+    return await response.json() as HeartbeatResponse;
+  } catch (error) {
+    console.warn('V2 Heartbeat failed:', error);
+    return { success: false };
+  }
+}
+
+/**
+ * Fetch V2 leaderboard for current epoch
+ * Returns MergedLeaderboardEntry[] for compatibility with existing leaderboard rendering
+ */
+export async function fetchV2Leaderboard(limit = 50, epoch?: number): Promise<MergedLeaderboardEntry[]> {
+  try {
+    let url = `${V2_CLAIM_URL}?leaderboard=true&limit=${limit}`;
+    if (epoch !== undefined) {
+      url += `&epoch=${epoch}`;
+    }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch V2 leaderboard');
+
+    const data = await response.json() as {
+      success: boolean;
+      leaderboard?: Array<{
+        rank: number;
+        address: string;
+        name?: string | null;
+        totalClicks: number;
+      }>;
+    };
+    if (data.success && data.leaderboard) {
+      // Convert to MergedLeaderboardEntry format
+      // V2 is human-only so all entries are human
+      return data.leaderboard.map((entry) => ({
+        address: entry.address,
+        name: entry.name ?? null,
+        totalClicks: entry.totalClicks,
+        frontendClicks: entry.totalClicks, // In V2, all clicks are frontend clicks
+        rank: entry.rank,
+        isHuman: true, // V2 requires Turnstile verification
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error('V2 leaderboard fetch error:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch active users from V2 API
+ */
+export async function fetchActiveUsersV2(): Promise<ActiveUsersResponse> {
+  try {
+    const response = await fetch(`${V2_CLAIM_URL}?activeUsers=true`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch active users');
+    }
+    return await response.json() as ActiveUsersResponse;
+  } catch (error) {
+    console.error('V2 active users fetch error:', error);
+    return { success: false, activeHumans: 0, activeBots: 0 };
   }
 }

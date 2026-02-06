@@ -12,7 +12,10 @@ import './styles/main.css';
 import { gameState } from './state/index.ts';
 
 // Import config
-import { CONFIG, hasNftContract, getCurrentGame, getAllGames, type GameConfig } from './config/index.ts';
+import { CONFIG, hasNftContract, getCurrentGame, getAllGames, CURRENT_NETWORK, type GameConfig } from './config/index.ts';
+
+// Check if we're using V2 (Sepolia)
+const IS_V2 = CURRENT_NETWORK === 'sepolia';
 
 // Import services
 import {
@@ -32,7 +35,10 @@ import {
   startMining,
   terminateMining,
   sendHeartbeat,
+  sendHeartbeatV2,
   fetchActiveUsers,
+  fetchActiveUsersV2,
+  fetchV2Leaderboard,
   fetchRecentBotActivity,
   syncAchievements,
   lookupEns,
@@ -41,6 +47,8 @@ import {
   openConnectModal,
   getSigner,
   requestV2ClaimSignature,
+  submitClicksV2,
+  fetchV2Stats,
 } from './services/index.ts';
 
 // Import effects
@@ -52,6 +60,7 @@ import {
   preloadSounds,
   playButtonDown,
   playButtonUp,
+  playCashMachineSound,
   celebratePersonalMilestone,
   celebrateGlobalMilestone,
   applyCursor,
@@ -95,6 +104,7 @@ import {
   confirmClaim,
   fetchV2ClaimableEpochs,
   claimV2Reward,
+  getV2ClaimedClicks,
 } from './services/index.ts';
 
 import type {
@@ -113,6 +123,8 @@ let buttonClickZone: HTMLElement;
 let connectBtn: HTMLButtonElement;
 let submitBtn: HTMLButtonElement;
 let submitContainer: HTMLElement;
+let claimBtn: HTMLButtonElement;
+let claimContainer: HTMLElement;
 let epochInfoEl: HTMLElement;
 let poolInfoEl: HTMLElement;
 let headerAlltimeClicksEl: HTMLElement;
@@ -131,7 +143,6 @@ let rankingsModal: HTMLElement;
 let v2ClaimModal: HTMLElement;
 let v2ClaimList: HTMLElement;
 let v2ClaimAllBtn: HTMLButtonElement;
-let claimTokensBtn: HTMLButtonElement;
 let imageLightbox: HTMLElement;
 let achievementToast: HTMLElement;
 let achievementNameEl: HTMLElement;
@@ -237,6 +248,8 @@ function cacheElements(): void {
   connectBtn = getElement<HTMLButtonElement>('connect-btn');
   submitBtn = getElement<HTMLButtonElement>('submit-btn');
   submitContainer = getElement('submit-container');
+  claimBtn = getElement<HTMLButtonElement>('claim-btn');
+  claimContainer = getElement('claim-container');
   epochInfoEl = getElement('epoch-info');
   poolInfoEl = getElement('pool-info');
   headerAlltimeClicksEl = getElement('header-alltime-clicks');
@@ -280,7 +293,6 @@ function cacheElements(): void {
   v2ClaimModal = getElement('v2-claim-modal');
   v2ClaimList = getElement('v2-claim-list');
   v2ClaimAllBtn = getElement<HTMLButtonElement>('v2-claim-all-btn');
-  claimTokensBtn = getElement<HTMLButtonElement>('claim-tokens-btn');
 
   // Global stats panel elements
   activeHumansEl = getElement('active-humans');
@@ -368,8 +380,11 @@ function setupEventListeners(): void {
 
   // Legacy wallet modal listeners removed - AppKit handles its own modal
 
-  // Submit button
+  // Submit button (V1)
   submitBtn.addEventListener('click', handleSubmit);
+
+  // Claim button (V2) - glowing green, full claim flow
+  claimBtn.addEventListener('click', handleV2Claim);
 
   // Copy address button
   setupCopyAddressButton();
@@ -634,15 +649,13 @@ function setupV2ClaimModalListeners(): void {
 
   // Claim All button
   v2ClaimAllBtn?.addEventListener('click', handleV2ClaimAll);
-
-  // Claim Tokens button in game panel
-  claimTokensBtn?.addEventListener('click', showV2ClaimModal);
 }
 
 /**
  * Show V2 claim modal and load claimable epochs
+ * Exported for potential future use - currently claim is triggered directly from submit button
  */
-async function showV2ClaimModal(): Promise<void> {
+export async function showV2ClaimModal(): Promise<void> {
   if (!gameState.userAddress) {
     console.warn('[V2 Claim] Wallet not connected');
     return;
@@ -816,30 +829,6 @@ async function handleV2ClaimAll(): Promise<void> {
 }
 
 /**
- * Check and show V2 claim button if there are claimable epochs
- */
-async function checkV2ClaimableEpochs(): Promise<void> {
-  if (!gameState.userAddress) {
-    claimTokensBtn.style.display = 'none';
-    return;
-  }
-
-  const response = await fetchV2ClaimableEpochs(gameState.userAddress);
-
-  if (response.success && response.claimableEpochs) {
-    const unclaimed = response.claimableEpochs.filter(e => !e.claimed && e.clicks > 0);
-    if (unclaimed.length > 0) {
-      claimTokensBtn.style.display = 'inline-block';
-      claimTokensBtn.textContent = `Claim (${unclaimed.length})`;
-    } else {
-      claimTokensBtn.style.display = 'none';
-    }
-  } else {
-    claimTokensBtn.style.display = 'none';
-  }
-}
-
-/**
  * Set up lightbox event listeners
  */
 function setupLightboxListeners(): void {
@@ -991,7 +980,8 @@ function onClickMined(nonce: bigint): void {
 async function onConnected(): Promise<void> {
   initializeContracts();
 
-  // Fetch game data
+  // Fetch game data from contract (both V1 and V2)
+  // This sets poolRemaining, epoch info, and game active status
   await refreshGameData();
 
   // Fetch reward params (for difficulty display)
@@ -1018,20 +1008,43 @@ async function onConnected(): Promise<void> {
   // Fetch user stats
   await refreshUserStats();
 
-  // Check verification status
-  await checkVerificationStatus(gameState.userAddress!);
+  if (IS_V2) {
+    // Fetch V1 server stats FIRST for milestones/achievements/streaks (shared Redis)
+    // This must come before V2 stats because setServerStats() overwrites allTimeClicks
+    const stats = await fetchServerStats(gameState.userAddress!);
+    if (stats) {
+      serverStats = stats;
+      gameState.setServerStats(stats);
+      updateStreakPanel(stats);
+      await renderNftPanel(stats);
+    }
 
-  // Fetch server stats and render panels
-  const stats = await fetchServerStats(gameState.userAddress!);
-  if (stats) {
-    serverStats = stats;
-    gameState.setServerStats(stats);
-    updateStreakPanel(stats);
-    await renderNftPanel(stats);
+    // V2 mode: Fetch stats from V2 API AFTER, so registry values win
+    const v2Stats = await fetchV2Stats(gameState.userAddress!);
+    if (v2Stats.success) {
+      console.log('[V2] User stats:', v2Stats);
+      // Set lifetime clicks from registry (overwrites V1 totalClicks)
+      if (v2Stats.lifetimeClicks !== undefined) {
+        gameState.setAllTimeClicks(v2Stats.lifetimeClicks);
+      }
+      // Set lifetime earned from registry (convert from wei string to CLICK number)
+      if (v2Stats.lifetimeEarned !== undefined) {
+        const earnedInClick = parseFloat(v2Stats.lifetimeEarned) / 1e18;
+        gameState.setTotalEarned(earnedInClick);
+      }
+    }
+  } else {
+    // V1 mode: Check verification status and fetch server stats
+    await checkVerificationStatus(gameState.userAddress!);
+
+    const stats = await fetchServerStats(gameState.userAddress!);
+    if (stats) {
+      serverStats = stats;
+      gameState.setServerStats(stats);
+      updateStreakPanel(stats);
+      await renderNftPanel(stats);
+    }
   }
-
-  // Check for V2 claimable epochs
-  checkV2ClaimableEpochs();
 
   // Start periodic updates
   startPeriodicUpdates();
@@ -1070,11 +1083,14 @@ async function handleSubmit(e: Event): Promise<void> {
   try {
     submitBtn.disabled = true;
 
-    if (gameState.isGameActive) {
-      // Game is active: submit to blockchain first, then record to API
+    if (IS_V2) {
+      // V2: Always submit to API (off-chain), claim later
+      await handleV2Submit(nonces);
+    } else if (gameState.isGameActive) {
+      // V1 Game is active: submit to blockchain first, then record to API
       await handleOnChainSubmit(nonces);
     } else {
-      // Game is inactive: record to API only (with nonces as proof-of-work)
+      // V1 Game is inactive: record to API only (with nonces as proof-of-work)
       await handleOffChainSubmit(nonces);
     }
   } catch (error) {
@@ -1177,6 +1193,231 @@ async function handleOffChainSubmit(nonces: readonly bigint[]): Promise<void> {
   }
 }
 
+/**
+ * Handle V2 submission (off-chain to API, claim rewards later)
+ */
+async function handleV2Submit(nonces: readonly bigint[]): Promise<void> {
+  // Submit to V2 API
+  const result = await submitClicksV2(
+    gameState.userAddress!,
+    nonces.map(n => n.toString()),
+    turnstileToken
+  );
+
+  if (result.success) {
+    console.log('[V2 Submit] Success:', result);
+
+    // Update local state with server response
+    if (result.lifetimeClicks !== undefined) {
+      gameState.setAllTimeClicks(result.lifetimeClicks);
+    }
+
+    // Clear submitted clicks
+    gameState.clearSubmittedClicks(nonces.length);
+
+    // Handle achievements from V2 response
+    if (result.newMilestones && result.newMilestones.length > 0) {
+      handleAchievements({ newMilestones: result.newMilestones });
+    }
+    if (result.newAchievements && result.newAchievements.length > 0) {
+      handleAchievements({
+        newAchievements: result.newAchievements.map(a => ({
+          ...a,
+          name: a.name,
+          type: a.type as 'hidden' | 'global' | 'streak' | 'epoch',
+        })),
+      });
+    }
+
+    // Update UI
+    updateDisplays();
+    updateSubmitButton();
+
+    // Refresh stats from V2 API
+    const stats = await fetchV2Stats(gameState.userAddress!);
+    if (stats.success && stats.gameState) {
+      // Update game state from V2 API
+      gameState.setEpochInfo(stats.gameState.currentEpoch, stats.gameState.totalEpochs);
+      gameState.setGameActive(stats.gameState.gameStarted && !stats.gameState.gameEnded);
+    }
+
+    // Refresh NFT panel (milestones/achievements from shared Redis)
+    const serverStatsRefresh = await fetchServerStats(gameState.userAddress!);
+    if (serverStatsRefresh) {
+      serverStats = serverStatsRefresh;
+      await renderNftPanel(serverStatsRefresh);
+    }
+  } else if (result.requiresVerification) {
+    // Server says re-verify
+    turnstileToken = null;
+    showTurnstileModal();
+    claimBtn.disabled = false;
+    updateSubmitButton();
+  } else {
+    console.error('[V2 Submit] Error:', result.error);
+    claimBtn.disabled = false;
+    updateSubmitButton();
+  }
+}
+
+/**
+ * Handle V2 Claim button - full flow:
+ * 1. Submit clicks to API (off-chain validation)
+ * 2. Get claim signature from server
+ * 3. Call contract to claim tokens
+ */
+async function handleV2Claim(e: Event): Promise<void> {
+  e.stopPropagation();
+
+  console.log('[V2 Claim] handleV2Claim called');
+  console.log('[V2 Claim] pendingNonces:', gameState.pendingNonces.length);
+  console.log('[V2 Claim] turnstileToken:', turnstileToken ? 'present' : 'null');
+  console.log('[V2 Claim] userAddress:', gameState.userAddress);
+  console.log('[V2 Claim] currentEpoch:', gameState.currentEpoch);
+
+  const nonces = gameState.pendingNonces.slice(0, CONFIG.maxBatchSize);
+  if (nonces.length < CONFIG.minBatchSize) {
+    console.log('[V2 Claim] Not enough nonces:', nonces.length, '< minBatchSize:', CONFIG.minBatchSize);
+    return;
+  }
+
+  // Require Turnstile verification
+  if (!turnstileToken) {
+    console.log('[V2 Claim] No turnstile token, showing modal');
+    showTurnstileModal();
+    return;
+  }
+
+  try {
+    claimBtn.disabled = true;
+    addClass(claimBtn, 'claiming');
+    removeClass(claimBtn, 'has-clicks');
+    setText(claimBtn, 'Submitting...');
+
+    // Step 1: Submit clicks to V2 API
+    const submitResult = await submitClicksV2(
+      gameState.userAddress!,
+      nonces.map(n => n.toString()),
+      turnstileToken
+    );
+
+    if (!submitResult.success) {
+      if (submitResult.requiresVerification) {
+        console.log('[V2 Claim] Verification required, showing Turnstile');
+        turnstileToken = null;
+        showTurnstileModal();
+      } else {
+        console.error('[V2 Claim] Submit failed:', submitResult.error);
+        // Show error to user via button text
+        setText(claimBtn, 'Submit failed!');
+        setTimeout(() => updateSubmitButton(), 2000);
+      }
+      claimBtn.disabled = false;
+      removeClass(claimBtn, 'claiming');
+      return;
+    }
+
+    console.log('[V2 Claim] Clicks submitted:', submitResult);
+
+    // Get current epoch from response or state
+    const currentEpoch = submitResult.epoch ?? gameState.currentEpoch;
+
+    setText(claimBtn, 'Getting signature...');
+
+    // Step 2: Get claim signature from server (handles wallet signature if required)
+    const sigResponse = await requestV2ClaimAttestation(currentEpoch);
+
+    if (sigResponse.requiresVerification) {
+      // Turnstile needed - modal already shown by requestV2ClaimAttestation
+      claimBtn.disabled = false;
+      removeClass(claimBtn, 'claiming');
+      return;
+    }
+
+    if (!sigResponse.success || !sigResponse.signature) {
+      console.error('[V2 Claim] Failed to get signature:', sigResponse.error);
+      setText(claimBtn, 'Signature failed!');
+      setTimeout(() => updateSubmitButton(), 2000);
+      claimBtn.disabled = false;
+      removeClass(claimBtn, 'claiming');
+      return;
+    }
+
+    console.log('[V2 Claim] Got signature for', sigResponse.clickCount, 'clicks');
+
+    // Check how many clicks already claimed on-chain (for incremental claims)
+    const alreadyClaimedClicks = await getV2ClaimedClicks(CONFIG.contractAddress, gameState.userAddress!, currentEpoch);
+    if (sigResponse.clickCount! <= alreadyClaimedClicks) {
+      console.log('[V2 Claim] No new clicks to claim for epoch', currentEpoch, '- already claimed:', alreadyClaimedClicks, 'signature for:', sigResponse.clickCount);
+      setText(claimBtn, 'No new clicks!');
+      setTimeout(() => updateSubmitButton(), 2000);
+      claimBtn.disabled = false;
+      removeClass(claimBtn, 'claiming');
+      return;
+    }
+    console.log('[V2 Claim] Incremental claim:', alreadyClaimedClicks, '->', sigResponse.clickCount, 'clicks');
+
+    setText(claimBtn, 'Claiming tokens...');
+
+    // Step 3: Call contract to claim tokens
+    const claimResult = await claimV2Reward(
+      CONFIG.contractAddress,
+      currentEpoch,
+      sigResponse.clickCount!,
+      sigResponse.signature
+    );
+
+    if (claimResult) {
+      console.log('[V2 Claim] Success! Tokens claimed');
+
+      // Play cash machine sound!
+      playCashMachineSound();
+
+      // Clear submitted clicks
+      gameState.clearSubmittedClicks(nonces.length);
+
+      // Update local state
+      if (submitResult.lifetimeClicks !== undefined) {
+        gameState.setAllTimeClicks(submitResult.lifetimeClicks);
+      }
+
+      // Handle achievements
+      if (submitResult.newMilestones && submitResult.newMilestones.length > 0) {
+        handleAchievements({ newMilestones: submitResult.newMilestones });
+      }
+
+      // Update UI
+      updateDisplays();
+      updateSubmitButton();
+
+      // Refresh user stats from contract
+      await refreshUserStats();
+
+      // Refresh V2 stats
+      const stats = await fetchV2Stats(gameState.userAddress!);
+      if (stats.success && stats.gameState) {
+        gameState.setEpochInfo(stats.gameState.currentEpoch, stats.gameState.totalEpochs);
+        gameState.setGameActive(stats.gameState.gameStarted && !stats.gameState.gameEnded);
+      }
+    } else {
+      console.error('[V2 Claim] Contract claim failed');
+      setText(claimBtn, 'Claim failed!');
+      setTimeout(() => updateSubmitButton(), 2000);
+    }
+
+    claimBtn.disabled = false;
+    removeClass(claimBtn, 'claiming');
+    updateSubmitButton();
+
+  } catch (error) {
+    console.error('[V2 Claim] Error:', error);
+    setText(claimBtn, 'Error!');
+    setTimeout(() => updateSubmitButton(), 2000);
+    claimBtn.disabled = false;
+    removeClass(claimBtn, 'claiming');
+  }
+}
+
 // ============ Achievements ============
 
 function handleAchievements(data: {
@@ -1254,16 +1495,25 @@ async function handleSyncAchievements(): Promise<void> {
     const result = await syncAchievements(gameState.userAddress);
 
     if (result.success) {
-      const totalNew = (result.newMilestones?.length || 0) + (result.newAchievements?.length || 0);
+      // Combine global 1/1 milestones into the achievements array for processing
+      const globalAsAchievements = (result.newGlobalMilestones || []).map(gm => ({
+        ...gm,
+        type: 'global' as const,
+      }));
+      const allNewAchievements = [
+        ...(result.newAchievements?.map(a => ({
+          ...a,
+          type: a.type as 'hidden' | 'global' | 'streak' | 'epoch' | 'personal',
+        })) || []),
+        ...globalAsAchievements,
+      ];
+      const totalNew = (result.newMilestones?.length || 0) + allNewAchievements.length;
 
       if (totalNew > 0) {
         // Process any new achievements like normal
         handleAchievements({
           newMilestones: result.newMilestones || [],
-          newAchievements: result.newAchievements?.map(a => ({
-            ...a,
-            type: a.type as 'hidden' | 'global' | 'streak' | 'epoch' | 'personal',
-          })) || [],
+          newAchievements: allNewAchievements,
         });
         showAchievementToast('Synced!', `Found ${totalNew} achievement${totalNew > 1 ? 's' : ''}`);
       } else {
@@ -1441,14 +1691,30 @@ function updateSubmitButton(): void {
   const hasEnoughClicks = gameState.validClicks >= CONFIG.minBatchSize;
   const canSubmit = hasEnoughClicks && gameState.isConnected;
 
-  submitBtn.disabled = !canSubmit;
-  setText(submitBtn, `Submit (${gameState.validClicks})`);
+  if (IS_V2) {
+    // V2: Use green Claim button
+    removeClass(submitContainer, 'visible'); // Hide V1 submit button
+    claimBtn.disabled = !canSubmit;
+    setText(claimBtn, `Claim (${gameState.validClicks})`);
 
-  // Show submit container when user has enough clicks (game active or not)
-  if (hasEnoughClicks) {
-    addClass(submitContainer, 'visible');
+    if (hasEnoughClicks) {
+      addClass(claimContainer, 'visible');
+      addClass(claimBtn, 'has-clicks'); // Trigger pulsing animation
+    } else {
+      removeClass(claimContainer, 'visible');
+      removeClass(claimBtn, 'has-clicks');
+    }
   } else {
-    removeClass(submitContainer, 'visible');
+    // V1: Use red Submit button
+    removeClass(claimContainer, 'visible'); // Hide V2 claim button
+    submitBtn.disabled = !canSubmit;
+    setText(submitBtn, `Submit (${gameState.validClicks})`);
+
+    if (hasEnoughClicks) {
+      addClass(submitContainer, 'visible');
+    } else {
+      removeClass(submitContainer, 'visible');
+    }
   }
 }
 
@@ -1474,11 +1740,14 @@ function setLeaderboardMode(mode: 'global' | 'game'): void {
 }
 
 async function fetchLeaderboard(): Promise<void> {
-  if (leaderboardMode === 'global') {
-    // Global: all-time frontend clicks from Redis
+  if (IS_V2) {
+    // V2 mode: Use V2 leaderboard API
+    leaderboardData = await fetchV2Leaderboard(10);
+  } else if (leaderboardMode === 'global') {
+    // V1 Global: all-time frontend clicks from Redis
     leaderboardData = await fetchGlobalLeaderboard(10);
   } else {
-    // Game: on-chain clicks from current game's subgraph
+    // V1 Game: on-chain clicks from current game's subgraph
     if (currentGame) {
       leaderboardData = await fetchGameLeaderboard(currentGame.subgraphUrl, 10);
     } else {
@@ -1598,13 +1867,21 @@ function startHeartbeat(): void {
 
   // Send immediately
   if (gameState.userAddress) {
-    sendHeartbeat(gameState.userAddress);
+    if (IS_V2) {
+      sendHeartbeatV2(gameState.userAddress);
+    } else {
+      sendHeartbeat(gameState.userAddress);
+    }
   }
 
   // Then every 30 seconds
   heartbeatInterval = setInterval(() => {
     if (gameState.userAddress) {
-      sendHeartbeat(gameState.userAddress);
+      if (IS_V2) {
+        sendHeartbeatV2(gameState.userAddress);
+      } else {
+        sendHeartbeat(gameState.userAddress);
+      }
     }
   }, 30000);
 }
@@ -1625,10 +1902,11 @@ function stopHeartbeat(): void {
 async function updateGlobalStats(): Promise<void> {
   try {
     // Fetch active humans from our API (heartbeat-based)
-    const activeUsersPromise = fetchActiveUsers();
+    const activeUsersPromise = IS_V2 ? fetchActiveUsersV2() : fetchActiveUsers();
 
     // Fetch recent bot activity from subgraph (addresses that submitted in last 5 mins)
-    const botActivityPromise = fetchRecentBotActivity(5);
+    // In V2 mode, there are no bots (human-only via Turnstile)
+    const botActivityPromise = IS_V2 ? Promise.resolve(0) : fetchRecentBotActivity(5);
 
     const [activeUsers, recentBots] = await Promise.all([activeUsersPromise, botActivityPromise]);
 
@@ -1716,9 +1994,13 @@ function onTurnstileSuccess(token: string): void {
   hideModal(turnstileModal);
 
   // Retry pending clicks if any
-  if (gameState.serverClicksPending > 0 && gameState.pendingNonces.length > 0) {
-    // Re-trigger submit - create a dummy event
-    handleSubmit(new Event('click'));
+  if (gameState.pendingNonces.length >= CONFIG.minBatchSize) {
+    // Re-trigger submit/claim - use appropriate handler based on mode
+    if (IS_V2) {
+      handleV2Claim(new Event('click'));
+    } else {
+      handleSubmit(new Event('click'));
+    }
   }
 }
 
@@ -1727,31 +2009,51 @@ async function requestV2ClaimAttestation(epoch: number): Promise<V2ClaimSignatur
     return { error: 'Wallet not connected' };
   }
 
+  console.log('[V2 Attestation] Requesting signature for epoch:', epoch);
+
   let response = await requestV2ClaimSignature(gameState.userAddress, epoch, {
     turnstileToken,
   });
 
+  console.log('[V2 Attestation] Initial response:', response);
+
   if (response.requiresVerification) {
+    console.log('[V2 Attestation] Needs Turnstile verification');
     turnstileToken = null;
     showTurnstileModal();
     return response;
   }
 
   if (response.requiresSignature && response.challenge) {
+    console.log('[V2 Attestation] Needs wallet signature, challenge:', response.challenge);
     const signer = getSigner();
     if (!signer) {
+      console.error('[V2 Attestation] No signer available');
       return { error: 'Wallet not connected' };
     }
 
-    const walletSignature = await signer.signMessage(response.challenge);
-    response = await requestV2ClaimSignature(gameState.userAddress, epoch, {
-      turnstileToken,
-      walletSignature,
-    });
+    // Store the challenge to send back with the signature
+    const originalChallenge = response.challenge;
 
-    if (response.requiresVerification) {
-      turnstileToken = null;
-      showTurnstileModal();
+    console.log('[V2 Attestation] Prompting wallet to sign...');
+    try {
+      const walletSignature = await signer.signMessage(originalChallenge);
+      console.log('[V2 Attestation] Got wallet signature, retrying...');
+
+      response = await requestV2ClaimSignature(gameState.userAddress, epoch, {
+        turnstileToken,
+        walletSignature,
+        challenge: originalChallenge,
+      });
+      console.log('[V2 Attestation] Retry response:', response);
+
+      if (response.requiresVerification) {
+        turnstileToken = null;
+        showTurnstileModal();
+      }
+    } catch (err) {
+      console.error('[V2 Attestation] Wallet signature failed:', err);
+      return { error: 'Wallet signature rejected' };
     }
   }
 
@@ -1865,13 +2167,18 @@ async function loadRankingsForTab(tabId: string): Promise<void> {
   setHtml(rankingsListEl, '<li class="rankings-loading">Loading...</li>');
 
   try {
-    if (tabId === 'global') {
-      // Global: all-time frontend clicks from Redis (simple list)
+    if (IS_V2) {
+      // V2 mode: Use V2 leaderboard API
+      rankingsMatrixHeaderEl.style.display = 'none';
+      const data = await fetchV2Leaderboard(50);
+      renderRankingsList(data);
+    } else if (tabId === 'global') {
+      // V1 Global: all-time frontend clicks from Redis (simple list)
       rankingsMatrixHeaderEl.style.display = 'none';
       const data = await fetchGlobalLeaderboard(50);
       renderRankingsList(data);
     } else {
-      // Game: matrix view with on-chain + human clicks
+      // V1 Game: matrix view with on-chain + human clicks
       rankingsMatrixHeaderEl.style.display = 'flex';
       const games = getAllGames();
       const game = games.find(g => g.id === tabId);
