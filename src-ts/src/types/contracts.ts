@@ -26,6 +26,7 @@ export const CLICKSTR_V2_ABI = [
   'function claimReward(uint256 epoch, uint256 clickCount, bytes calldata signature) external',
   'function claimMultipleEpochs(uint256[] calldata epochs, uint256[] calldata clickCounts, bytes[] calldata signatures) external',
   'function claimed(address user, uint256 epoch) external view returns (bool)',
+  'function getClaimedClicks(address user, uint256 epoch) external view returns (uint256)',
   'function getCurrentEpochInfo() external view returns (uint256 epoch, uint256 epochStartTime_, uint256 epochEndTime_, uint256 totalClicks, address currentLeader, uint256 leaderClicks, uint256 distributed, uint256 burned)',
   'function getGameStats() external view returns (uint256 poolRemaining_, uint256 currentEpoch_, uint256 totalEpochs_, uint256 gameStartTime_, uint256 gameEndTime_, uint256 seasonNumber_, bool started_, bool ended_)',
   'function getUserStats(address user) external view returns (uint256 totalClicks_, uint256 totalEarned_, uint256 epochsWon_)',

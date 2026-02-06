@@ -121,7 +121,6 @@
             <span class="global-stat-label">Pool</span>
             <span class="global-stat-value" id="pool-info">0</span>
             <span class="global-stat-suffix">$CLICKSTR</span>
-            <button class="claim-tokens-btn" id="claim-tokens-btn" style="display:none;">Claim</button>
           </div>
           <div class="global-stat-divider"></div>
           <div class="global-stat-row">
@@ -154,6 +153,8 @@
     </div>
 
     <!-- Submit container - OUTSIDE ui-overlay so it doesn't fade -->
+    <!-- V1: Shows submit button for on-chain submission -->
+    <!-- V2: Shows claim button for off-chain submit + on-chain claim -->
     <div id="submit-container">
       <button id="submit-btn" disabled>Submit (0)</button>
       <div class="submit-help">
@@ -164,6 +165,22 @@
             Min: 50 clicks per transaction<br>
             Max: 500 clicks per transaction<br>
             Gas is paid on submit
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- V2 Claim container - glowing green claim button -->
+    <div id="claim-container">
+      <button id="claim-btn" disabled>Claim (0)</button>
+      <div class="submit-help">
+        <span>Claim your $CLICK tokens</span>
+        <div class="submit-help-icon">
+          ?
+          <div class="submit-help-tooltip">
+            Validates your clicks and sends<br>
+            $CLICK tokens to your wallet.<br>
+            Half goes to you, half is burned!
           </div>
         </div>
       </div>

@@ -121,7 +121,8 @@
 }
 
 /* Submit container (above button) */
-#submit-container {
+#submit-container,
+#claim-container {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -133,7 +134,8 @@
   z-index: var(--z-submit);
 }
 
-#submit-container.visible {
+#submit-container.visible,
+#claim-container.visible {
   display: flex;
 }
 
@@ -147,6 +149,12 @@
   color: var(--color-red-400);
   opacity: 0.9;
   text-shadow: var(--glow-red-md);
+}
+
+/* Green text for claim container */
+#claim-container .submit-help {
+  color: #00ff00;
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
 }
 
 .submit-help-icon {

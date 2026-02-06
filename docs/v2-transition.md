@@ -59,7 +59,12 @@ Per-season game contract with off-chain proof validation.
 - `finalizeEpoch(epoch)` - End-of-epoch processing with winner bonus
 - Signature format: `keccak256(address, epoch, clickCount, seasonNumber, contractAddress, chainId)`
 - 50/50 burn split enforced on all distributions
-- 10% winner bonus, 1% finalizer reward
+- 10% winner bonus, 0.1% finalizer reward (50/50 split)
+- **NFT tier bonus system** - holding achievement NFTs grants 2-10% reward bonus
+  - `setAchievementNFT(address)` - set NFT contract reference
+  - `setTierBonuses(tiers[], bonuses[])` - configure bonus percentages
+  - `calculateBonus(address)` - query user's bonus
+  - Bonus drawn from pool, capped at 50%, applied on every claim
 
 **Gas Comparison:**
 | Action | V1 | V2 |
@@ -399,3 +404,6 @@ For Season 3+, only need to:
 | 2026-02-05 | Contract: Claims now blocked for finalized epochs (no late claiming) |
 | 2026-02-05 | Server: Off-season clicking enabled with Turnstile required; clicks count toward lifetime NFT milestones but not epoch rewards |
 | 2026-02-05 | Config: Network now set via `VITE_NETWORK` env var instead of hardcoded value |
+| 2026-02-06 | Contract: NFT tier bonus system ported from V1 — `setAchievementNFT()`, `setTierBonuses()`, `calculateBonus()`, bonus applied in `claimReward()` and `claimMultipleEpochs()` |
+| 2026-02-06 | Contract: Refactored claim internals for stack depth — `_verifyAttestation()`, `_distributeReward()`, `_processEpochClaim()`, `_processMultiClaim()` |
+| 2026-02-06 | Deploy scripts: `deploy-v2.js` and `deploy-v2-season.js` now configure NFT bonuses before `startGame()` |

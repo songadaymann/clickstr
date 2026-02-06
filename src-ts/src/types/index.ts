@@ -49,6 +49,9 @@ export type {
   HeartbeatResponse,
   V2ClaimableEpoch,
   V2ClaimableEpochsResponse,
+  V2SubmitClicksResponse,
+  V2GameState,
+  V2StatsResponse,
 } from './api.ts';
 
 // Effects types

@@ -285,6 +285,12 @@ export class GameState {
     this.emit('statsChanged');
   }
 
+  /** Update only allTimeClicks (from API) */
+  setAllTimeClicks(clicks: number): void {
+    this._allTimeClicks = clicks;
+    this.emit('statsChanged');
+  }
+
   setPoolRemaining(pool: number): void {
     this._poolRemaining = pool;
     this.emit('statsChanged');

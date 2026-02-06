@@ -221,11 +221,16 @@ mainnet: {
 },
 ```
 
-### Update Active Network
+### Set Network via Environment Variable
 
-```typescript
-export const CURRENT_NETWORK: NetworkId = 'mainnet';
-```
+The network is now controlled by the `VITE_NETWORK` env var in Vercel:
+
+| Deployment | VITE_NETWORK |
+|------------|--------------|
+| Sepolia testing | `sepolia` |
+| Mainnet production | `mainnet` |
+
+No code changes needed - just update the env var in Vercel and redeploy.
 
 ### Update Subgraph URL
 
@@ -281,10 +286,29 @@ Vercel auto-deploys from GitHub push.
 
 Update these in the Vercel dashboard for mann.cool:
 
+**V1 (NFT Claims):**
 | Variable | Value |
 |----------|-------|
 | `NFT_CONTRACT_ADDRESS` | Mainnet NFT address |
 | `NFT_SIGNER_PRIVATE_KEY` | Private key for NFT Deployer |
+
+**V2 (Game Claims) - when deploying V2:**
+| Variable | Value |
+|----------|-------|
+| `CLICKSTR_GAME_V2_ADDRESS` | V2 Game contract address |
+| `CLICKSTR_REGISTRY_ADDRESS` | ClickRegistry address |
+| `ATTESTATION_SIGNER_PRIVATE_KEY` | Key for signing claim attestations |
+| `CHAIN_ID` | `1` for mainnet, `11155111` for Sepolia |
+| `RPC_URL` | RPC endpoint for reading contract state |
+
+**V2 Deploy Scripts** (`deploy-v2.js` / `deploy-v2-season.js`):
+
+These scripts automatically configure NFT tier bonuses as part of deployment:
+1. `setAchievementNFT(nftAddress)` — points to ClickstrNFTV2 contract
+2. `setTierBonuses([4,6,8,9,11], [200,300,500,700,1000])` — 2%-10% bonuses
+3. Both must be called **before** `startGame()`
+
+For `deploy-v2-season.js`, set `NFT_CONTRACT_ADDRESS` env var to enable bonuses.
 
 ### Reset API Data (Optional)
 
@@ -332,18 +356,29 @@ curl -X POST "https://mann.cool/api/clickstr-admin-reset" \
 - [ ] Deploy new subgraph
 - [ ] Verify subgraph is syncing
 
-### Frontend
-- [ ] Update network.ts with all addresses
-- [ ] Update CURRENT_NETWORK to 'mainnet'
+### Frontend (Vercel - clickstr.fun)
+- [ ] Update network.ts with all contract addresses
 - [ ] Update subgraph URL in network.ts
 - [ ] **Update games.ts** - add new game entry with subgraph URL and contract address
-- [ ] Push to GitHub
+- [ ] Set `VITE_NETWORK` env var in Vercel (`mainnet` or `sepolia`)
+- [ ] Trigger redeploy or push to GitHub
 - [ ] Verify Vercel deployment
 
-### Server
-- [ ] Update NFT_CONTRACT_ADDRESS in Vercel
+### Server (Vercel - mann.cool)
+- [ ] Update `NFT_CONTRACT_ADDRESS` in Vercel
+- [ ] **V2 only:** Update `CLICKSTR_GAME_V2_ADDRESS`
+- [ ] **V2 only:** Update `CLICKSTR_REGISTRY_ADDRESS`
+- [ ] **V2 only:** Update `ATTESTATION_SIGNER_PRIVATE_KEY`
+- [ ] **V2 only:** Set `CHAIN_ID` (`1` for mainnet, `11155111` for Sepolia)
+- [ ] **V2 only:** Set `RPC_URL` for reading contract state
 - [ ] Reset API data (if fresh start)
 - [ ] Test NFT claiming flow
+
+### V2 Contract Setup (before startGame)
+- [ ] Call `setAchievementNFT(nftAddress)` on ClickstrGameV2
+- [ ] Call `setTierBonuses([4,6,8,9,11], [200,300,500,700,1000])` on ClickstrGameV2
+- [ ] Verify bonuses: `getBonusTiers()` should return 5 tiers
+- [ ] (deploy scripts handle these automatically)
 
 ### Final Testing
 - [ ] Connect wallet on clickstr.fun

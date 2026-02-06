@@ -225,8 +225,27 @@ async function main() {
     }
   }
 
-  // Step 7 (or 8 or 9): Start the game
-  console.log("\n9. Starting the game...");
+  // Step 8: Set achievement NFT for bonus system
+  console.log("\n8. Setting achievement NFT contract...");
+  const setNftTx = await game.setAchievementNFT(nftAddress);
+  await setNftTx.wait();
+  console.log("   Achievement NFT set to:", nftAddress);
+
+  // Step 9: Set tier bonuses
+  console.log("\n9. Setting up NFT tier bonuses...");
+  const bonusTiers = [4, 6, 8, 9, 11];
+  const bonusAmounts = [200, 300, 500, 700, 1000]; // 2%, 3%, 5%, 7%, 10%
+  const bonusTx = await game.setTierBonuses(bonusTiers, bonusAmounts);
+  await bonusTx.wait();
+  console.log("   Tier bonuses configured:");
+  console.log("     Tier 4  (1K clicks):   2%");
+  console.log("     Tier 6  (10K clicks):  3%");
+  console.log("     Tier 8  (50K clicks):  5%");
+  console.log("     Tier 9  (100K clicks): 7%");
+  console.log("     Tier 11 (500K clicks): 10%");
+
+  // Step 10: Start the game
+  console.log("\n10. Starting the game...");
   const startTx = await game.startGame(seasonPoolWei);
   await startTx.wait();
   console.log("   Game started!");
@@ -304,15 +323,14 @@ async function main() {
   console.log("\n" + "=".repeat(70));
   console.log("NEXT STEPS:");
   console.log("=".repeat(70));
-  console.log("\n1. Update frontend config:");
-  console.log(`   - Registry: '${registryAddress}'`);
-  console.log(`   - Game: '${gameAddress}'`);
-  console.log(`   - NFT: '${nftAddress}'`);
-  console.log("\n2. Update server config:");
-  console.log(`   - GAME_CONTRACT_ADDRESS=${gameAddress}`);
-  console.log(`   - REGISTRY_ADDRESS=${registryAddress}`);
+  console.log("\n1. Update frontend config (src-ts/src/config/network.ts):");
+  console.log(`   contractAddress: '${gameAddress}'`);
+  console.log(`   nftContractAddress: '${nftAddress}'`);
+  console.log(`   // Registry: '${registryAddress}'`);
+  console.log("\n2. Update Vercel env vars for mann.cool API:");
+  console.log(`   CLICKSTR_GAME_V2_ADDRESS=${gameAddress}`);
   console.log("\n3. Ensure attestation signer key is configured on server");
-  console.log("\n4. Deploy/update subgraph for new contracts");
+  console.log("\n4. (Optional) Deploy/update subgraph for new contracts");
   console.log("\n5. For future seasons, use deploy-v2-season.js with:");
   console.log(`   REGISTRY_ADDRESS=${registryAddress}`);
   console.log(`   TREASURY_ADDRESS=${treasuryAddress}`);

@@ -45,7 +45,79 @@ https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/c
 
 ---
 
-## Sepolia Test Environment
+## Sepolia Test Environment (V2)
+
+### Current: V2 Season 5 (Incremental Claims + Earnings Tracking)
+
+**24-Hour Test with Incremental Claims & Registry Earnings**
+
+| Parameter | Value |
+|-----------|-------|
+| Total Epochs | 6 |
+| Epoch Duration | 4 hours |
+| Pool Size | 100M $CLICK (treasury) |
+| Season Length | 24 hours |
+
+**Key Features:**
+- Players can claim tokens incrementally during an epoch (not just once)
+- Lifetime earnings tracked in ClickRegistry (persists across seasons)
+
+### V2 Contract Stack (Sepolia)
+
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| MockClickToken | `0x120E2fCf5b26FC49Fe3d1E7c851346c898619C28` | Test ERC20 (1B supply) |
+| ClickRegistry (v2) | `0xF8cC8ff9f7f092f5d7221552437aF748954cA427` | Permanent click + earnings record |
+| ClickstrTreasury | `0x82378b6C7247b02f4b985Aca079a0A85E0D2cbAe` | Token treasury |
+| ClickstrGameV2 (S5) | `0xec003c2282A01E30d712b238A068d852bCDda614` | Season 5 game |
+| ClickstrNFTV2 | `0x0f049250Cc75b8da0b8B1167cB6362f84816DdF3` | Achievement NFTs (redeployed with correct registry) |
+
+**Signers:**
+| Role | Address |
+|------|---------|
+| Attestation Signer | `0xd4eEf240c88eA5Dc72de6fB7774065CEE22F7Afd` |
+| NFT Signer | `0xf55E4fac663ad8db80284620F97D95391ab002EF` |
+
+### V2 API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/clickstr-v2` | POST | Submit clicks (nonces) |
+| `/api/clickstr-v2` | POST | Claim signature (action: "claim") |
+| `/api/clickstr-v2` | POST | Heartbeat (heartbeat: true) |
+| `/api/clickstr-v2` | POST | Admin reset (action: "admin_reset") |
+| `/api/clickstr-v2?address=X` | GET | User stats |
+| `/api/clickstr-v2?leaderboard=true` | GET | Epoch leaderboard |
+| `/api/clickstr-v2?activeUsers=true` | GET | Active user count |
+| `/api/clickstr-v2?claimable=true&address=X` | GET | Claimable epochs |
+
+### V2 Testing Status (Feb 6, 2026)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Click submission | ✅ Working | Off-chain PoW validation |
+| Turnstile verification | ✅ Working | Human verification |
+| Wallet signature challenge | ✅ Working | Prevents claim front-running |
+| Server attestation | ✅ Working | Signs total click count |
+| Contract claim | ✅ Working | Tested epoch 1 |
+| Incremental claims | ✅ Fixed | API + frontend updated (Feb 6) |
+| Registry earnings tracking | ✅ Working | Lifetime earnings in registry |
+| Pool display | ✅ Working | Reads from contract |
+| Leaderboard | ✅ Working | V2 API endpoint |
+| Active users | ✅ Working | Heartbeat-based tracking |
+| Lifetime earned display | ⚠️ Debugging | Shows 0 — likely Vercel env var issue |
+
+### Previous V2 Seasons
+
+| Contract | Address | Notes |
+|----------|---------|-------|
+| ClickstrGameV2 (S3) | `0xC3af5dE6c6303A6241776c3C8b3DA747386982b1` | Season 3 (incremental claims) |
+| ClickstrGameV2 (S2) | `0xe37B2cCCFDD4441E4c87abE6d4cF05Fe0fFbda24` | Season 2 (boolean claims only) |
+| ClickRegistry (v1) | `0xAb16745314623EF6fAE03E90EC3987519C431B0f` | Original registry (no earnings tracking) |
+
+---
+
+## Sepolia V1 Test Environment (Deprecated)
 
 **24-Hour Test Environment (v6) - Mainnet Dry Run**
 
@@ -60,7 +132,7 @@ https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/c
 - Start: 2026-02-03 19:10:24 UTC
 - End: 2026-02-04 19:10:24 UTC
 
-### Test Contracts (v6)
+### V1 Test Contracts (v6)
 
 | Contract | Address | Etherscan |
 |----------|---------|-----------|
@@ -68,7 +140,7 @@ https://api.goldsky.com/api/public/project_cmit79ozucckp01w991mfehjs/subgraphs/c
 | ClickstrNFT | `0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849` | [View](https://sepolia.etherscan.io/address/0x37c4C8817a6F87e6a0984b5e8fd73c9F07f8f849) |
 | Clickstr | `0xf724ede44Bbb2Ccf46cec530c21B14885D441e02` | [View](https://sepolia.etherscan.io/address/0xf724ede44Bbb2Ccf46cec530c21B14885D441e02) |
 
-### Sepolia Subgraph
+### V1 Sepolia Subgraph
 
 **Goldsky Endpoint (v1.0.4):**
 ```

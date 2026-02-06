@@ -12,10 +12,9 @@ Turnstile uses a **key pair** from a single Cloudflare widget:
 ## Current Configuration
 
 ### Cloudflare Widget: "clickstr"
-- **Allowed Domains:** `clickstr.fun`, `www.clickstr.fun`
+- **Allowed Domains:** `clickstr.fun`, `www.clickstr.fun`, `localhost`
 - **Widget Mode:** Managed
-- **Site Key:** `0x4AAAAAACV0UOMmCeG_g2Jr`
-- **Secret Key:** `0x4AAAAAACV0UOESiWaDY-0EOZUvgaGrqSA`
+
 
 ### Where Keys Are Set
 

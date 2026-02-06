@@ -12,7 +12,16 @@ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
  */
 interface IClickRegistry {
     function recordClicks(address user, uint256 season, uint256 clicks) external;
+    function recordEarnings(address user, uint256 season, uint256 amount) external;
     function totalClicks(address user) external view returns (uint256);
+}
+
+/**
+ * @title IClickstrNFT
+ * @notice Interface for the achievement NFT contract (V1 or V2)
+ */
+interface IClickstrNFT {
+    function claimed(address user, uint256 tier) external view returns (bool);
 }
 
 /**
@@ -111,12 +120,23 @@ contract ClickstrGameV2 is Ownable, ReentrancyGuard {
     /// @notice Whether the game has ended
     bool public gameEnded;
 
+    // ============ NFT Bonus System ============
+
+    /// @notice The achievement NFT contract (optional, can be address(0) for first season)
+    IClickstrNFT public achievementNFT;
+
+    /// @notice Bonus percentage per NFT tier (in basis points, e.g., 500 = 5%)
+    mapping(uint256 => uint256) public tierBonus;
+
+    /// @notice List of tiers that grant bonuses (for iteration)
+    uint256[] public bonusTiers;
+
     // ============ Claim Tracking ============
 
-    /// @notice Whether user has claimed for a specific epoch
-    mapping(address => mapping(uint256 => bool)) public claimed;
+    /// @notice Total clicks already claimed per user per epoch (supports incremental claims)
+    mapping(address => mapping(uint256 => uint256)) public claimedClicks;
 
-    /// @notice Total clicks claimed per user per epoch
+    /// @notice Total clicks claimed per user per epoch (same as claimedClicks, kept for compatibility)
     mapping(address => mapping(uint256 => uint256)) public userEpochClicks;
 
     // ============ Epoch Statistics ============
@@ -193,6 +213,18 @@ contract ClickstrGameV2 is Ownable, ReentrancyGuard {
         address indexed newSigner
     );
 
+    event AchievementNFTUpdated(
+        address indexed oldNFT,
+        address indexed newNFT
+    );
+
+    event BonusApplied(
+        address indexed user,
+        uint256 baseReward,
+        uint256 bonusAmount,
+        uint256 bonusBps
+    );
+
     // ============ Errors ============
 
     error GameNotStarted();
@@ -233,7 +265,7 @@ contract ClickstrGameV2 is Ownable, ReentrancyGuard {
         if (_treasury == address(0)) revert ZeroAddress();
         if (_attestationSigner == address(0)) revert ZeroAddress();
         require(_totalEpochs > 0, "Epochs must be > 0");
-        require(_epochDuration >= 1 hours, "Epoch too short");
+        require(_epochDuration >= 2 minutes, "Epoch too short"); // TODO: restore to 1 hours before mainnet
         require(_seasonNumber > 0, "Season must be > 0");
 
         registry = IClickRegistry(_registry);
@@ -279,12 +311,57 @@ contract ClickstrGameV2 is Ownable, ReentrancyGuard {
         emit AttestationSignerUpdated(oldSigner, _newSigner);
     }
 
+    /**
+     * @notice Set or update the achievement NFT contract
+     * @param _nftContract Address of the ClickstrNFT contract (or address(0) to disable)
+     * @dev Can be called at any time by owner (to set V2 NFT, update contract, etc.)
+     */
+    function setAchievementNFT(address _nftContract) external onlyOwner {
+        address oldNFT = address(achievementNFT);
+        achievementNFT = IClickstrNFT(_nftContract);
+        emit AchievementNFTUpdated(oldNFT, _nftContract);
+    }
+
+    /**
+     * @notice Set bonus percentages for NFT tiers (call before startGame)
+     * @param tiers Array of NFT tier numbers that grant bonuses
+     * @param bonuses Array of bonus amounts in basis points (e.g., 500 = 5%)
+     * @dev Can only be called before game starts. Clears any previous bonuses.
+     *
+     * Recommended tier bonuses (personal milestones only, no globals):
+     *   Tier 4  (1K clicks):   200 bps (2%)
+     *   Tier 6  (10K clicks):  300 bps (3%)
+     *   Tier 8  (50K clicks):  500 bps (5%)
+     *   Tier 9  (100K clicks): 700 bps (7%)
+     *   Tier 11 (500K clicks): 1000 bps (10%)
+     *   Max possible: 27%
+     */
+    function setTierBonuses(uint256[] calldata tiers, uint256[] calldata bonuses) external onlyOwner {
+        require(!gameStarted, "Game already started");
+        require(tiers.length == bonuses.length, "Array length mismatch");
+        require(tiers.length <= 20, "Too many bonus tiers");
+
+        // Clear existing bonuses
+        for (uint256 i = 0; i < bonusTiers.length; i++) {
+            tierBonus[bonusTiers[i]] = 0;
+        }
+        delete bonusTiers;
+
+        // Set new bonuses
+        for (uint256 i = 0; i < tiers.length; i++) {
+            require(bonuses[i] <= 2000, "Bonus too high (max 20%)"); // Cap at 20% per tier
+            tierBonus[tiers[i]] = bonuses[i];
+            bonusTiers.push(tiers[i]);
+        }
+    }
+
     // ============ Core Game Functions ============
 
     /**
      * @notice Claim rewards for an epoch with server attestation
-     * @param epoch Epoch to claim for
-     * @param clickCount Number of clicks attested by server
+     * @dev Supports incremental claims - user can claim multiple times as they accumulate more clicks
+     * @param epoch Epoch to claim for (can be current epoch)
+     * @param clickCount TOTAL clicks attested by server (not incremental)
      * @param signature Server signature over claim data
      */
     function claimReward(
@@ -301,67 +378,42 @@ contract ClickstrGameV2 is Ownable, ReentrancyGuard {
 
         if (epoch > currentEpoch) revert EpochNotStarted();
         if (epochFinalized[epoch]) revert EpochAlreadyFinalized();
-        if (claimed[msg.sender][epoch]) revert AlreadyClaimed();
         if (clickCount == 0) revert NoClicks();
         if (clickCount > MAX_CLICKS_PER_CLAIM) revert ClickCountTooHigh();
 
+        // Check for new clicks to claim (incremental)
+        uint256 previouslyClaimed = claimedClicks[msg.sender][epoch];
+        if (clickCount <= previouslyClaimed) revert AlreadyClaimed();
+        uint256 newClicks = clickCount - previouslyClaimed;
+
         // Verify server attestation
-        bytes32 message = keccak256(abi.encodePacked(
-            msg.sender,
-            epoch,
-            clickCount,
-            SEASON_NUMBER,
-            address(this),
-            block.chainid
-        ));
-        bytes32 ethSignedMessage = message.toEthSignedMessageHash();
+        _verifyAttestation(msg.sender, epoch, clickCount, signature);
 
-        if (ethSignedMessage.recover(signature) != attestationSigner) {
-            revert InvalidSignature();
-        }
-
-        // Mark claimed
-        claimed[msg.sender][epoch] = true;
+        // Update claimed clicks (now tracks total, not boolean)
+        claimedClicks[msg.sender][epoch] = clickCount;
         userEpochClicks[msg.sender][epoch] = clickCount;
 
-        // Update epoch stats
-        totalClicksPerEpoch[epoch] += clickCount;
+        // Update epoch stats (only add new clicks)
+        totalClicksPerEpoch[epoch] += newClicks;
 
-        // Update winner tracking
+        // Update winner tracking (based on total clicks)
         if (clickCount > epochWinnerClicks[epoch]) {
             epochWinner[epoch] = msg.sender;
             epochWinnerClicks[epoch] = clickCount;
         }
 
-        // Record clicks to permanent registry
-        registry.recordClicks(msg.sender, SEASON_NUMBER, clickCount);
+        // Record only NEW clicks to permanent registry
+        registry.recordClicks(msg.sender, SEASON_NUMBER, newClicks);
 
-        // Calculate reward
-        uint256 reward = _calculateReward(epoch, clickCount);
-        if (reward == 0) revert InsufficientPool();
-
-        // 50/50 split
-        uint256 userAmount = reward / 2;
-        uint256 burnAmount = reward - userAmount;
-
-        // Update tracking
-        poolRemaining -= reward;
-        epochEmissionUsed[epoch] += reward;
-        epochDistributed[epoch] += userAmount;
-        epochBurned[epoch] += burnAmount;
-        totalUserClicks[msg.sender] += clickCount;
-        totalUserEarned[msg.sender] += userAmount;
-
-        // Request disbursement from treasury
-        treasury.disburse(msg.sender, userAmount, burnAmount);
-
-        emit RewardClaimed(msg.sender, epoch, clickCount, userAmount, burnAmount);
+        // Calculate and distribute reward with NFT bonus
+        _distributeReward(epoch, newClicks);
     }
 
     /**
      * @notice Claim rewards for multiple epochs in one transaction
+     * @dev Supports incremental claims per epoch
      * @param epochs Array of epochs to claim
-     * @param clickCounts Array of click counts per epoch
+     * @param clickCounts Array of TOTAL click counts per epoch (not incremental)
      * @param signatures Array of signatures per epoch
      */
     function claimMultipleEpochs(
@@ -378,80 +430,52 @@ contract ClickstrGameV2 is Ownable, ReentrancyGuard {
 
         _checkAndAdvanceEpoch();
 
-        uint256 totalUserAmount = 0;
-        uint256 totalBurnAmount = 0;
-        uint256 totalClicks = 0;
+        _processMultiClaim(epochs, clickCounts, signatures);
+    }
+
+    /**
+     * @dev Internal multi-epoch claim processing (extracted to avoid stack-too-deep)
+     */
+    function _processMultiClaim(
+        uint256[] calldata epochs,
+        uint256[] calldata clickCounts,
+        bytes[] calldata signatures
+    ) internal {
+        // Calculate bonus once (gas optimization)
+        uint256 bonusBps = calculateBonus(msg.sender);
+
+        // Accumulate totals in an array to reduce stack depth: [userAmount, burnAmount, bonusAmount, newClicks]
+        uint256[4] memory totals;
 
         for (uint256 i = 0; i < epochs.length; i++) {
-            uint256 epoch = epochs[i];
-            uint256 clickCount = clickCounts[i];
-
-            if (epoch < 1 || epoch > TOTAL_EPOCHS) continue;
-            if (epoch > currentEpoch) continue;
-            if (epochFinalized[epoch]) continue;
-            if (claimed[msg.sender][epoch]) continue;
-            if (clickCount == 0) continue;
-            if (clickCount > MAX_CLICKS_PER_CLAIM) continue;
-
-            // Verify signature
-            bytes32 message = keccak256(abi.encodePacked(
-                msg.sender,
-                epoch,
-                clickCount,
-                SEASON_NUMBER,
-                address(this),
-                block.chainid
-            ));
-            bytes32 ethSignedMessage = message.toEthSignedMessageHash();
-
-            if (ethSignedMessage.recover(signatures[i]) != attestationSigner) {
-                continue; // Skip invalid signatures
-            }
-
-            // Mark claimed
-            claimed[msg.sender][epoch] = true;
-            userEpochClicks[msg.sender][epoch] = clickCount;
-
-            // Update epoch stats
-            totalClicksPerEpoch[epoch] += clickCount;
-
-            // Update winner tracking
-            if (clickCount > epochWinnerClicks[epoch]) {
-                epochWinner[epoch] = msg.sender;
-                epochWinnerClicks[epoch] = clickCount;
-            }
-
-            // Calculate reward
-            uint256 reward = _calculateReward(epoch, clickCount);
-            if (reward == 0) continue;
-
-            uint256 userAmount = reward / 2;
-            uint256 burnAmount = reward - userAmount;
-
-            // Update tracking
-            poolRemaining -= reward;
-            epochEmissionUsed[epoch] += reward;
-            epochDistributed[epoch] += userAmount;
-            epochBurned[epoch] += burnAmount;
-
-            totalUserAmount += userAmount;
-            totalBurnAmount += burnAmount;
-            totalClicks += clickCount;
-
-            emit RewardClaimed(msg.sender, epoch, clickCount, userAmount, burnAmount);
+            uint256[4] memory result = _processEpochClaim(epochs[i], clickCounts[i], signatures[i], bonusBps);
+            totals[0] += result[0];
+            totals[1] += result[1];
+            totals[2] += result[2];
+            totals[3] += result[3];
         }
 
-        if (totalClicks > 0) {
-            // Record all clicks to registry
-            registry.recordClicks(msg.sender, SEASON_NUMBER, totalClicks);
+        if (totals[3] > 0) {
+            // Emit bonus event if applicable
+            if (totals[2] > 0) {
+                emit BonusApplied(msg.sender, totals[0] - totals[2], totals[2], bonusBps);
+            }
+
+            // Record only new clicks to registry
+            registry.recordClicks(msg.sender, SEASON_NUMBER, totals[3]);
 
             // Update user stats
-            totalUserClicks[msg.sender] += totalClicks;
-            totalUserEarned[msg.sender] += totalUserAmount;
+            totalUserClicks[msg.sender] += totals[3];
+            totalUserEarned[msg.sender] += totals[0];
+
+            // Record earnings to permanent registry
+            if (totals[0] > 0) {
+                registry.recordEarnings(msg.sender, SEASON_NUMBER, totals[0]);
+            }
 
             // Single disbursement for all epochs
-            if (totalUserAmount > 0 || totalBurnAmount > 0) {
-                treasury.disburse(msg.sender, totalUserAmount, totalBurnAmount);
+            if (totals[0] > 0 || totals[1] > 0) {
+                treasury.disburse(msg.sender, totals[0], totals[1]);
             }
         }
     }
@@ -483,6 +507,76 @@ contract ClickstrGameV2 is Ownable, ReentrancyGuard {
 
     // ============ Internal Functions ============
 
+    /**
+     * @dev Verify a server attestation signature
+     */
+    function _verifyAttestation(
+        address user,
+        uint256 epoch,
+        uint256 clickCount,
+        bytes calldata signature
+    ) internal view {
+        bytes32 message = keccak256(abi.encodePacked(
+            user,
+            epoch,
+            clickCount,
+            SEASON_NUMBER,
+            address(this),
+            block.chainid
+        ));
+        bytes32 ethSignedMessage = message.toEthSignedMessageHash();
+
+        if (ethSignedMessage.recover(signature) != attestationSigner) {
+            revert InvalidSignature();
+        }
+    }
+
+    /**
+     * @dev Calculate and distribute reward with NFT bonus for a single epoch claim
+     */
+    function _distributeReward(uint256 epoch, uint256 newClicks) internal {
+        uint256 reward = _calculateReward(epoch, newClicks);
+        if (reward == 0) revert InsufficientPool();
+
+        // 50/50 split
+        uint256 baseUserAmount = reward / 2;
+        uint256 burnAmount = reward - baseUserAmount;
+
+        // Apply NFT bonus to player reward (bonus comes from pool, not from burn)
+        uint256 bonusBps = calculateBonus(msg.sender);
+        uint256 bonusAmount = 0;
+        if (bonusBps > 0) {
+            bonusAmount = (baseUserAmount * bonusBps) / BASIS_POINTS;
+            // Cap bonus at available pool (after reward deduction)
+            uint256 availableForBonus = poolRemaining - reward;
+            if (bonusAmount > availableForBonus) {
+                bonusAmount = availableForBonus;
+            }
+        }
+        uint256 userAmount = baseUserAmount + bonusAmount;
+
+        // Update tracking
+        poolRemaining -= (reward + bonusAmount);
+        epochEmissionUsed[epoch] += reward;
+        epochDistributed[epoch] += userAmount;
+        epochBurned[epoch] += burnAmount;
+        totalUserClicks[msg.sender] += newClicks;
+        totalUserEarned[msg.sender] += userAmount;
+
+        // Emit bonus event if applicable
+        if (bonusAmount > 0) {
+            emit BonusApplied(msg.sender, baseUserAmount, bonusAmount, bonusBps);
+        }
+
+        // Record earnings to permanent registry
+        registry.recordEarnings(msg.sender, SEASON_NUMBER, userAmount);
+
+        // Request disbursement from treasury
+        treasury.disburse(msg.sender, userAmount, burnAmount);
+
+        emit RewardClaimed(msg.sender, epoch, newClicks, userAmount, burnAmount);
+    }
+
     function _checkAndAdvanceEpoch() internal {
         uint256 epochsSinceStart = (block.timestamp - gameStartTime) / EPOCH_DURATION;
         uint256 targetEpoch = epochsSinceStart + 1;
@@ -500,6 +594,80 @@ contract ClickstrGameV2 is Ownable, ReentrancyGuard {
             }
             currentEpoch++;
         }
+    }
+
+    /**
+     * @dev Process a single epoch claim within claimMultipleEpochs (extracted to avoid stack-too-deep)
+     * @return result [userAmount, burnAmount, bonusAmount, newClicks]
+     */
+    function _processEpochClaim(
+        uint256 epoch,
+        uint256 clickCount,
+        bytes calldata signature,
+        uint256 bonusBps
+    ) internal returns (uint256[4] memory result) {
+        if (epoch < 1 || epoch > TOTAL_EPOCHS) return result;
+        if (epoch > currentEpoch) return result;
+        if (epochFinalized[epoch]) return result;
+        if (clickCount == 0) return result;
+        if (clickCount > MAX_CLICKS_PER_CLAIM) return result;
+
+        // Check for new clicks (incremental)
+        uint256 previouslyClaimed = claimedClicks[msg.sender][epoch];
+        if (clickCount <= previouslyClaimed) return result;
+        uint256 newClicks = clickCount - previouslyClaimed;
+
+        // Verify signature (reverts silently on failure for batch)
+        {
+            bytes32 message = keccak256(abi.encodePacked(
+                msg.sender, epoch, clickCount, SEASON_NUMBER, address(this), block.chainid
+            ));
+            if (message.toEthSignedMessageHash().recover(signature) != attestationSigner) {
+                return result;
+            }
+        }
+
+        // Update claimed clicks
+        claimedClicks[msg.sender][epoch] = clickCount;
+        userEpochClicks[msg.sender][epoch] = clickCount;
+        totalClicksPerEpoch[epoch] += newClicks;
+
+        // Update winner tracking
+        if (clickCount > epochWinnerClicks[epoch]) {
+            epochWinner[epoch] = msg.sender;
+            epochWinnerClicks[epoch] = clickCount;
+        }
+
+        // Calculate reward for new clicks only
+        uint256 reward = _calculateReward(epoch, newClicks);
+        if (reward == 0) return result;
+
+        uint256 baseUserAmount = reward / 2;
+        uint256 burnAmount = reward - baseUserAmount;
+
+        // Apply NFT bonus
+        uint256 bonusAmount = 0;
+        if (bonusBps > 0) {
+            bonusAmount = (baseUserAmount * bonusBps) / BASIS_POINTS;
+            uint256 availableForBonus = poolRemaining - reward;
+            if (bonusAmount > availableForBonus) {
+                bonusAmount = availableForBonus;
+            }
+        }
+        uint256 userAmount = baseUserAmount + bonusAmount;
+
+        // Update tracking
+        poolRemaining -= (reward + bonusAmount);
+        epochEmissionUsed[epoch] += reward;
+        epochDistributed[epoch] += userAmount;
+        epochBurned[epoch] += burnAmount;
+
+        emit RewardClaimed(msg.sender, epoch, newClicks, userAmount, burnAmount);
+
+        result[0] = userAmount;
+        result[1] = burnAmount;
+        result[2] = bonusAmount;
+        result[3] = newClicks;
     }
 
     function _calculateReward(
@@ -647,6 +815,95 @@ contract ClickstrGameV2 is Ownable, ReentrancyGuard {
         emit GameEnded(totalDistributed, totalBurned);
     }
 
+    // ============ NFT Bonus Functions ============
+
+    /**
+     * @notice Calculate bonus multiplier for a user based on their NFT holdings
+     * @param user Address to check
+     * @return bonusBps Total bonus in basis points (0 = no bonus, 500 = 5% bonus)
+     */
+    function calculateBonus(address user) public view returns (uint256 bonusBps) {
+        // If no NFT contract set, no bonuses
+        if (address(achievementNFT) == address(0)) {
+            return 0;
+        }
+
+        // Sum up bonuses for all tiers the user has claimed
+        for (uint256 i = 0; i < bonusTiers.length; i++) {
+            uint256 tier = bonusTiers[i];
+            if (tierBonus[tier] > 0) {
+                // Use try/catch in case NFT contract call fails
+                try achievementNFT.claimed(user, tier) returns (bool isClaimed) {
+                    if (isClaimed) {
+                        bonusBps += tierBonus[tier];
+                    }
+                } catch {
+                    // NFT contract call failed, skip this tier
+                }
+            }
+        }
+
+        // Cap total bonus at 50% (5000 bps)
+        if (bonusBps > 5000) {
+            bonusBps = 5000;
+        }
+    }
+
+    /**
+     * @notice Get all configured bonus tiers and their bonuses
+     * @return tiers Array of tier numbers
+     * @return bonuses Array of bonus amounts in basis points
+     */
+    function getBonusTiers() external view returns (uint256[] memory tiers, uint256[] memory bonuses) {
+        tiers = bonusTiers;
+        bonuses = new uint256[](bonusTiers.length);
+        for (uint256 i = 0; i < bonusTiers.length; i++) {
+            bonuses[i] = tierBonus[bonusTiers[i]];
+        }
+    }
+
+    /**
+     * @notice Get detailed bonus info for a user
+     * @param user Address to check
+     * @return totalBonusBps Total bonus in basis points
+     * @return qualifyingTiers Array of tier numbers the user qualifies for
+     */
+    function getUserBonusInfo(address user) external view returns (
+        uint256 totalBonusBps,
+        uint256[] memory qualifyingTiers
+    ) {
+        if (address(achievementNFT) == address(0)) {
+            return (0, new uint256[](0));
+        }
+
+        // First pass: count qualifying tiers
+        uint256 count = 0;
+        for (uint256 i = 0; i < bonusTiers.length; i++) {
+            try achievementNFT.claimed(user, bonusTiers[i]) returns (bool isClaimed) {
+                if (isClaimed && tierBonus[bonusTiers[i]] > 0) {
+                    count++;
+                }
+            } catch {}
+        }
+
+        // Second pass: build array
+        qualifyingTiers = new uint256[](count);
+        uint256 idx = 0;
+        for (uint256 i = 0; i < bonusTiers.length; i++) {
+            try achievementNFT.claimed(user, bonusTiers[i]) returns (bool isClaimed) {
+                if (isClaimed && tierBonus[bonusTiers[i]] > 0) {
+                    qualifyingTiers[idx++] = bonusTiers[i];
+                    totalBonusBps += tierBonus[bonusTiers[i]];
+                }
+            } catch {}
+        }
+
+        // Cap at 50%
+        if (totalBonusBps > 5000) {
+            totalBonusBps = 5000;
+        }
+    }
+
     // ============ View Functions ============
 
     /**
@@ -712,14 +969,22 @@ contract ClickstrGameV2 is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Check if user has claimed for an epoch
+     * @notice Check if user has claimed ANY clicks for an epoch
+     * @dev Returns true if claimedClicks > 0 (backwards compatible)
      */
     function hasClaimed(address user, uint256 epoch) external view returns (bool) {
-        return claimed[user][epoch];
+        return claimedClicks[user][epoch] > 0;
     }
 
     /**
-     * @notice Get user's claimed clicks for an epoch
+     * @notice Get user's claimed clicks for an epoch (for incremental claim tracking)
+     */
+    function getClaimedClicks(address user, uint256 epoch) external view returns (uint256) {
+        return claimedClicks[user][epoch];
+    }
+
+    /**
+     * @notice Get user's total clicks for an epoch (same as claimedClicks)
      */
     function getUserEpochClicks(address user, uint256 epoch) external view returns (uint256) {
         return userEpochClicks[user][epoch];

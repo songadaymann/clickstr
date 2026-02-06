@@ -141,6 +141,105 @@ Backend is DONE in mann.cool API (`api/clickstr.js` lines 829-852, 930-936):
 ## API Enhancements
 
 - [ ] Create NFT metadata API endpoint (`/api/clickstr/nft/[tokenId]`)
+- [x] Update frontend V2 claim flow to sign server challenge (`/api/clickstr-v2` action `claim`) and retry with `walletSignature`
+- [x] Wire V2 claim attestation helper into the Claim Rewards UI (use `requestV2ClaimAttestation()`; handle Turnstile prompt + wallet signature retry)
+
+---
+
+## V2 Security Fixes - COMPLETED (Feb 5, 2026)
+
+All critical and high severity security issues identified in `docs/v2-security.md` have been fixed.
+
+### Contract Fixes
+
+**Critical:**
+- [x] Treasury burn ratio enforcement - `require(burnAmount >= userAmount)` in `disburse()`
+- [x] Registry season validation - `require(season == gameToSeason[msg.sender])` in `recordClicks()`
+
+**High:**
+- [x] Max click count - `MAX_CLICKS_PER_CLAIM = 100_000_000` constant
+- [x] Claim grace period - `CLAIM_GRACE_PERIOD = 72 hours` before `endGame()` can be called
+- [x] Grace period in finalization - `_finalizeEpochInternal` respects grace period
+
+**Medium:**
+- [x] Finalizer reward 50/50 split at 0.1% (was 100% to finalizer at 1%)
+
+### Frontend V2 Token Claim UI
+
+- [x] `V2ClaimableEpoch` and `V2ClaimableEpochsResponse` types
+- [x] `fetchV2ClaimableEpochs()` API function
+- [x] `CLICKSTR_V2_ABI` contract ABI
+- [x] `claimV2Reward()` and `checkV2Claimed()` contract functions
+- [x] V2 claim modal in index.html
+- [x] Modal CSS styling
+- [x] `showV2ClaimModal()`, `renderV2ClaimList()`, `handleV2ClaimSingle()`, `handleV2ClaimAll()` functions
+- [x] `checkV2ClaimableEpochs()` runs on wallet connect
+- [x] "Claim (N)" button in game status panel
+
+### V2 Incremental Claims - COMPLETED (Feb 5-6, 2026)
+
+- [x] Modified `ClickstrGameV2.sol` to use `claimedClicks` mapping (uint256) instead of `claimed` (bool)
+- [x] Contract calculates `newClicks = clickCount - previouslyClaimed` and only pays for new clicks
+- [x] Deployed Season 3 game contract with incremental claims: `0xC3af5dE6c6303A6241776c3C8b3DA747386982b1`
+- [x] Added green glowing "Claim" button with pulse animation
+- [x] Added cash machine sound effect on successful claim
+- [x] Wired up full V2 claim flow: `submitClicksV2()` → `requestV2ClaimSignature()` → `claimV2Reward()` → `playCashMachineSound()`
+- [x] Added `IS_V2` flag to detect V2 mode based on network
+- [x] Fixed `fetchDifficultyTarget()` to return default difficulty for V2
+- [x] **Fixed API incremental claims** — `hasClaimedOnChain()` (boolean) replaced with `getClaimedClicksOnChain()` (uint256)
+- [x] **Fixed API signature cache** — now issues NEW signature when clicks > previous clickCount
+- [x] **Fixed frontend claim guard** — `checkV2Claimed()` (boolean) replaced with `getV2ClaimedClicks()` (numeric comparison)
+
+### V2 ClickRegistry with Earnings Tracking - COMPLETED (Feb 6, 2026)
+
+- [x] Added `totalEarned`, `earnedPerSeason`, `globalTotalEarned` to ClickRegistry
+- [x] Added `recordEarnings()` function to ClickRegistry
+- [x] Added `seedHistoricalEarnings()` for migration
+- [x] Updated ClickstrGameV2 to call `registry.recordEarnings()` on claim
+- [x] Deployed new ClickRegistry: `0xF8cC8ff9f7f092f5d7221552437aF748954cA427`
+- [x] Deployed Season 5 game: `0xec003c2282A01E30d712b238A068d852bCDda614`
+- [x] Migrated test data (426 clicks, 12.78 CLICK earned)
+- [x] Updated API to read `totalEarned` from registry and return `lifetimeEarned`
+- [x] Updated frontend types (`V2StatsResponse.lifetimeEarned`)
+- [x] Updated `onConnected()` to set `totalEarned` from API response
+- [x] Fixed `checkV2Claimed()` missing contract address argument
+- [x] Updated frontend config with Season 5 addresses
+
+**Still TODO:**
+- [ ] Debug why "Total Earned" still shows 0 on frontend
+  - Verify API returns `lifetimeEarned` (curl endpoint)
+  - Check Vercel env var `CLICKSTR_REGISTRY_ADDRESS` is updated
+  - Check mann.cool API is redeployed
+  - Trace frontend `v2Stats.lifetimeEarned` parsing
+
+### V2 NFT Tier Bonus System - COMPLETED (Feb 6, 2026)
+
+Ported V1's NFT bonus system to V2. Holding achievement NFTs now grants 2-10% bonus on claim rewards.
+
+- [x] Added `IClickstrNFT` interface and `achievementNFT` state variable to ClickstrGameV2
+- [x] Added `tierBonus` mapping + `bonusTiers` array
+- [x] Added `setAchievementNFT()` and `setTierBonuses()` admin functions
+- [x] Applied bonus in `claimReward()` via `_distributeReward()` helper
+- [x] Applied bonus in `claimMultipleEpochs()` via `_processEpochClaim()` helper
+- [x] Added `calculateBonus()`, `getBonusTiers()`, `getUserBonusInfo()` view functions
+- [x] Added `BonusApplied` and `AchievementNFTUpdated` events
+- [x] Refactored for stack-too-deep: `_verifyAttestation()`, `_distributeReward()`, `_processEpochClaim()`, `_processMultiClaim()`
+- [x] Updated `deploy-v2.js` with `setAchievementNFT` + `setTierBonuses` calls
+- [x] Updated `deploy-v2-season.js` with optional `NFT_CONTRACT_ADDRESS` support
+- [x] All 111 tests pass, clean compile
+
+**Vercel Env Vars to Update:**
+```
+CLICKSTR_REGISTRY_ADDRESS=0xF8cC8ff9f7f092f5d7221552437aF748954cA427
+CLICKSTR_GAME_V2_ADDRESS=0xec003c2282A01E30d712b238A068d852bCDda614
+```
+
+### V2 NFT Contract: Mutable Registry - COMPLETED (Feb 6, 2026)
+
+- [x] Changed `registry` from `immutable` to mutable in `ClickstrNFTV2.sol`
+- [x] Added `RegistryUpdated` event
+- [x] Added `setRegistry(address)` owner-only function
+- [x] All 43 tests pass
 
 ---
 

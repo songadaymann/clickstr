@@ -7,6 +7,7 @@ let soundDown: HTMLAudioElement | null = null;
 let soundUp: HTMLAudioElement | null = null;
 let soundMilestone: HTMLAudioElement | null = null;
 let soundGlobalMilestone: HTMLAudioElement | null = null;
+let soundCashMachine: HTMLAudioElement | null = null;
 
 /** Whether sounds are loaded */
 let isLoaded = false;
@@ -21,12 +22,14 @@ export function preloadSounds(): void {
   soundUp = new Audio('button-up.mp3');
   soundMilestone = new Audio('sounds/zeldasound.mp3');
   soundGlobalMilestone = new Audio('sounds/globalMilestone.mp3');
+  soundCashMachine = new Audio('sounds/Cash Machine.mp3');
 
   // Set preload hint
   soundDown.preload = 'auto';
   soundUp.preload = 'auto';
   soundMilestone.preload = 'auto';
   soundGlobalMilestone.preload = 'auto';
+  soundCashMachine.preload = 'auto';
 
   isLoaded = true;
 }
@@ -78,6 +81,17 @@ export function playGlobalMilestoneSound(): void {
 }
 
 /**
+ * Play cash machine sound (for successful token claims)
+ */
+export function playCashMachineSound(): void {
+  if (soundCashMachine) {
+    (soundCashMachine.cloneNode() as HTMLAudioElement).play().catch(() => {
+      // Ignore autoplay errors
+    });
+  }
+}
+
+/**
  * Clean up sound resources
  */
 export function destroySounds(): void {
@@ -85,5 +99,6 @@ export function destroySounds(): void {
   soundUp = null;
   soundMilestone = null;
   soundGlobalMilestone = null;
+  soundCashMachine = null;
   isLoaded = false;
 }

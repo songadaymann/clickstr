@@ -27,6 +27,15 @@ contract ClickRegistry is Ownable {
     /// @notice Global total clicks across all seasons
     uint256 public globalTotalClicks;
 
+    /// @notice Lifetime tokens earned per user (across all seasons)
+    mapping(address => uint256) public totalEarned;
+
+    /// @notice Tokens earned per user per season
+    mapping(address => mapping(uint256 => uint256)) public earnedPerSeason;
+
+    /// @notice Global total tokens earned across all seasons
+    uint256 public globalTotalEarned;
+
     /// @notice Highest season number that has been registered
     uint256 public totalSeasons;
 
@@ -51,6 +60,13 @@ contract ClickRegistry is Ownable {
         address indexed gameContract
     );
 
+    event EarningsRecorded(
+        address indexed user,
+        uint256 indexed season,
+        uint256 amount,
+        address indexed gameContract
+    );
+
     event GameAuthorized(
         address indexed game,
         uint256 indexed season
@@ -62,6 +78,12 @@ contract ClickRegistry is Ownable {
         uint256 indexed season,
         uint256 userCount,
         uint256 totalClicksSeeded
+    );
+
+    event HistoricalEarningsSeeded(
+        uint256 indexed season,
+        uint256 userCount,
+        uint256 totalEarningsSeeded
     );
 
     // ============ Errors ============
@@ -115,6 +137,36 @@ contract ClickRegistry is Ownable {
         globalTotalClicks += clicks;
 
         emit ClicksRecorded(user, season, clicks, msg.sender);
+    }
+
+    /**
+     * @notice Record token earnings for a user (called by authorized game contracts)
+     * @param user The user who earned the tokens
+     * @param season The season number
+     * @param amount Amount of tokens earned (in wei)
+     * @dev Earnings are additive - multiple calls for the same user/season accumulate
+     */
+    function recordEarnings(
+        address user,
+        uint256 season,
+        uint256 amount
+    ) external onlyAuthorizedGame {
+        if (user == address(0)) revert ZeroAddress();
+        if (amount == 0) return; // Silent return for zero - not an error
+
+        // Verify game is recording to its authorized season
+        if (season != gameToSeason[msg.sender]) revert SeasonMismatch();
+
+        // Update user's lifetime total
+        totalEarned[user] += amount;
+
+        // Update user's per-season total
+        earnedPerSeason[user][season] += amount;
+
+        // Update global total
+        globalTotalEarned += amount;
+
+        emit EarningsRecorded(user, season, amount, msg.sender);
     }
 
     // ============ Admin Functions ============
@@ -194,6 +246,35 @@ contract ClickRegistry is Ownable {
         emit HistoricalClicksSeeded(season, users.length, totalSeeded);
     }
 
+    /**
+     * @notice Seed historical earnings from a previous season (one-time migration)
+     * @param users Array of user addresses
+     * @param amounts Array of earned amounts in wei (parallel to users array)
+     * @param season Season number being migrated
+     * @dev Uses same historicalSeeded flag as clicks - call after seedHistoricalClicks
+     */
+    function seedHistoricalEarnings(
+        address[] calldata users,
+        uint256[] calldata amounts,
+        uint256 season
+    ) external onlyOwner {
+        if (users.length != amounts.length) revert ArrayLengthMismatch();
+
+        uint256 totalSeeded = 0;
+        for (uint256 i = 0; i < users.length; i++) {
+            if (users[i] == address(0)) continue;
+            if (amounts[i] == 0) continue;
+
+            totalEarned[users[i]] += amounts[i];
+            earnedPerSeason[users[i]][season] += amounts[i];
+            totalSeeded += amounts[i];
+        }
+
+        globalTotalEarned += totalSeeded;
+
+        emit HistoricalEarningsSeeded(season, users.length, totalSeeded);
+    }
+
     // ============ View Functions ============
 
     /**
@@ -216,6 +297,28 @@ contract ClickRegistry is Ownable {
         uint256 season
     ) external view returns (uint256) {
         return clicksPerSeason[user][season];
+    }
+
+    /**
+     * @notice Get a user's lifetime earnings total
+     * @param user Address to check
+     * @return Total tokens earned across all seasons (in wei)
+     */
+    function getTotalEarned(address user) external view returns (uint256) {
+        return totalEarned[user];
+    }
+
+    /**
+     * @notice Get a user's earnings for a specific season
+     * @param user Address to check
+     * @param season Season number
+     * @return Tokens earned for that season (in wei)
+     */
+    function getSeasonEarned(
+        address user,
+        uint256 season
+    ) external view returns (uint256) {
+        return earnedPerSeason[user][season];
     }
 
     /**

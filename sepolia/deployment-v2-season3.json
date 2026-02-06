@@ -1,0 +1,25 @@
+{
+  "version": "v2",
+  "network": "sepolia",
+  "chainId": 11155111,
+  "season": {
+    "number": 3,
+    "totalEpochs": 3,
+    "epochDuration": 86400,
+    "poolAmount": "3000000",
+    "seasonLengthDays": 3
+  },
+  "contracts": {
+    "clickRegistry": "0xAb16745314623EF6fAE03E90EC3987519C431B0f",
+    "clickstrTreasury": "0x82378b6C7247b02f4b985Aca079a0A85E0D2cbAe",
+    "clickstrGameV2": "0xC3af5dE6c6303A6241776c3C8b3DA747386982b1"
+  },
+  "signers": {
+    "attestation": "0xf55E4fac663ad8db80284620F97D95391ab002EF"
+  },
+  "deployer": "0xAd9fDaD276AB1A430fD03177A07350CD7C61E897",
+  "deployedAt": "2026-02-05T19:04:01.367Z",
+  "gameStartTime": "2026-02-05T19:04:00.000Z",
+  "gameEndTime": "2026-02-08T19:04:00.000Z",
+  "blockNumber": 10198435
+}

@@ -40,6 +40,7 @@ export {
   playButtonUp,
   playMilestoneSound,
   playGlobalMilestoneSound,
+  playCashMachineSound,
   destroySounds,
 } from './sounds.ts';
 

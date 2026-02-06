@@ -105,18 +105,41 @@ V1 allowed bots because it seemed inevitable. V2 embraces human-only gameplay as
 ### Claiming Rewards (On-Chain)
 
 ```
-1. User clicks "Claim Rewards" in UI
-2. Frontend requests signature from server:
-   POST /api/clickstr/claim-reward
-   { address, epoch }
-3. Server returns:
-   { signature, clickCount, epoch }
-4. Frontend submits tx to game contract:
+1. User clicks "Claim" in UI
+2. Frontend submits any pending clicks to V2 API:
+   POST /api/clickstr-v2 { address, nonces[], turnstileToken }
+3. Frontend requests claim signature:
+   POST /api/clickstr-v2 { address, action: "claim", epoch }
+4. Server returns 401 with wallet signature challenge:
+   { requiresSignature: true, challenge: "Clickstr V2 Claim..." }
+5. Frontend prompts wallet to sign challenge (EIP-191 personal_sign)
+6. Frontend retries with wallet signature:
+   POST /api/clickstr-v2 { address, action: "claim", epoch, walletSignature, challenge }
+7. Server verifies wallet signature, returns attestation:
+   { success: true, signature, clickCount, epoch, seasonNumber }
+8. Frontend submits tx to game contract:
    claimReward(epoch, clickCount, signature)
-5. Contract verifies signature, calculates reward
-6. Contract records clicks to ClickRegistry
-7. Contract does 50/50 burn, transfers tokens to user
+9. Contract verifies server signature, calculates reward
+10. Contract records clicks to ClickRegistry
+11. Contract does 50/50 burn, transfers tokens to user
 ```
+
+**Why Wallet Signature?**
+
+The wallet signature (steps 4-6) prevents claim front-running:
+- Without it, anyone monitoring the mempool could see the server's attestation signature
+- They could submit their own claim tx with the same signature before the original user
+- The wallet signature binds the attestation to a specific signed request from the user
+
+**Incremental Claims:**
+
+V2 allows claiming multiple times within the same epoch:
+- Contract tracks `claimedClicks[user][epoch]` (not boolean)
+- Server attests to TOTAL clicks, not increment
+- Contract calculates: `newClicks = clickCount - previouslyClaimed`
+- Reverts with `AlreadyClaimed()` if `clickCount <= previouslyClaimed`
+
+This means users can click more, then claim again for the delta.
 
 ---
 
@@ -323,64 +346,61 @@ mapping(uint256 => uint256) public epochWinnerClicks;
 mapping(uint256 => bool) public epochFinalized;
 ```
 
-### Core Function: claimReward
+### Core Function: claimReward (Incremental Claims)
+
+V2 supports **incremental claims** - users can claim multiple times per epoch as they accumulate more clicks.
 
 ```solidity
+// Tracks total clicks claimed (not boolean)
+mapping(address => mapping(uint256 => uint256)) public claimedClicks;
+
 function claimReward(
     uint256 epoch,
     uint256 clickCount,
     bytes calldata signature
 ) external nonReentrant {
-    // Validation
-    require(gameStarted, "Game not started");
-    require(epoch >= 1 && epoch <= TOTAL_EPOCHS, "Invalid epoch");
-    require(epoch <= currentEpoch, "Epoch not started");
-    require(!claimed[msg.sender][epoch], "Already claimed");
-    require(clickCount > 0, "No clicks");
+    // Validation, signature verification, epoch/winner updates...
+    // (See contract source for full implementation)
 
-    // Verify server attestation
-    bytes32 message = keccak256(abi.encodePacked(
-        msg.sender,
-        epoch,
-        clickCount,
-        SEASON_NUMBER,
-        address(this),
-        block.chainid
-    ));
-    bytes32 ethSignedMessage = keccak256(abi.encodePacked(
-        "\x19Ethereum Signed Message:\n32",
-        message
-    ));
-    require(recoverSigner(ethSignedMessage, signature) == attestationSigner, "Invalid signature");
+    // Calculate and distribute reward with NFT bonus
+    _distributeReward(epoch, newClicks);
+}
 
-    // Mark claimed
-    claimed[msg.sender][epoch] = true;
+function _distributeReward(uint256 epoch, uint256 newClicks) internal {
+    uint256 reward = _calculateReward(epoch, newClicks);
 
-    // Update epoch stats
-    totalClicksPerEpoch[epoch] += clickCount;
+    // 50/50 split
+    uint256 baseUserAmount = reward / 2;
+    uint256 burnAmount = reward - baseUserAmount;
 
-    // Update winner tracking
-    if (clickCount > epochWinnerClicks[epoch]) {
-        epochWinner[epoch] = msg.sender;
-        epochWinnerClicks[epoch] = clickCount;
+    // Apply NFT bonus (extra tokens from pool, not from burn)
+    uint256 bonusBps = calculateBonus(msg.sender);
+    uint256 bonusAmount = 0;
+    if (bonusBps > 0) {
+        bonusAmount = (baseUserAmount * bonusBps) / BASIS_POINTS;
+        // Cap at available pool
+        uint256 availableForBonus = poolRemaining - reward;
+        if (bonusAmount > availableForBonus) bonusAmount = availableForBonus;
     }
+    uint256 userAmount = baseUserAmount + bonusAmount;
 
-    // Record to permanent registry
-    registry.recordClicks(msg.sender, SEASON_NUMBER, clickCount);
-
-    // Calculate and distribute reward (same 50/50 logic as V1)
-    uint256 reward = calculateReward(epoch, clickCount);
-    uint256 userAmount = reward / 2;
-    uint256 burnAmount = reward - userAmount;
-
-    poolRemaining -= reward;
-
-    clickToken.safeTransfer(msg.sender, userAmount);
-    clickToken.safeTransfer(BURN_ADDRESS, burnAmount);
-
-    emit RewardClaimed(msg.sender, epoch, clickCount, userAmount, burnAmount);
+    poolRemaining -= (reward + bonusAmount);
+    treasury.disburse(msg.sender, userAmount, burnAmount);
 }
 ```
+
+**How Incremental Claims Work:**
+
+| Claim # | Server Signs | On-Chain claimedClicks | New Clicks Paid |
+|---------|--------------|------------------------|-----------------|
+| 1st | sig(500) | 0 → 500 | 500 - 0 = 500 |
+| 2nd | sig(800) | 500 → 800 | 800 - 500 = 300 |
+| 3rd | sig(1200) | 800 → 1200 | 1200 - 800 = 400 |
+| Replay 1st sig | sig(500) | 1200 | REJECTED: 500 <= 1200 |
+
+**Security:** The server always signs TOTAL clicks, preventing:
+- Replay attacks: Old signatures are rejected (total <= already claimed)
+- Double-counting: Contract only pays for NEW clicks (total - previous)
 
 ### Epoch & Winner Logic
 
@@ -448,6 +468,75 @@ function checkEligibility(address user, uint256 tier) internal view returns (boo
 - **Cross-season accumulation**: 500k clicks across 5 seasons still counts
 - **Simpler configuration**: NFT contract doesn't need to know about each game
 - **Future-proof**: New seasons automatically count toward milestones
+
+---
+
+## NFT Tier Bonus System
+
+V2 now includes the NFT tier bonus system that was present in V1. Holding achievement NFTs grants a percentage bonus on top of base token rewards.
+
+### How It Works
+
+1. When a user calls `claimReward()` or `claimMultipleEpochs()`, the contract checks which milestone NFTs the user has claimed
+2. Each qualifying NFT tier adds bonus basis points (e.g., 500 bps = 5%)
+3. The bonus is applied to the user's base reward (the 50% player share), drawn from the pool
+4. Total bonus is capped at 50% (5000 bps)
+
+### Configured Tiers
+
+| Tier | Milestone | Clicks Required | Bonus |
+|------|-----------|-----------------|-------|
+| 4 | 1K Club | 1,000 | 2% |
+| 6 | 10K Club | 10,000 | 3% |
+| 8 | 50K Club | 50,000 | 5% |
+| 9 | 100K Club | 100,000 | 7% |
+| 11 | 500K Club | 500,000 | 10% |
+
+**Max possible bonus: 27%** (if all 5 tiers claimed)
+
+### Contract State
+
+```solidity
+IClickstrNFT public achievementNFT;               // NFT contract reference
+mapping(uint256 => uint256) public tierBonus;       // Tier → bonus in basis points
+uint256[] public bonusTiers;                        // List of tiers with bonuses
+```
+
+### Admin Functions
+
+```solidity
+// Set/update NFT contract (callable anytime by owner)
+function setAchievementNFT(address _nftContract) external onlyOwner;
+
+// Configure bonus tiers (owner only, before game starts)
+function setTierBonuses(uint256[] calldata tiers, uint256[] calldata bonuses) external onlyOwner;
+```
+
+### View Functions
+
+```solidity
+// Get a user's total bonus percentage
+function calculateBonus(address user) public view returns (uint256 bonusBps);
+
+// Get all configured tiers and their bonuses
+function getBonusTiers() external view returns (uint256[] memory tiers, uint256[] memory bonuses);
+
+// Get detailed user bonus info (total bps + qualifying tiers)
+function getUserBonusInfo(address user) external view returns (uint256 totalBonusBps, uint256[] memory qualifyingTiers);
+```
+
+### Bonus Math
+
+```
+basePlayerReward = grossReward / 2     (50/50 split)
+bonusAmount = basePlayerReward * bonusBps / 10000
+userReceives = basePlayerReward + bonusAmount
+poolPays = grossReward + bonusAmount    (bonus drawn from pool)
+```
+
+### Deployment
+
+Both deploy scripts (`deploy-v2.js`, `deploy-v2-season.js`) call `setAchievementNFT()` and `setTierBonuses()` before `startGame()`. For `deploy-v2-season.js`, set `NFT_CONTRACT_ADDRESS` env var to enable bonuses.
 
 ---
 
@@ -555,13 +644,43 @@ Recommendation: **Option 1** - snapshot S1 totals into registry at deployment. T
 
 Current NFT holders keep their NFTs. Future milestone checks use registry totals, which will include S1 data after migration.
 
-### Difficulty
+### Difficulty Adjustment
 
-V2 doesn't need on-chain difficulty adjustment (server controls it). But for transparency:
-- Server publishes current difficulty
-- Difficulty still adjusts based on clicks per epoch
-- Frontend displays it
-- It's just not enforced on-chain
+V2 moves difficulty adjustment from the contract to the server. The server implements a Bitcoin-style adjustment algorithm identical in spirit to V1's `_adjustDifficulty()`.
+
+**Algorithm:**
+
+At each epoch boundary (triggered lazily on the first request of a new epoch):
+
+```
+targetClicks = (1,000,000 * EPOCH_DURATION) / 86400
+newTarget = currentTarget * targetClicks / actualClicks
+```
+
+- More clicks than target → lower target (harder, slower mining)
+- Fewer clicks than target → higher target (easier, faster mining)
+- Zero clicks → 4x easier
+- Capped at 4x change per epoch in either direction
+- Absolute floor: 1000 (hardest), ceiling: maxUint256 / 1000 (easiest)
+
+The `targetClicks` formula is the same one the V2 contract uses in `_calculateReward()`, keeping difficulty and reward economics aligned.
+
+**Why it matters:**
+- Prevents treasury drain if thousands of users click simultaneously (difficulty ramps up, slowing click rate)
+- Prevents bot swarms from exploiting static difficulty (even with Turnstile, defense in depth)
+- Maintains consistent click-rate economics across different player populations
+
+**Storage:** Redis keys `clickstr:v2:difficulty` and `clickstr:v2:difficulty-epoch`
+
+**API:**
+- `GET /api/clickstr-v2?difficulty=true` — Returns current target, epoch, target clicks, actual clicks
+- `difficultyTarget` is included in both submit and stats responses so the frontend stays in sync
+- Frontend fetches difficulty on connect and updates from every server response
+
+**Frontend sync:**
+- `fetchDifficultyTarget()` calls the server API for V2 (instead of reading the contract)
+- After each submit, the response includes the current difficulty target
+- `gameState.setDifficulty()` is called to update the mining worker's target
 
 ---
 
@@ -658,13 +777,13 @@ Users can claim multiple epochs in a single transaction via `claimMultipleEpochs
 - Simplifies the "claim all" UX
 - Server returns all claimable epochs in one signature bundle
 
-### Difficulty Display: Same UX, Different Source
+### Difficulty: Same UX, Different Source
 
 Difficulty display in the UI stays the same - just changes where we read it from:
 - **V1**: Read from contract `difficultyTarget`
-- **V2**: Read from server API `/api/clickstr?difficulty=true`
+- **V2**: Read from server API `GET /api/clickstr-v2?difficulty=true`
 
-Server still adjusts difficulty based on clicks per epoch (same algorithm), it's just computed off-chain now.
+The server adjusts difficulty at epoch boundaries using the same algorithm as V1 (Bitcoin-style: actual/target ratio, capped at 4x). It reads `EPOCH_DURATION` from the contract to compute the target clicks per epoch. See the [Difficulty Adjustment](#difficulty-adjustment) section under Migration Considerations for full details.
 
 ### No Emergency Pause
 

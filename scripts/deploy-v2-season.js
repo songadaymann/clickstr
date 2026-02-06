@@ -16,6 +16,7 @@ const path = require("path");
  *   SEASON_EPOCHS        - Number of epochs (default: 3)
  *   SEASON_DURATION      - Epoch duration in seconds (default: 86400)
  *   SEASON_POOL          - Token pool for this season in whole tokens (default: 3000000)
+ *   NFT_CONTRACT_ADDRESS - Address of ClickstrNFTV2 for tier bonuses (optional)
  *   FUND_TREASURY        - Set to 'true' to transfer more tokens to treasury
  *   CLICK_TOKEN_ADDRESS  - Required if FUND_TREASURY=true
  *
@@ -154,8 +155,26 @@ async function main() {
   await authTreasTx.wait();
   console.log("   Game authorized with allowance:", seasonPool, "CLICK");
 
-  // Step 5: Start the game
-  console.log("\n4. Starting the game...");
+  // Step 5: Set up NFT bonuses (if NFT contract provided)
+  const nftContractAddress = process.env.NFT_CONTRACT_ADDRESS;
+  if (nftContractAddress) {
+    console.log("\n4. Setting achievement NFT contract...");
+    const setNftTx = await game.setAchievementNFT(nftContractAddress);
+    await setNftTx.wait();
+    console.log("   Achievement NFT set to:", nftContractAddress);
+
+    console.log("\n5. Setting up NFT tier bonuses...");
+    const bonusTiers = [4, 6, 8, 9, 11];
+    const bonusAmounts = [200, 300, 500, 700, 1000]; // 2%, 3%, 5%, 7%, 10%
+    const bonusTx = await game.setTierBonuses(bonusTiers, bonusAmounts);
+    await bonusTx.wait();
+    console.log("   Tier bonuses configured (2%-10%)");
+  } else {
+    console.log("\n4-5. Skipping NFT bonuses (no NFT_CONTRACT_ADDRESS provided)");
+  }
+
+  // Step 6: Start the game
+  console.log("\n6. Starting the game...");
   const startTx = await game.startGame(seasonPoolWei);
   await startTx.wait();
   console.log("   Game started!");
@@ -219,11 +238,13 @@ async function main() {
   console.log("\n" + "=".repeat(70));
   console.log("NEXT STEPS:");
   console.log("=".repeat(70));
-  console.log("\n1. Update frontend config with new game address:");
-  console.log(`   gameContractAddress: '${gameAddress}'`);
-  console.log("\n2. Update server config:");
-  console.log(`   GAME_CONTRACT_ADDRESS=${gameAddress}`);
-  console.log("\n3. Deploy/update subgraph for new game contract");
+  console.log("\n1. Update frontend config (src-ts/src/config/network.ts):");
+  console.log(`   contractAddress: '${gameAddress}'`);
+  console.log("\n2. Update Vercel env var for mann.cool API:");
+  console.log(`   CLICKSTR_GAME_V2_ADDRESS=${gameAddress}`);
+  console.log("\n3. Reset Redis click data (if testing):");
+  console.log(`   curl -X POST https://mann.cool/api/clickstr-admin-reset -H "Content-Type: application/json" -d '{"secret": "YOUR_ADMIN_SECRET"}'`);
+  console.log("\n4. (Optional) Deploy/update subgraph for new game contract");
 
   return deploymentInfo;
 }

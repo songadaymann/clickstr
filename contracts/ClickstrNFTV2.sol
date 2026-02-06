@@ -43,8 +43,8 @@ contract ClickstrNFTV2 is ERC1155, Ownable {
 
     // ============ State ============
 
-    /// @notice The permanent click registry
-    IClickRegistry public immutable registry;
+    /// @notice The click registry (can be updated if registry is migrated)
+    IClickRegistry public registry;
 
     /// @notice Address authorized to sign claim messages
     address public signer;
@@ -76,6 +76,7 @@ contract ClickstrNFTV2 is ERC1155, Ownable {
         uint256 userTotalClicks
     );
     event SignerUpdated(address indexed oldSigner, address indexed newSigner);
+    event RegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
     event BaseURIUpdated(string newBaseURI);
     event ContractURIUpdated(string newContractURI);
     event TierRequirementUpdated(uint256 indexed tier, uint256 clicksRequired);
@@ -347,6 +348,17 @@ contract ClickstrNFTV2 is ERC1155, Ownable {
         address oldSigner = signer;
         signer = _newSigner;
         emit SignerUpdated(oldSigner, _newSigner);
+    }
+
+    /**
+     * @notice Update the registry address (if registry is migrated)
+     * @param _newRegistry New registry address
+     */
+    function setRegistry(address _newRegistry) external onlyOwner {
+        if (_newRegistry == address(0)) revert ZeroAddress();
+        address oldRegistry = address(registry);
+        registry = IClickRegistry(_newRegistry);
+        emit RegistryUpdated(oldRegistry, _newRegistry);
     }
 
     /**

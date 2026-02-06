@@ -949,19 +949,3 @@
   cursor: not-allowed;
 }
 
-/* Claim tokens button in game panel */
-.claim-tokens-btn {
-  background: linear-gradient(180deg, var(--color-gold) 0%, #b8860b 100%);
-  border: 1px solid var(--color-gold);
-  color: black;
-  font-family: var(--font-label);
-  font-size: 8px;
-  padding: 2px 6px;
-  cursor: pointer;
-  margin-left: 8px;
-  transition: all var(--transition-fast);
-}
-
-.claim-tokens-btn:hover {
-  box-shadow: 0 0 8px var(--color-gold);
-}

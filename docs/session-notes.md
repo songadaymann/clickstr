@@ -3157,3 +3157,974 @@ Verified all contract configurations are correct:
 - `src-ts/src/types/api.ts` - V2 API types
 - `src-ts/src/services/api.ts` - V2 API functions
 - `src-ts/src/services/index.ts` - V2 exports
+
+---
+
+## Session 21: V2 Incremental Claims & Green Claim Button (February 5, 2026)
+
+### Overview
+
+Major V2 enhancements: modified contract to support incremental claims (claim as you go), deployed new game contract, and built a green glowing "Claim" button with cash machine sound effect.
+
+### Problem: Original V2 Could Only Claim Once Per Epoch
+
+The original V2 contract used a boolean `claimed[user][epoch]` mapping, meaning:
+- User clicks 1000 times, claims → gets tokens
+- User clicks 500 more times → can't claim again until next epoch
+- Frustrating UX for active players
+
+### Solution: Incremental Claims
+
+Changed the contract to track cumulative claimed clicks instead of boolean:
+
+**Contract Changes (`contracts/ClickstrGameV2.sol`):**
+
+```solidity
+// Changed from:
+mapping(address => mapping(uint256 => bool)) public claimed;
+
+// To:
+mapping(address => mapping(uint256 => uint256)) public claimedClicks;
+```
+
+**Modified `claimReward()` function:**
+```solidity
+function claimReward(
+    uint256 epoch,
+    uint256 clickCount,
+    bytes calldata signature
+) external nonReentrant {
+    // ... validation ...
+
+    // Check for new clicks to claim (incremental)
+    uint256 previouslyClaimed = claimedClicks[msg.sender][epoch];
+    if (clickCount <= previouslyClaimed) revert AlreadyClaimed(); // No new clicks
+    uint256 newClicks = clickCount - previouslyClaimed;
+
+    // Signature signs TOTAL clicks (not incremental)
+    // This prevents replay attacks while allowing multiple claims
+
+    // Update claimed clicks (now tracks total, not boolean)
+    claimedClicks[msg.sender][epoch] = clickCount;
+
+    // Record only NEW clicks to permanent registry
+    registry.recordClicks(msg.sender, SEASON_NUMBER, newClicks);
+
+    // Calculate reward for NEW clicks only
+    uint256 reward = _calculateReward(epoch, newClicks);
+    // ... distribution ...
+}
+```
+
+**Key insight:** Server signs TOTAL clicks, not incremental. This means:
+- First claim: sig(500), pays for 500 - 0 = 500 clicks
+- Second claim: sig(800), pays for 800 - 500 = 300 clicks
+- Replay of first sig(500) rejected: 500 <= 500 already claimed
+
+### Deployed Season 3 V2 Contract
+
+**New Contract Address:** `0xC3af5dE6c6303A6241776c3C8b3DA747386982b1`
+
+**Game Parameters:**
+- Season: 3
+- Epochs: 3
+- Duration: 86400 seconds (24 hours per epoch)
+- Pool: 3,000,000 CLICK
+- Total game length: 3 days
+
+**Deployment:**
+```bash
+SEASON_EPOCHS=3 SEASON_DURATION=86400 \
+npx hardhat run scripts/deploy-v2-sepolia-test.js --network sepolia
+```
+
+**Post-deployment:**
+- Authorized game on Registry for season 3
+- Authorized game as Treasury disburser with 3M allowance
+- Started the game
+- Verified on Etherscan
+
+### Green Glowing Claim Button
+
+User requested a more encouraging claim experience with visual feedback.
+
+**New UI (`index.html`):**
+```html
+<div id="claim-container" style="display: none;">
+  <button id="claim-btn" disabled>Claim (0)</button>
+  <div class="submit-help">
+    <span>Claim your $CLICK tokens</span>
+    <div class="submit-help-icon">?
+      <div class="submit-help-tooltip">
+        Validates your clicks and sends<br>
+        $CLICK tokens to your wallet.<br>
+        Half goes to you, half is burned!
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+**CSS (`src/styles/buttons.css`):**
+```css
+#claim-btn {
+  background: linear-gradient(to bottom, #0a2a0a, #051505);
+  border: 2px solid #00ff00;
+  color: #00ff00;
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+  box-shadow: var(--shadow-inset), 0 0 20px rgba(0, 255, 0, 0.4);
+}
+
+#claim-btn.has-clicks {
+  animation: claim-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes claim-pulse {
+  0%, 100% { box-shadow: var(--shadow-inset), 0 0 20px rgba(0, 255, 0, 0.4); }
+  50% { box-shadow: var(--shadow-inset), 0 0 40px rgba(0, 255, 0, 0.8), 0 0 60px rgba(0, 255, 0, 0.4); }
+}
+```
+
+### Cash Machine Sound Effect
+
+Added `playCashMachineSound()` to play on successful token claim:
+
+**Effects (`src/effects/sounds.ts`):**
+```typescript
+let soundCashMachine: HTMLAudioElement | null = null;
+
+// In preloadSounds():
+soundCashMachine = new Audio('sounds/Cash Machine.mp3');
+
+export function playCashMachineSound(): void {
+  if (soundCashMachine) {
+    (soundCashMachine.cloneNode() as HTMLAudioElement).play().catch(() => {});
+  }
+}
+```
+
+### Full V2 Claim Flow
+
+Implemented `handleV2Claim()` function that handles the complete flow:
+
+```typescript
+async function handleV2Claim(e: Event): Promise<void> {
+  // Step 1: Submit any pending clicks to V2 API
+  const submitResult = await submitClicksV2(
+    gameState.userAddress!,
+    nonces.map(n => n.toString()),
+    turnstileToken
+  );
+
+  // Step 2: Get claim signature from server
+  const sigResponse = await requestV2ClaimSignature(
+    gameState.userAddress!,
+    currentEpoch,
+    { turnstileToken }
+  );
+
+  // Step 3: Call contract to claim tokens
+  const claimResult = await claimV2Reward(
+    CONFIG.contractAddress,
+    currentEpoch,
+    sigResponse.clickCount!,
+    sigResponse.signature
+  );
+
+  if (claimResult) {
+    playCashMachineSound(); // Ka-ching!
+    // Update local state, clear claimed clicks
+    // Refresh UI
+  }
+}
+```
+
+### V2 Frontend Wiring
+
+Several fixes to make V2 work end-to-end:
+
+1. **Added `IS_V2` flag:** Detects V2 based on Sepolia network
+2. **Added V2 API functions:** `submitClicksV2()`, `fetchV2Stats()`
+3. **Fixed `fetchDifficultyTarget()`:** Returns default difficulty for V2 (no on-chain difficulty)
+4. **Added `setAllTimeClicks()`:** Missing GameState method
+5. **Updated `updateSubmitButton()`:** Shows green claim button for V2, red submit for V1
+
+### Files Changed
+
+**Contracts:**
+- `contracts/ClickstrGameV2.sol` - Incremental claims (claimedClicks mapping)
+
+**Frontend:**
+- `src-ts/index.html` - Claim container HTML
+- `src-ts/src/main.ts` - `handleV2Claim()`, `handleV2Submit()`, V2 wiring
+- `src-ts/src/state/GameState.ts` - `setAllTimeClicks()` method
+- `src-ts/src/services/api.ts` - `submitClicksV2()`, `fetchV2Stats()`
+- `src-ts/src/services/contracts.ts` - Fixed V2 difficulty handling
+- `src-ts/src/effects/sounds.ts` - `playCashMachineSound()`
+- `src-ts/src/effects/index.ts` - Export cash machine sound
+- `src-ts/src/styles/buttons.css` - Green claim button styles
+- `src-ts/src/styles/layout.css` - Claim container positioning
+- `src-ts/src/config/network.ts` - Season 3 contract address
+
+**Documentation:**
+- `docs/deployment-status.md` - V2 Sepolia Season 3 section
+- `docs/v2-architecture.md` - Incremental claims documentation
+- `docs/session-notes.md` - This session
+
+### Key Design Decisions
+
+1. **Signature signs TOTAL, not increment:** Prevents replay attacks while allowing multiple claims
+2. **Green = claim, Red = submit:** Visual distinction between V1 (submit proofs) and V2 (claim tokens)
+3. **Cash machine sound:** Positive reinforcement for claiming tokens
+4. **Pulsing animation:** Draws attention when claimable clicks available
+
+## Session 21: February 5, 2026 - V2 API Completion & Bug Fixes
+
+### V2 API Endpoints Completed
+
+Ensured frontend exclusively uses V2 API endpoints when in V2 mode (Sepolia):
+
+**Frontend (api.ts) - Added V2 functions:**
+- `sendHeartbeatV2()` - Heartbeat to V2 API for active user tracking
+- `fetchActiveUsersV2()` - Get active user count from V2 API
+- `fetchV2Leaderboard()` - Get epoch leaderboard from V2 API (returns `MergedLeaderboardEntry[]`)
+
+**Frontend (main.ts) - V2 routing:**
+- `startHeartbeat()` → uses `sendHeartbeatV2` when `IS_V2`
+- `updateGlobalStats()` → uses `fetchActiveUsersV2` when `IS_V2`
+- `fetchLeaderboard()` → uses `fetchV2Leaderboard` when `IS_V2`
+- `loadRankingsForTab()` → uses `fetchV2Leaderboard` when `IS_V2`
+- `onConnected()` → uses `fetchV2Stats` when `IS_V2`
+
+**Server (clickstr-v2.js) - Added endpoints:**
+- `GET ?activeUsers=true` - Returns `activeHumans`, `activeBots` (always 0), `globalClicks`
+- `POST heartbeat=true` - Already existed, tracks active users in Redis sorted set
+
+### Pool & Reward Display Fix
+
+Fixed issue where pool and "Est. Per Click" showed 0 in V2 mode.
+
+**Root Cause:** V2 mode was skipping `refreshGameData()` which reads `poolRemaining` from contract.
+
+**Fix:** Now both V1 and V2 call `refreshGameData()` on connect, which properly reads:
+- `poolRemaining` from contract
+- `currentEpoch` and `totalEpochs`
+- Game active status
+
+Also updated `fetchRewardParams()` to read `DAILY_EMISSION_RATE` from V2 contract instead of hardcoded value.
+
+### Upstash JSON Auto-Deserialization Fix
+
+**Error:** `"[object Object]" is not valid JSON`
+
+**Root Cause:** Upstash Redis automatically deserializes JSON strings into objects. When we stored `JSON.stringify(obj)` and then called `JSON.parse(redis.get())`, it failed because the value was already an object.
+
+**Fix:** Added type checking before `JSON.parse()`:
+```javascript
+const challengePayload = typeof existingChallenge === 'string'
+  ? JSON.parse(existingChallenge)
+  : existingChallenge;
+```
+
+Applied to all `redis.get()` calls that expect JSON:
+- Challenge retrieval (line 684, 732)
+- Existing signature check (line 777)
+
+### Admin Reset Endpoint for V2
+
+Added `/api/clickstr-v2` admin reset action for testing:
+
+```javascript
+if (action === 'admin_reset') {
+  // Requires X-Admin-Key header matching CLICKSTR_ADMIN_SECRET env var
+  // Deletes all V2 Redis keys for user:
+  // - Click counts per epoch
+  // - Total clicks
+  // - Used nonces
+  // - Claim challenges
+  // - Human session
+  // - Milestones/achievements
+  // - Leaderboard entries
+}
+```
+
+### Wallet Signature Flow for Claims
+
+V2 claims require wallet signature to prevent replay attacks:
+
+1. Frontend calls `requestV2ClaimSignature()` without signature
+2. Server returns 401 with challenge message containing nonce
+3. Frontend prompts wallet to sign challenge (EIP-191 personal_sign)
+4. Frontend retries with `walletSignature` and original `challenge`
+5. Server verifies signature, generates attestation signature
+6. Frontend calls contract `claimReward(epoch, clickCount, signature)`
+
+**Challenge format:**
+```
+Clickstr V2 Claim Authentication
+Address: 0x...
+Epoch: 1
+Chain ID: 11155111
+Nonce: <random 32 hex chars>
+Issued At: <ISO timestamp>
+```
+
+### AlreadyClaimed Error Handling
+
+Added frontend check before contract call to prevent `AlreadyClaimed()` revert:
+
+```typescript
+const alreadyClaimed = await checkV2Claimed(gameState.userAddress!, currentEpoch);
+if (alreadyClaimed) {
+  setText(claimBtn, 'Already claimed!');
+  return;
+}
+```
+
+**Note:** `hasClaimed()` returns true if user has claimed ANY clicks for the epoch. The incremental claim system allows claiming MORE clicks if `clickCount > previouslyClaimed`, but the server must attest to the new higher total.
+
+### Known Issue: Redis Reset vs On-Chain State
+
+When admin-resetting Redis data for testing, the on-chain `claimedClicks` mapping is NOT reset. This causes:
+1. Redis shows 0 clicks
+2. User accumulates N clicks, server attests to N total
+3. Contract sees `N <= previouslyClaimed` and reverts `AlreadyClaimed()`
+
+**Solution for Testing:** Either:
+- Wait for next epoch (claims are per-epoch)
+- Deploy fresh contract
+- Don't admin-reset during active testing
+
+**Production Impact:** None - admin reset is testing-only, Redis and on-chain should always be in sync.
+
+### Files Changed
+
+**Server (mann-dot-cool/api/clickstr-v2.js):**
+- Added `activeUsers` GET endpoint
+- Added `admin_reset` POST action
+- Fixed Upstash JSON auto-deserialization
+- Added detailed error logging for signature generation
+- Fixed leaderboard to return `totalClicks` field (was `clicks`)
+
+**Frontend (src-ts/src/services/api.ts):**
+- Added `sendHeartbeatV2()`
+- Added `fetchActiveUsersV2()`
+- Added `fetchV2Leaderboard()` returning `MergedLeaderboardEntry[]`
+
+**Frontend (src-ts/src/main.ts):**
+- Simplified `onConnected()` to always call `refreshGameData()`
+- Added `checkV2Claimed()` before contract call
+- V2 routing for heartbeat, active users, leaderboard
+
+**Frontend (src-ts/src/services/contracts.ts):**
+- Updated `fetchRewardParams()` to read from V2 contract
+
+### V2 Sepolia Test Status
+
+| Component | Status |
+|-----------|--------|
+| Click submission | ✅ Working |
+| Turnstile verification | ✅ Working |
+| Wallet signature | ✅ Working |
+| Server attestation | ✅ Working |
+| Contract claim | ✅ Working (tested epoch 1) |
+| Incremental claims | ⚠️ Needs testing (wait for more clicks) |
+| Pool display | ✅ Working |
+| Leaderboard | ✅ Working |
+| Active users | ✅ Working |
+
+---
+
+## Session 22: ClickRegistry V2 with Earnings Tracking (February 6, 2026)
+
+### Problem: "Total Earned" Not Persisting Across Seasons
+
+Each season's game contract tracks `totalUserEarned[user]` only for that season. When a new season deploys, the old contract's data is inaccessible. We needed lifetime earnings tracking like we have for clicks.
+
+### Solution: Add Earnings Tracking to ClickRegistry
+
+The ClickRegistry was already the permanent record for lifetime clicks. We extended it to also track earnings:
+
+**New State Variables:**
+```solidity
+mapping(address => uint256) public totalEarned;
+mapping(address => mapping(uint256 => uint256)) public earnedPerSeason;
+uint256 public globalTotalEarned;
+```
+
+**New Functions:**
+- `recordEarnings(user, season, amount)` - Called by game contracts on claim
+- `getTotalEarned(user)` - View lifetime earnings
+- `getSeasonEarned(user, season)` - View per-season earnings
+- `seedHistoricalEarnings(users, amounts, season)` - Migration function
+
+**ClickstrGameV2 Changes:**
+- Added `registry.recordEarnings()` call in `claimReward()` after calculating `userAmount`
+- Added same call in `claimMultipleEpochs()` batch claim function
+
+### Deployment
+
+Deployed new ClickRegistry and Season 5 to Sepolia:
+
+| Contract | Address |
+|----------|---------|
+| **ClickRegistry (v2)** | `0xF8cC8ff9f7f092f5d7221552437aF748954cA427` |
+| **ClickstrGameV2 (S5)** | `0xec003c2282A01E30d712b238A068d852bCDda614` |
+| Treasury | `0x82378b6C7247b02f4b985Aca079a0A85E0D2cbAe` (unchanged) |
+
+**Season 5 Config:** 6 epochs × 4 hours = 24 hours
+
+### Historical Data Migration
+
+Migrated Season 3 test data to new registry:
+- Address: `0x3d9456Ad6463a77bD77123Cb4836e463030bfAb4`
+- Clicks: 426
+- Earned: 12.78 CLICK
+
+Used `seedHistoricalClicks()` and `seedHistoricalEarnings()` functions.
+
+### API Changes (clickstr-v2.js)
+
+**Added to REGISTRY_ABI:**
+```javascript
+{
+  name: 'totalEarned',
+  type: 'function',
+  stateMutability: 'view',
+  inputs: [{ name: 'user', type: 'address' }],
+  outputs: [{ name: '', type: 'uint256' }]
+}
+```
+
+**New function:** `getRegistryEarned(address)` - Reads lifetime earnings from registry
+
+**Updated GET response:** Now includes `lifetimeEarned` (in wei, as string)
+
+### Frontend Changes
+
+**Types (api.ts):**
+- Added `lifetimeEarned?: string` to `V2StatsResponse`
+
+**Main.ts - onConnected():**
+```typescript
+if (v2Stats.lifetimeEarned !== undefined) {
+  const earnedInClick = parseFloat(v2Stats.lifetimeEarned) / 1e18;
+  gameState.setTotalEarned(earnedInClick);
+}
+```
+
+**Contracts.ts - refreshUserStats():**
+- Now skips for V2 mode (lifetime stats come from API/registry, not per-season contract)
+
+### Bug Fix: checkV2Claimed Missing Contract Address
+
+Fixed call at line 1324 that was passing only 2 args instead of 3:
+```typescript
+// Before (broken):
+checkV2Claimed(gameState.userAddress!, currentEpoch)
+
+// After (fixed):
+checkV2Claimed(CONFIG.contractAddress, gameState.userAddress!, currentEpoch)
+```
+
+### Vercel Env Vars to Update
+
+```
+CLICKSTR_REGISTRY_ADDRESS=0xF8cC8ff9f7f092f5d7221552437aF748954cA427
+CLICKSTR_GAME_V2_ADDRESS=0xec003c2282A01E30d712b238A068d852bCDda614
+```
+
+### Current Status
+
+| Feature | Status |
+|---------|--------|
+| Lifetime clicks display | ✅ Working (shows 426) |
+| Lifetime earned display | ❌ Shows 0 (needs debugging) |
+
+### TODO: Debug Lifetime Earned Display
+
+The frontend shows 426 clicks but 0 earned. Need to trace:
+
+1. **Verify API returns `lifetimeEarned`** - curl the endpoint
+2. **Check Vercel env var** - Is `CLICKSTR_REGISTRY_ADDRESS` updated?
+3. **Check API deployment** - Was mann.cool redeployed with new code?
+4. **Trace frontend** - Is `v2Stats.lifetimeEarned` being received and parsed?
+
+The registry definitely has the data (verified via hardhat script showing 12.78 CLICK), so it's likely an API env var or deployment issue.
+
+## Session 23: V2 Verification, NFT Registry Fix & Incremental Claims Fix (February 6, 2026)
+
+### Full On-Chain Verification
+
+Performed comprehensive verification of all V2 Sepolia contracts after Session 22 deployment:
+
+| Component            | Value                                      | Status |
+|----------------------|--------------------------------------------|--------|
+| Game Contract        | `0xec003c2282A01E30d712b238A068d852bCDda614` | |
+| - Attestation Signer | `0xd4eEf240c88eA5Dc72de6fB7774065CEE22F7Afd` | ✅ Correct (fixed during session) |
+| - Season Number      | 5                                          | ✅ |
+| - Game Started       | true                                       | ✅ |
+| - Game Ended         | false                                      | ✅ |
+| Registry             | `0xF8cC8ff9f7f092f5d7221552437aF748954cA427` | |
+| - Game authorized    | true                                       | ✅ |
+| - Game's season      | 5                                          | ✅ |
+| Treasury             | `0x82378b6C7247b02f4b985Aca079a0A85E0D2cbAe` | |
+| - Game authorized    | true                                       | ✅ |
+| - Balance            | ~99.9M CLICK                               | ✅ |
+| NFT Contract         | `0x50276Dd07F357e13f4B7D978d0E9E747974EfF09` | |
+| - Signer             | `0xf55E4fac663ad8db80284620F97D95391ab002EF` | ✅ |
+| - Registry           | `0xAb16745314623EF6fAE03E90EC3987519C431B0f` | ⚠️ Old registry (immutable) |
+
+Frontend config and API both verified working correctly.
+
+### NFT Contract Fix: Mutable Registry
+
+**Problem:** The NFT contract's `registry` was declared `immutable`, meaning it could never be updated. The NFT contract (`0x50276Dd...`) was deployed pointing to the old registry (`0xAb167...`) instead of the current one (`0xF8cC8...`).
+
+**Fix in `ClickstrNFTV2.sol`:**
+1. Changed `IClickRegistry public immutable registry` → `IClickRegistry public registry` (mutable)
+2. Added `RegistryUpdated` event
+3. Added `setRegistry(address _newRegistry) external onlyOwner` function with `ZeroAddress()` check
+
+All 43 existing tests pass. This means future NFT contract deployments can update their registry address without redeploying.
+
+### Token Claim Flow: Verified Working
+
+Successfully tested the basic V2 claim flow:
+1. Click and submit to API ✅
+2. Request claim attestation (API signs with correct key) ✅
+3. Claim reward on-chain (contract verifies signature) ✅
+
+### Incremental Claims Fix (Root Cause Found)
+
+**Problem:** After the initial claim worked, subsequent claims in the same epoch were blocked with "Already claimed for epoch 1" — even though the contract supports incremental claims.
+
+**Root Cause — TWO bugs in the API (`clickstr-v2.js`):**
+
+1. **Boolean claim check (lines 662-666):** Used `hasClaimedOnChain()` which returns `true` if ANY clicks were claimed, blocking all subsequent claims entirely.
+
+   ```javascript
+   // BEFORE (broken):
+   const alreadyClaimed = await hasClaimedOnChain(addr, epoch);
+   if (alreadyClaimed) {
+     return res.status(400).json({ error: 'Already claimed on-chain' });
+   }
+
+   // AFTER (fixed):
+   const alreadyClaimedClicks = await getClaimedClicksOnChain(addr, epoch);
+   if (clicks <= alreadyClaimedClicks) {
+     return res.status(400).json({ error: 'No new clicks to claim' });
+   }
+   ```
+
+2. **Cached signature returns old clickCount (lines 804-820):** When a signature was already issued, the API returned the cached signature with the OLD clickCount — even if the user had accumulated more clicks. It never generated a new signature for the higher count.
+
+   ```javascript
+   // BEFORE (broken): Always returned cached signature
+   if (existingSignature) {
+     return res.status(200).json({ ...parsed, note: 'Returning previously issued signature' });
+   }
+
+   // AFTER (fixed): Only return cached if no new clicks
+   if (existingSignature) {
+     const parsed = ...;
+     if (clicks <= parsed.clickCount) {
+       return res.status(200).json({ ...parsed, note: 'No new clicks' });
+     }
+     // Fall through to generate new signature for higher click count
+     console.log(`Incremental claim: ${parsed.clickCount} -> ${clicks} clicks`);
+   }
+   ```
+
+**API Fix Details:**
+- Added `getClaimedClicks` to `GAME_ABI`
+- Added `getClaimedClicksOnChain(address, epoch)` function returning `uint256`
+- Updated claim check: only block if `clicks <= alreadyClaimedClicks`
+- Updated signature cache: issue NEW signature when `clicks > parsed.clickCount`
+
+**Frontend Fix (`main.ts` + `contracts.ts`):**
+- Added `getClaimedClicks` to `CLICKSTR_V2_ABI`
+- Added `getV2ClaimedClicks()` function returning `number`
+- Changed claim guard from boolean `checkV2Claimed()` to numeric comparison:
+  ```typescript
+  // BEFORE:
+  const alreadyClaimed = await checkV2Claimed(CONFIG.contractAddress, userAddress, epoch);
+  if (alreadyClaimed) { /* block */ }
+
+  // AFTER:
+  const alreadyClaimedClicks = await getV2ClaimedClicks(CONFIG.contractAddress, userAddress, epoch);
+  if (sigResponse.clickCount! <= alreadyClaimedClicks) { /* block */ }
+  ```
+
+**Also fixed:** Unrelated build error — `showV2ClaimModal` was declared but unused (TS6133). Exported it to suppress the strict unused-locals check.
+
+### Files Changed
+
+**Contracts:**
+- `contracts/ClickstrNFTV2.sol` — Registry made mutable, `setRegistry()` added
+
+**API (`mann-dot-cool`):**
+- `api/clickstr-v2.js` — `getClaimedClicksOnChain()`, incremental claim logic, signature cache fix
+
+**Frontend (`src-ts/`):**
+- `src/types/contracts.ts` — Added `getClaimedClicks` to ABI
+- `src/services/contracts.ts` — Added `getV2ClaimedClicks()` function
+- `src/services/index.ts` — Export `getV2ClaimedClicks`
+- `src/main.ts` — Use `getV2ClaimedClicks` instead of boolean `checkV2Claimed`, export `showV2ClaimModal`
+
+### Deployment
+
+- **API:** Pushed to GitHub → Vercel auto-deploys
+- **Frontend:** Builds successfully, ready to deploy
+- **Contract:** NFT contract change is for future deployments (current NFT contract is already deployed as immutable)
+
+## Session: February 6, 2026 (Evening) - NFT System Redeployment & Milestone Fix
+
+### Context
+
+Season 5 on Sepolia is live (incremental claims working). NFT system was broken: no Mint Rewards panel showing, only one celebration fired, and claiming reverted on-chain. Three separate root causes identified and fixed.
+
+### Issue 1: NFT Contract Pointing at Wrong Registry
+
+**Problem:** The deployed ClickstrNFTV2 at `0x50276Dd...` was pointing at the old registry (`0xAb16745...`) instead of the current Season 5 registry (`0xF8cC8ff...`). The `setRegistry()` function was added to the Solidity source but never redeployed, so the on-chain contract was stuck.
+
+**Fix:** Deployed a new ClickstrNFTV2 contract to Sepolia:
+- **New address:** `0x0f049250Cc75b8da0b8B1167cB6362f84816DdF3`
+- Points to correct registry: `0xF8cC8ff9f7f092f5d7221552437aF748954cA427`
+- Same signer: `0xf55E4fac663ad8db80284620F97D95391ab002EF`
+- Same IPFS baseURI
+- Now includes `setRegistry()` for future-proofing
+
+**Vercel env var update required:** `NFT_CONTRACT_ADDRESS=0x0f049250Cc75b8da0b8B1167cB6362f84816DdF3`
+
+### Issue 2: V2 Frontend Missing NFT Panel
+
+**Problem:** The `onConnected()` function had an `if (IS_V2)` branch that fetched V2 stats but never called `renderNftPanel()` or `fetchServerStats()`. Only the V1 path rendered the NFT Mint Rewards panel. This meant:
+- NFT panel never showed in V2 mode
+- Achievement celebrations could fire (via `handleAchievements` on V2 submit response), but no persistent MINT buttons
+- No way to manually trigger claims
+
+**Fix (main.ts):**
+1. **On connect:** V2 path now fetches V1 server stats (for milestones/achievements/streaks from shared Redis) and calls `renderNftPanel()`.
+2. **After V2 submit:** Now refreshes server stats and re-renders NFT panel so newly earned achievements appear.
+
+**Ordering fix:** `fetchServerStats()` must run BEFORE `fetchV2Stats()` in V2 mode, because `setServerStats()` overwrites `allTimeClicks` with the V1 Redis value (which is 0 for V2 users). By running V2 stats second, the correct registry values win via `setAllTimeClicks()` and `setTotalEarned()`.
+
+### Issue 3: InvalidSignature on NFT Claim
+
+**Problem:** After redeploying the NFT contract, claim transactions reverted with `InvalidSignature` (error selector `0x8baa579f`). The signature includes `address(this)` in the hash, so signatures generated for the old contract address don't work on the new one.
+
+**Fix:** Updated `NFT_CONTRACT_ADDRESS` in Vercel env vars for mann.cool to the new contract address. Server now signs against the correct contract.
+
+### Issue 4: Incomplete V2 Milestone Definitions
+
+**Problem:** The V2 API (`clickstr-v2.js`) had stub milestone lists with TODO comments:
+- `GLOBAL_MILESTONES`: Only 7 of 24 entries (missing tiers 207-213, all of 220-229)
+- `HIDDEN_ACHIEVEMENTS`: Only 5 of 60 entries (missing tiers 505-609)
+- Comments said `// ... more hidden as needed (import full list from clickstr.js if needed)` — never completed
+
+This meant V2 click submissions only checked 5 hidden achievements and 7 global milestones, missing dozens of earned rewards.
+
+**Fix:** Completed both arrays in `clickstr-v2.js` to match `milestones-v2.csv` and the V1 `clickstr.js`:
+- `GLOBAL_MILESTONES`: All 24 entries (200-213 main + 220-229 hidden meme globals)
+- `HIDDEN_ACHIEVEMENTS`: All 60 entries (500-511 meme, 520-523 ones, 524-526 sevens, 527-529 eights, 530-532 nines, 540-545 palindromes, 560-566 math, 580-588 powers of 2, 600-609 cultural)
+
+### Issue 5: syncAchievements Broken for V2 Users
+
+**Problem:** The V1 `syncAchievements` endpoint reads `totalClicks` from `clickstr:clicks:{addr}` (V1 Redis key). V2 users have their clicks in `clickstr:v2:total:{addr}`. So sync always saw 0 clicks and reported "nothing to sync."
+
+**Fix:** Added V2 Redis key check to `syncAchievements` in `clickstr.js`:
+```javascript
+const v2Total = parseInt(await redis.get(`clickstr:v2:total:${addr}`) || '0', 10);
+if (v2Total > totalClicks) {
+  totalClicks = v2Total;
+}
+```
+
+### Issue 6: Reference claim-signature.js Out of Sync
+
+**Problem:** The `api/claim-signature.js` reference implementation in the game repo had completely wrong milestone tier mappings (e.g., tier 201 mapped to global click #69 instead of #10, `HIDDEN_MILESTONES` had only 9 entries with wrong values).
+
+**Fix:** Rewrote `GLOBAL_MILESTONES` and `HIDDEN_MILESTONES` to match `milestones-v2.csv` exactly.
+
+### Files Changed
+
+**Game repo (`stupid-clicker/`):**
+- `src-ts/src/config/network.ts` — Updated NFT contract address to `0x0f049250...`
+- `src-ts/src/main.ts` — V2 onConnected now fetches server stats + renders NFT panel; V2 submit refreshes NFT panel; fixed stat ordering to prevent V1 stats from clobbering V2 values
+- `api/claim-signature.js` — Fixed GLOBAL_MILESTONES and HIDDEN_MILESTONES to match CSV
+- `docs/deployment-status.md` — Updated NFT contract address
+
+**mann.cool API:**
+- `api/clickstr-v2.js` — Completed GLOBAL_MILESTONES (7 → 24 entries) and HIDDEN_ACHIEVEMENTS (5 → 60 entries)
+- `api/clickstr.js` — syncAchievements now checks V2 Redis clicks
+
+### On-Chain Actions
+
+- Deployed new ClickstrNFTV2 to Sepolia: `0x0f049250Cc75b8da0b8B1167cB6362f84816DdF3`
+- Verified registry, signer, owner, and tier requirements on-chain
+
+### Deployment
+
+- **mann.cool API:** Pushed to GitHub (commit `1a7dbaa`) → Vercel auto-deploys
+- **Frontend:** Builds successfully, Vercel auto-deploys from git
+- **Vercel env var:** `NFT_CONTRACT_ADDRESS` needs manual update to new address
+
+### Remaining
+
+- After mann.cool redeploys, use "Sync Achievements" button to retroactively grant all missing milestones for existing V2 users
+- Verify NFT claim flow works end-to-end (celebration → modal → sign → claim tx → mint)
+
+## Session: February 6, 2026 (Night) - Global 1/1 Sync & Dynamic Difficulty
+
+### Context
+
+Continued V2 Sepolia testing. Two issues found and fixed: global 1/1 milestones never sync retroactively, and PoW difficulty was completely static (no epoch-based adjustment).
+
+### Fix 1: Global 1/1 Milestone Sync
+
+**Problem:** The `syncAchievements` endpoint in `clickstr.js` only checked hidden achievements and personal milestones. Global 1/1 milestones (tiers 200-213, 220-229) were only awarded via the pass-through check in the click submission handler (`previousGlobal < gm.globalClick && newGlobal >= gm.globalClick`). If a user's global click count had already passed a threshold before the milestone definitions were added, those 1/1s were lost forever — sync couldn't recover them.
+
+**Fix:** Added global 1/1 checking to `syncAchievements` in `clickstr.js`:
+- Reads both V1 (`clickstr:global-clicks`) and V2 (`clickstr:v2:global-clicks`) counters, takes the max
+- Loops through all 24 `GLOBAL_MILESTONES`
+- Awards unclaimed 1/1s to the requesting user if global count exceeds the threshold
+- Returns `newGlobalMilestones` in the response
+
+**Frontend:** Updated `handleSyncAchievements()` in `main.ts` to merge `newGlobalMilestones` into the achievement processing flow (celebrations + Mint Rewards panel).
+
+**Files changed:**
+- `api/clickstr.js` (mann.cool) — Global 1/1 check in syncAchievements
+- `src-ts/src/services/api.ts` — Updated `SyncAchievementsResponse` type
+- `src-ts/src/main.ts` — Merge global milestones into achievements
+
+### Fix 2: Dynamic Difficulty Adjustment
+
+**Problem:** V2 difficulty was a static env var (`POW_DIFFICULTY_TARGET`). No adjustment ever happened. The v2-architecture doc said "Server still adjusts difficulty based on clicks per epoch" but this was never implemented. Risks:
+- Bot swarms (even with Turnstile) could exploit the fixed difficulty
+- 10,000 players clicking simultaneously would drain the treasury in hours
+- No defense-in-depth against abnormal click volumes
+
+**Fix:** Ported V1's Bitcoin-style difficulty adjustment to the V2 API server:
+
+**Server (`clickstr-v2.js`):**
+- Added `EPOCH_DURATION` to the contract ABI and `getGameState()` reads
+- `calculateNewDifficulty()` — `newTarget = currentTarget * targetClicks / actualClicks`, capped at 4x per epoch, with absolute floor (1000) and ceiling (maxUint256/1000)
+- `adjustDifficultyIfNeeded()` — Lazy evaluation: on each request, checks if epoch advanced. If so, iterates completed epochs and adjusts based on each epoch's click count vs target
+- `verifyNonce()` now takes a dynamic difficulty parameter instead of using the static constant
+- Target clicks per epoch uses the same formula as the contract's `_calculateReward()`: `(1,000,000 * EPOCH_DURATION) / 86400`
+- Difficulty stored in Redis: `clickstr:v2:difficulty` + `clickstr:v2:difficulty-epoch`
+- Between seasons: uses `MAX_DIFFICULTY_TARGET` (easiest)
+- New GET endpoint: `?difficulty=true` returns current target, epoch clicks, target clicks
+- `difficultyTarget` included in both submit and stats responses
+
+**Frontend:**
+- `contracts.ts` — `fetchDifficultyTarget()` for V2 now calls `GET /api/clickstr-v2?difficulty=true` instead of returning hardcoded value
+- `api.ts` — New `fetchV2Difficulty()` function + `V2DifficultyResponse` type
+- `types/api.ts` — Added `difficultyTarget` to `V2SubmitClicksResponse` and `V2StatsResponse`
+- `main.ts` — Syncs difficulty from server in 3 places: `onConnected()`, `handleV2Submit()`, `handleV2Claim()`
+
+**Files changed:**
+- `api/clickstr-v2.js` (mann.cool) — Full difficulty system (+169 lines)
+- `src-ts/src/services/api.ts` — V2 difficulty fetch
+- `src-ts/src/services/contracts.ts` — Dynamic V2 difficulty
+- `src-ts/src/types/api.ts` — Response types
+- `src-ts/src/main.ts` — Difficulty sync from responses
+- `docs/v2-architecture.md` — Updated difficulty documentation
+
+### Commits
+
+- clickstr `7d3c0e1` — Global 1/1 milestone sync (frontend)
+- mann.cool `709d60a` — Global 1/1 milestone sync (server)
+- clickstr `c7eb674` — Dynamic difficulty adjustment (frontend)
+- mann.cool `1485b49` — Dynamic difficulty adjustment (server)
+
+---
+
+## Session: February 6, 2026 (Evening) - NFT Tier Bonus System Ported to V2
+
+### Problem
+
+The V1 contract (`Clickstr.sol`) had a full NFT tier bonus system where holding achievement NFTs granted 2-10% bonus on token rewards. This system was **never ported to V2** — it was simply omitted from `ClickstrGameV2.sol`. This meant NFTs were purely cosmetic in V2, with no reward multiplier.
+
+### What Was Added
+
+Ported the complete NFT bonus system from V1 to V2, adapted for V2's architecture:
+
+**New Interface:**
+- `IClickstrNFT` — calls `claimed(address, uint256)` on the NFT contract (compatible with both V1 and V2 NFT contracts)
+
+**New State Variables:**
+- `achievementNFT` — mutable reference to NFT contract (can be set/updated anytime, unlike V1's immutable)
+- `tierBonus` mapping + `bonusTiers` array — same pattern as V1
+
+**New Admin Functions:**
+- `setAchievementNFT(address)` — set/update NFT contract, callable by owner anytime
+- `setTierBonuses(uint256[], uint256[])` — configure bonus tiers, owner only, before game starts
+- Per-tier cap of 20%, total cap of 50%
+
+**Bonus Application:**
+- `claimReward()` now calls `_distributeReward()` which applies the bonus after the 50/50 split
+- `claimMultipleEpochs()` calculates bonus once via `calculateBonus()`, applies per-epoch via `_processEpochClaim()`
+- Bonus drawn from pool, not from burn portion
+- Capped at available pool balance
+
+**View Functions:**
+- `calculateBonus(address)` — returns total bonus bps for a user
+- `getBonusTiers()` — returns configured tiers and amounts
+- `getUserBonusInfo(address)` — returns total bonus + qualifying tier list
+
+**Events:**
+- `BonusApplied(user, baseReward, bonusAmount, bonusBps)`
+- `AchievementNFTUpdated(oldNFT, newNFT)`
+
+### Stack-Too-Deep Refactoring
+
+The Solidity compiler hit "stack too deep" errors after adding bonus variables to the existing claim functions. Fixed by extracting internal helpers:
+
+- `_verifyAttestation()` — signature verification extracted from `claimReward()`
+- `_distributeReward()` — reward calculation + bonus + disbursement extracted from `claimReward()`
+- `_processEpochClaim()` — single epoch processing extracted from `claimMultipleEpochs()`, returns `uint256[4] memory` instead of tuple to reduce stack usage
+- `_processMultiClaim()` — loop + aggregation extracted from `claimMultipleEpochs()`
+
+### Deploy Script Updates
+
+**`deploy-v2.js`:** Added `setAchievementNFT(nftAddress)` and `setTierBonuses([4,6,8,9,11], [200,300,500,700,1000])` before `startGame()`.
+
+**`deploy-v2-season.js`:** Same setup when `NFT_CONTRACT_ADDRESS` env var is provided.
+
+### Tier Configuration
+
+| Tier | Milestone | Clicks | Bonus |
+|------|-----------|--------|-------|
+| 4 | 1K Club | 1,000 | 2% |
+| 6 | 10K Club | 10,000 | 3% |
+| 8 | 50K Club | 50,000 | 5% |
+| 9 | 100K Club | 100,000 | 7% |
+| 11 | 500K Club | 500,000 | 10% |
+
+Max possible: 27% bonus (all 5 tiers)
+
+### Files Changed
+
+- `contracts/ClickstrGameV2.sol` — Full bonus system + refactored internals
+- `scripts/deploy-v2.js` — NFT + bonus setup steps
+- `scripts/deploy-v2-season.js` — Optional NFT bonus setup
+- `docs/v2-architecture.md` — New "NFT Tier Bonus System" section
+- `docs/v2-transition.md` — Updated contract features, change log
+- `docs/todo.md` — Marked bonus port as complete
+- `docs/mainnet-deployment-guide.md` — Added bonus setup to V2 deployment checklist
+
+### Verification
+
+- All 111 existing tests pass
+- Clean compile with no warnings
+
+## Session: February 6, 2026 (Evening) - V2 Season 6 Short-Epoch Test Deployment
+
+### Goal
+
+Deploy a fast-cycling Sepolia test to observe epoch transitions, difficulty adjustment, finalization, winner distribution, and NFT bonus mechanics in real time — things that are hard to test with multi-hour epochs.
+
+### Contract Change: Lower Minimum Epoch Duration
+
+`ClickstrGameV2.sol` line 268 had `require(_epochDuration >= 1 hours)`. Changed to:
+
+```solidity
+require(_epochDuration >= 2 minutes, "Epoch too short"); // TODO: restore to 1 hours before mainnet
+```
+
+All 111 tests still pass after this change. The V1 contract (`Clickstr.sol`) was not modified.
+
+### Season 6 Deployment
+
+Deployed using existing V2 infrastructure (registry, treasury, NFT contract all reused):
+
+```bash
+REGISTRY_ADDRESS=0xF8cC8ff9f7f092f5d7221552437aF748954cA427 \
+TREASURY_ADDRESS=0x82378b6C7247b02f4b985Aca079a0A85E0D2cbAe \
+ATTESTATION_SIGNER=0xd4eEf240c88eA5Dc72de6fB7774065CEE22F7Afd \
+NFT_CONTRACT_ADDRESS=0x0f049250Cc75b8da0b8B1167cB6362f84816DdF3 \
+SEASON_NUMBER=6 SEASON_EPOCHS=5 SEASON_DURATION=300 SEASON_POOL=10000 \
+  npx hardhat run scripts/deploy-v2-season.js --network sepolia
+```
+
+**Season 6 Parameters:**
+| Parameter | Value |
+|-----------|-------|
+| Game Contract | `0x36c0F34B78E11Cf8DC6473D962aFB558630C340B` |
+| Epochs | 5 x 5 minutes (25 min total) |
+| Pool | 10,000 CLICK |
+| NFT Bonuses | Enabled (2%-10%) |
+| Start | 2026-02-06 18:34:48 UTC |
+| End | 2026-02-06 18:59:48 UTC |
+
+### Bug Found: Stale Epoch in API (EpochAlreadyFinalized)
+
+**Problem:** Claiming reverted with `EpochAlreadyFinalized` (error selector `0x3366263c`).
+
+**Root Cause:** `getGameState()` in `mann-dot-cool/api/clickstr-v2.js` reads `currentEpoch` directly from the contract. The on-chain `currentEpoch` is only updated when someone calls a function that triggers `_checkAndAdvanceEpoch()`. With 5-minute epochs and no prior claims, the contract's `currentEpoch` stays stale at 1 even after epoch 1's time window has passed.
+
+When the user's `claimReward()` tx lands, `_checkAndAdvanceEpoch()` runs first, auto-finalizes epoch 1, advances to epoch 2+, then the claim for epoch 1 reverts because it's now finalized.
+
+**Fix:** Added time-based epoch computation to `getGameState()`, mirroring the contract's `_checkAndAdvanceEpoch` logic:
+
+```javascript
+// In getGameState(), after reading contract state:
+let effectiveEpoch = Number(currentEpoch);
+if (gameStarted && !gameEnded && Number(gameStartTime) > 0) {
+  const now = Math.floor(Date.now() / 1000);
+  const epochsSinceStart = Math.floor((now - Number(gameStartTime)) / Number(epochDuration));
+  const targetEpoch = Math.min(epochsSinceStart + 1, Number(totalEpochs));
+  if (targetEpoch > effectiveEpoch) {
+    effectiveEpoch = targetEpoch;
+  }
+}
+```
+
+Also added `gameStartTime` to the `GAME_ABI` array and the contract read batch.
+
+**Note:** This bug wouldn't surface with 24-hour epochs in practice (plenty of time to claim within an epoch), but it's still the correct fix — the API should always derive epoch from time, not rely on stale on-chain state.
+
+### Remaining Issue: "No valid nonces" on Submit
+
+After the epoch fix deployed, clicking worked (mining nonces locally) but submitting returned 400 "No valid nonces".
+
+**Likely cause:** The frontend miner hashes nonces with epoch included (`keccak256(address, nonce, epoch, chainId)`). The frontend gets epoch from the contract (stale epoch 1), but the server now correctly computes a later epoch. Since epoch is part of the hash, the server rejects the nonces as invalid.
+
+**Fix needed:** The frontend should also derive epoch from time (or fetch the server's epoch via the GET stats endpoint) so miner and verifier agree on epoch. This is the same stale-epoch problem, but on the client side.
+
+### Remaining Issue: Difficulty Display
+
+The UI showed "NORMAL+" difficulty even though this was a fresh season with very few clicks. Possible causes:
+1. Server-side difficulty stored in Redis (`clickstr:v2:difficulty`) may carry over from the previous season
+2. The Redis reset cleared V2 keys but the difficulty key may need explicit clearing
+3. With `targetClicksPerEpoch = 1,000,000 * 300 / 86400 ≈ 3,472`, even modest click counts could make difficulty not decrease
+
+**Needs investigation in next session.**
+
+### Files Changed
+
+**Game repo (`stupid-clicker/`):**
+- `contracts/ClickstrGameV2.sol` — Lowered min epoch from 1 hour to 2 minutes (with TODO to restore)
+- `src-ts/src/config/network.ts` — Updated Sepolia contract to Season 6 (`0x36c0...340B`)
+- `sepolia/deployment-v2-season6.json` — Auto-generated by deploy script
+- `docs/session-notes.md` — This entry
+
+**API repo (`mann-dot-cool/`):**
+- `api/clickstr-v2.js` — Added `gameStartTime` to ABI; compute time-based epoch in `getGameState()`
+
+### Operational Steps Taken
+
+1. Deployed Season 6 game contract via `deploy-v2-season.js`
+2. Updated frontend `network.ts` with new contract address
+3. Updated Vercel env var `CLICKSTR_GAME_V2_ADDRESS` on mann.cool
+4. Reset all Redis click data via admin endpoint
+5. Pushed mann.cool API fix to GitHub (auto-deployed to Vercel)
+
+### Next Steps
+
+1. **Fix frontend epoch derivation** — miner needs to use time-based epoch (matching server), not stale contract epoch
+2. **Clear stale difficulty from Redis** — or add season-scoped difficulty keys
+3. **Deploy another short test season** (Season 7) once fixes are in place
+4. **Restore `_epochDuration >= 1 hours`** before any mainnet V2 deployment

@@ -286,6 +286,36 @@ export async function claimNft(
 }
 
 /**
+ * Compute time-based epoch from wall-clock time.
+ * Mirrors the contract's _checkAndAdvanceEpoch logic and the server's getGameState().
+ * The on-chain currentEpoch only advances when someone transacts, so with short epochs
+ * it can become stale. This derives the real epoch from gameStartTime + epochDuration.
+ */
+function computeEffectiveEpoch(gameStats: GameStats): number {
+  if (!gameStats.started || gameStats.ended) {
+    return gameStats.currentEpoch;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  if (gameStats.gameStartTime <= 0 || gameStats.totalEpochs <= 0) {
+    return gameStats.currentEpoch;
+  }
+
+  // epochDuration = (gameEndTime - gameStartTime) / totalEpochs
+  const totalDuration = gameStats.gameEndTime - gameStats.gameStartTime;
+  if (totalDuration <= 0) {
+    return gameStats.currentEpoch;
+  }
+  const epochDuration = totalDuration / gameStats.totalEpochs;
+
+  const epochsSinceStart = Math.floor((now - gameStats.gameStartTime) / epochDuration);
+  const targetEpoch = Math.min(epochsSinceStart + 1, gameStats.totalEpochs);
+
+  // Use whichever is higher — on-chain might catch up, time-based is ahead
+  return Math.max(targetEpoch, gameStats.currentEpoch);
+}
+
+/**
  * Fetch and update game data in state
  */
 export async function refreshGameData(): Promise<boolean> {
@@ -296,7 +326,9 @@ export async function refreshGameData(): Promise<boolean> {
     return false;
   }
 
-  gameState.setEpochInfo(gameStats.currentEpoch, gameStats.totalEpochs);
+  // Use time-based epoch to avoid stale on-chain value
+  const effectiveEpoch = IS_V2 ? computeEffectiveEpoch(gameStats) : gameStats.currentEpoch;
+  gameState.setEpochInfo(effectiveEpoch, gameStats.totalEpochs);
   gameState.setDifficulty(difficulty);
   gameState.setPoolRemaining(
     parseFloat(ethers.utils.formatEther(gameStats.poolRemaining.toString()))

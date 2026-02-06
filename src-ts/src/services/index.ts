@@ -19,8 +19,13 @@ export {
   confirmClaim,
   requestV2ClaimSignature,
   fetchV2ClaimableEpochs,
+  submitClicksV2,
+  fetchV2Stats,
   sendHeartbeat,
+  sendHeartbeatV2,
   fetchActiveUsers,
+  fetchActiveUsersV2,
+  fetchV2Leaderboard,
   fetchRecentBotActivity,
   syncAchievements,
 } from './api.ts';
@@ -56,6 +61,7 @@ export {
   claimNft,
   claimV2Reward,
   checkV2Claimed,
+  getV2ClaimedClicks,
   refreshGameData,
   refreshUserStats,
 } from './contracts.ts';

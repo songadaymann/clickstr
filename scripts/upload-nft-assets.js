@@ -188,11 +188,12 @@ function generateMetadata(milestone, cursorsHash, oneOfOnesHash) {
     const isGlobal = tier >= 200 && tier < 500;
 
     // Determine image path
+    // Note: wrapWithDirectory creates a folder structure, so we need to include the folder name
     let image;
     if (isGlobal) {
         const filename = getOneOfOneFilename(tier, milestone.Cursor);
         if (filename) {
-            image = `ipfs://${oneOfOnesHash}/${filename}`;
+            image = `ipfs://${oneOfOnesHash}/clickstr-one-of-ones/${filename}`;
         } else {
             console.warn(`  Warning: No 1/1 image found for tier ${tier}`);
             image = '';
@@ -200,7 +201,7 @@ function generateMetadata(milestone, cursorsHash, oneOfOnesHash) {
     } else {
         const filename = getCursorFilename(tier, milestone.Cursor);
         if (filename) {
-            image = `ipfs://${cursorsHash}/${filename}`;
+            image = `ipfs://${cursorsHash}/clickstr-cursors/${filename}`;
         } else {
             console.warn(`  Warning: No cursor image found for tier ${tier}`);
             image = '';
@@ -234,7 +235,7 @@ function generateMetadata(milestone, cursorsHash, oneOfOnesHash) {
         name: milestone.Name,
         description: generateDescription(milestone),
         image: image,
-        external_url: 'https://clickstr.xyz',
+        external_url: 'https://clickstr.fun',
         attributes: attributes
     };
 
